@@ -1,14 +1,19 @@
+> [!CAUTION]
+> **This project is under active construction.** The code runs and can be used to explore the framework, but it still
+> needs more updates before it can be relied on to reproduce the original paper results or to support new research
+> projects.
+
 # The Data Manifold Under the Microscope
 
-## Note to the reviewers
+## Library transition status
 
 ---
-We are planning to make the current code publicly available. Our plan is to place and evolve the datasets and the 
-geometric measure estimation methods into a framework and make the manifold fitting and bounds evaluation available on
-a separate repository for reproducibility and as an example usage of the framework. Any suggestions on how we could
-better structure this are more than welcome!
+This repository is being transitioned from a paper-review artifact into a reusable Python library for working with
+grid-sampled data manifolds and geometric measurements. The current library-facing core is the dataset generation and
+finite-difference geometry code. The manifold fitting and bounds evaluation code is still included as reference material
+from the accompanying paper and as example usage of the framework, but it is not yet a polished or stable public API.
 
-Here is a list of highlights to help you check the code:
+Here is a map of the main components:
 
 - Datasets
   - There are two notebooks under `notebooks/datasets_and_measures` which contain examples of loading and visualizing the toy and image datasets.
@@ -23,13 +28,14 @@ Here is a list of highlights to help you check the code:
   - The denoising autoencoder used for the toy datasets is in `experiment_scripts/toy_manifolds_experiment/manifold_fitting_denoising_autoencoder.py`.
   - The beta-VAE components are under `representation_learning/beta_vae`.
   - The scripts running the main experiments are `experiment_scripts/manifold_fitting/training.py` for the image datasets and `experiment_scripts/toy_manifolds_experiment/fit_and_get_measures.py` for the toy datasets.
-  - The three notebooks under `notebooks/manifold_fitting` show how to generate some of the results of the paper, namely the bound curves for all datasets on MMLS, the curver on dSprites with MMLS on different dimensions and the curves for all methods on dSprites. Please note that the code and plots are not very polished there. The final plots were generated separately using the curves exported from the notebook.  
+  - The three notebooks under `notebooks/manifold_fitting` show how to generate some of the results of the paper, namely the bound curves for all datasets on MMLS, the curves on dSprites with MMLS on different dimensions and the curves for all methods on dSprites. Please note that the code and plots are not very polished there. The final plots were generated separately using the curves exported from the notebook.  
 
 ---
 
-This repository provides a framework for studying and benchmarking data manifolds through densely sampled grid-based 
-datasets and finite-difference geometric computations. It offers tools to precisely measure curvature, reach,
-and volume, enabling controlled evaluation of manifold fitting, generalization bounds, and geometric estimation methods.
+`manifold-microscope` provides a framework for studying and benchmarking data manifolds through densely sampled
+grid-based datasets and finite-difference geometric computations. The goal of the library is to make it practical to
+construct measurable reference manifolds, compute geometric quantities such as curvature, reach, and volume, and use
+those quantities when evaluating manifold fitting, generalization bounds, and geometric estimation methods.
 
 ## Why Use the Microscope?
 
@@ -39,8 +45,9 @@ For instance, if you derive a new generalization or manifold fitting bound invol
 
 ## Setup and requirements
 
-To install the library, simply run `pip install .` on the top level of the project. It is recommended to use a computer
-with a GPU of at least 5 GB memory and 30 GB of RAM. 
+To install the current development version of the library, run `pip install .` at the top level of the project. It is
+recommended to use a computer with a GPU of at least 5 GB memory and 30 GB of RAM, especially for dense image-dataset
+experiments.
 
 To run the unit tests of the project, run `pytest` on the top level of the project. 
 
@@ -80,14 +87,16 @@ Example computations of the measures can be found in the following notebook: `no
 
 Long term, the goal is to extend this module to include geodesic distances, exponential maps, and other advanced differential quantities.
 
-## Manifold Fitting Bounds (Included for the review - this part will be moved to separate public repository)
+## Manifold Fitting Bounds
 
-This section provides reference experiments used in the accompanying paper to validate theoretical manifold fitting bounds.
+This section provides reference experiments used in the accompanying paper to validate theoretical manifold fitting
+bounds. These scripts and notebooks are kept in this repository for now so that the original experiments remain visible,
+but this part of the codebase is still being reorganized and may move to a separate public reproducibility repository.
 
 Two types of models are used to approximate the reference manifolds:
 
 - Moving Least Squares (MMLS): A classical local manifold fitting algorithm used to recover smooth embeddings from sampled data.
-- $\beta$-VAE: A deep generative model trained to learn a low-dimensional latent manifold consistent with the data geometry and using it reconstruct a full data manifold.
+- $\beta$-VAE: A deep generative model trained to learn a low-dimensional latent manifold consistent with the data geometry and using it to reconstruct a full data manifold.
 
 The results are compared to theoretical bounds proposed by Fefferman, Narayanan & Mitter (2016) and Genovese et al. (2012), assessing their tightness and dependence on curvature, reach, and sample density.
 
