@@ -10,3 +10,4 @@ build/
 CLAUDE.md
 results
 *.png
+dist

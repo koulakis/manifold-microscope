@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 77.0.3", "setuptools-scm"]
+requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,7 +27,6 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -47,6 +46,8 @@ dependencies = [
     "geomloss",
     "joblib",
     "sympy",
+    "scikit-learn",
+    "seaborn",
     "einops >= 0.8.0",
 ]
 
@@ -59,8 +60,6 @@ benchmark = [
     "PyYAML",
     "matplotlib",
     "pandas",
-    "seaborn",
-    "scikit-learn",
     "timm >= 1.0.14",
     "lightly >= 1.5.18"
 ]
