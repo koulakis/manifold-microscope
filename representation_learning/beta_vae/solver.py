@@ -1,4 +1,9 @@
-"""solver.py"""
+"""Training solver for the adapted beta-VAE implementation.
+
+Copied and adapted from https://github.com/1Konny/Beta-VAE.
+The upstream project is MIT licensed; see `LICENSE` and `NOTICE.md` in this
+package for the original copyright and attribution.
+"""
 
 import warnings
 from pathlib import Path

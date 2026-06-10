@@ -98,6 +98,12 @@ Two types of models are used to approximate the reference manifolds:
 - Moving Least Squares (MMLS): A classical local manifold fitting algorithm used to recover smooth embeddings from sampled data.
 - $\beta$-VAE: A deep generative model trained to learn a low-dimensional latent manifold consistent with the data geometry and using it to reconstruct a full data manifold.
 
+The $\beta$-VAE implementation in `representation_learning/beta_vae` is copied and adapted from
+[1Konny/Beta-VAE](https://github.com/1Konny/Beta-VAE), a PyTorch reproduction of the $\beta$-VAE models from Higgins
+et al. (2017) and Burgess et al. (2018). The upstream project is distributed under the MIT License; the original
+copyright and license text are included in `representation_learning/beta_vae/LICENSE`, and a package-level attribution
+notice is included in `representation_learning/beta_vae/NOTICE.md`.
+
 The results are compared to theoretical bounds proposed by Fefferman, Narayanan & Mitter (2016) and Genovese et al. (2012), assessing their tightness and dependence on curvature, reach, and sample density.
 
 To reproduce the fitting of the manifolds:

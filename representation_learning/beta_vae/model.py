@@ -1,4 +1,9 @@
-"""model.py"""
+"""beta-VAE model definitions.
+
+Copied and adapted from https://github.com/1Konny/Beta-VAE.
+The upstream project is MIT licensed; see `LICENSE` and `NOTICE.md` in this
+package for the original copyright and attribution.
+"""
 
 import torch
 import torch.nn as nn

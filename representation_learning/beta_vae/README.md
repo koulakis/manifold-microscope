@@ -1,4 +1,14 @@
 # β-VAE
+
+This package contains code copied and adapted from
+[1Konny/Beta-VAE](https://github.com/1Konny/Beta-VAE), a PyTorch reproduction of the beta-VAE papers listed below.
+The upstream project is distributed under the MIT License by WonKwang Lee; the original copyright and license text are
+included in [`LICENSE`](LICENSE), and the local attribution notice is in [`NOTICE.md`](NOTICE.md).
+
+The local version has been modified for this repository, including integration with the manifold-microscope dataset
+loaders and experiment configuration, updated device handling, checkpoint and plotting changes, removal/replacement of
+Visdom-based reporting, and inference helpers for intermediate representations.
+
 Pytorch reproduction of two papers below:
 1. [β-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework, Higgins et al., ICLR, 2017]
 2. [Understanding disentangling in β-VAE, Burgess et al., arxiv:1804.03599, 2018]
