@@ -1,0 +1,12 @@
+.ipynb_checkpoints
+__pycache__
+.idea
+manifold_microscope.egg-info
+*_dsprites_experiment
+*.npz
+lightning_logs
+build/
+*.zip
+CLAUDE.md
+results
+*.png

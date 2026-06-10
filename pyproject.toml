@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manifold-microscope"
+authors = [
+    {name = "***"}
+]
+description = "The data manifold under the microscope."
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch >= 2.2.0",
+    "torchvision",
+    "numpy >= 1.22.0",
+    "typer",
+    "tqdm",
+    "opencv-python",
+    "pynndescent >= 0.5.13",
+    "einops >= 0.8.0",
+    "timm >= 1.0.14",
+    "lightly >= 1.5.18"
+]
+
+[tool.setuptools.packages.find]
+include = ["microscope", "representation_learning", "supervised_learning", "experiment_scripts"]
