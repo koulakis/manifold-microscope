@@ -1,28 +1,75 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools >= 77.0.3", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "manifold-microscope"
 authors = [
-    {name = "***"}
+    {name = "Marios Koulakis"}
 ]
 description = "The data manifold under the microscope."
 version = "0.0.1"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "BSD-3-Clause"
+license-files = [
+    "LICENSE",
+    "representation_learning/beta_vae/LICENSE",
+    "representation_learning/beta_vae/NOTICE.md"
+]
+keywords = [
+    "manifold learning",
+    "differential geometry",
+    "geometric deep learning",
+    "datasets",
+    "curvature"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 dependencies = [
     "torch >= 2.2.0",
-    "torchvision",
     "numpy >= 1.22.0",
-    "typer",
     "tqdm",
     "opencv-python",
-    "pynndescent >= 0.5.13",
+    "Pillow",
+    "scipy",
+    "geomloss",
+    "joblib",
+    "sympy",
     "einops >= 0.8.0",
+]
+
+[project.optional-dependencies]
+benchmark = [
+    "torchvision",
+    "typer",
+    "pynndescent >= 0.5.13",
+    "pytorch-lightning",
+    "PyYAML",
+    "matplotlib",
+    "pandas",
+    "seaborn",
+    "scikit-learn",
     "timm >= 1.0.14",
     "lightly >= 1.5.18"
 ]
 
+[project.urls]
+Homepage = "https://github.com/koulakis/manifold-microscope"
+Repository = "https://github.com/koulakis/manifold-microscope"
+Issues = "https://github.com/koulakis/manifold-microscope/issues"
+
 [tool.setuptools.packages.find]
-include = ["microscope", "representation_learning", "supervised_learning", "experiment_scripts"]
+include = ["microscope*", "representation_learning*", "experiment_scripts*"]
+exclude = ["*.tests", "*.tests.*"]
