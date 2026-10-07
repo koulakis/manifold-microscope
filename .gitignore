@@ -11,3 +11,4 @@ CLAUDE.md
 results
 *.png
 dist
+.DS_Store
