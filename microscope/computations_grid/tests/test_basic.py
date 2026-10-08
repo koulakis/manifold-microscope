@@ -14,7 +14,7 @@ from microscope.manifold_examples.symbolic_computations import ellipsoid_paramet
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0"
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def test_partial_derivatives_across_all_dims_2d_ellipsoids(self):
         for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
@@ -365,7 +365,7 @@ class TestEllipsoids(unittest.TestCase):
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0"
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def test_partial_derivatives_across_all_dims_2d_hyperboloid(self):
         for semi_axes in [[5, 1, 3]]:

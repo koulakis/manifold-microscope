@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
+import torch
 import seaborn as sns
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -136,7 +137,7 @@ def compute_measures_multiclass(
     normalize_curvatures: bool = False,
     reach_subsample: Optional[int] = None,
     reach_batch_size: int = 2,
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ) -> AnalysisResults:
     """Given a multi-class dataset in grid format, compute its volume, curvature and reach per point and generate
     plots for the analysis of the manifold. Note that the data is rescaled to have a unitary total volume.
@@ -154,7 +155,7 @@ def compute_measures_multiclass(
         reach_subsample: If set to some integer, then the local reach will be computed only on every
             n-th point. The tangent spaces will be approximated though with all points.
         reach_batch_size: The size of batches on which the local reach is computed.
-        device: The torch device.
+        device: The torch device, e.g. "cpu" or "cuda:0". If None, use CUDA when available, else CPU.
 
     Returns:
         A dictionary with all the computed measures.

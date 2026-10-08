@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import pytest
+import torch
 
 from microscope.computations_grid.curvature import scalar_curvature, compute_total_curvature
 from microscope.computations_grid.volume import volume_element
@@ -15,7 +16,7 @@ from microscope.manifold_examples.sphere import sphere_scalar_curvature
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0"
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def test_scalar_curvature_2d_ellipsoids(self):
         for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
@@ -226,7 +227,7 @@ class TestEllipsoids(unittest.TestCase):
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0"
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def test_scalar_curvature_2d_hyperboloid(self):
         semi_axes = [5, 1, 3]

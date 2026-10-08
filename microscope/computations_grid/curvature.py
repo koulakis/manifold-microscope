@@ -170,7 +170,7 @@ def scalar_curvature(
     cyclic_dimensions: list[int],
     patch_sizes: list[int],
     normalize: bool = False,
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ) -> np.ndarray:
     """Given a grid with features on the space of the manifold, it computes an estimate of the scalar curvature per
     point of the grid, excluding points with distance <= 3 from the borders of the grid. The estimation is performed
@@ -185,12 +185,15 @@ def scalar_curvature(
         patch_sizes: The size of the patch to use. One value per dimension.
         normalize: If true, it computes a normalized version of the scalar curvature, like in the definition
             in Do Carmo.
-        device: The torch device.
+        device: The torch device, e.g. "cpu" or "cuda:0". If None, use CUDA when available, else CPU.
 
     Returns:
         A vector with the scala curvature per point of shape (s1_ ... sk_). The new dimensions s_i_ equal to s_i if the
         i-th dimension is cyclic, else to s_i - 6.
     """
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     dims = len(patch_sizes)
     overlaps = dims * [6]
 

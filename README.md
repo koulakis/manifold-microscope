@@ -100,7 +100,11 @@ Available measures include:
 - Scalar curvature
 - Reach along with a pointwise version of it.
 
-All computations can be executed on GPU, allowing fast analysis even for dense grids.
+Grid computations with a `device` argument accept `device="cpu"` for laptops, including Apple Silicon Macs,
+or `device="cuda:0"` for a CUDA GPU. Omitting the argument selects CUDA when available and CPU otherwise.
+Tensor-based operations use the device of their input tensor. Dense grids can require substantial memory and
+run more slowly on CPU. Run the grid tests with `pytest microscope/computations_grid`; tests marked slow
+require `--runslow`.
 
 Example computations of the measures can be found in the following notebook: `notebooks/datasets_and_measures/toy_manifold_datasets.ipynb`.
 

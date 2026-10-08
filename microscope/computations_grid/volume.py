@@ -33,7 +33,7 @@ def volume_element(
     difference_intervals: list[float],
     cyclic_dimensions: list[int],
     patch_sizes: list[int],
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ) -> np.ndarray:
     """Given a grid with features on the space of the manifold, it computes an estimate of the volume element per point
     of the grid, excluding border points, using a finite element approximation to compute the Riemannian metric and
@@ -45,13 +45,16 @@ def volume_element(
         difference_intervals: The h value for each dimension of the grid.
         cyclic_dimensions: An optional set of dimensions where the grid is cyclic.
         patch_sizes: The size of the patch to use. One value per dimension.
-        device: The torch device.
+        device: The torch device, e.g. "cpu" or "cuda:0". If None, use CUDA when available, else CPU.
 
     Returns:
         A tensor of shape (s1_ ... sk_) which has a single volume element value per point. The new dimensions s_i_
         equal to s_i if the i-th dimension is cyclic, else to s_i - 2 as the computations cannot be performed on
         the borders.
     """
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     dims = len(patch_sizes)
     overlaps = dims * [2]
 

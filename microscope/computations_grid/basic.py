@@ -121,8 +121,16 @@ def partial_derivatives_across_all_dims_batched(
     difference_intervals: list[float],
     patch_sizes: list[int],
     cyclic_dimensions: list[int],
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ):
+    """Compute grid derivatives in patches on the selected device.
+
+    If device is None, use CUDA when available, else CPU. Explicit devices
+    such as "cpu" or "cuda:0" are passed through unchanged.
+    """
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     dims = len(patch_sizes)
     overlaps = dims * [2]
 

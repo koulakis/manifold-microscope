@@ -42,7 +42,7 @@ def reach_per_point(
     subsample_points: Optional[int] = None,
     batch_size: int = 10,
     return_witnesses: bool = False,
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
     """Estimate the reach based on https://arxiv.org/pdf/1705.04565. The formula is:
 
@@ -60,12 +60,15 @@ def reach_per_point(
         subsample_points: If set to some integer, then the local reach will be computed only on every
             n-th point. The tangent spaces will be approximated though with all points.
         return_witnesses: If true, return the pair point producing the smallest local reach.
-        device: The torch device.
+        device: The torch device, e.g. "cpu" or "cuda:0". If None, use CUDA when available, else CPU.
 
     Returns:
         The reach estimate per point in a tensor of shape (s1_ ... sk_). The new dimensions s_i_ equal to
         s_i if the i-th dimension is cyclic, else to s_i - 2 as the computations cannot be performed on the borders.
     """
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     if cyclic_dimensions is None:
         cyclic_dimensions = []
     if len(patch_sizes) != len(range_sizes):
@@ -93,7 +96,8 @@ def reach_per_point(
         features_on_grid,
         cyclic_dimensions=cyclic_dimensions,
         difference_intervals=difference_intervals,
-        patch_sizes=patch_sizes
+        patch_sizes=patch_sizes,
+        device=device
     ))
 
     if subsample_points is not None:
