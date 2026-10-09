@@ -151,7 +151,8 @@ class TestEllipsoids(unittest.TestCase):
 
             epsilon_error = 5e-3
             quantile_error = 1e-2
-            perc_high_error = (diff > epsilon_error).sum() / len(diff)
+            assert np.isfinite(diff).all(), "Nonfinite derivative or metric differences."
+            perc_high_error = (np.abs(diff) > epsilon_error).sum() / len(diff)
 
             if perc_high_error > quantile_error:
                 raise ValueError(
@@ -285,7 +286,8 @@ class TestEllipsoids(unittest.TestCase):
 
             epsilon_error = 8e-3 if ambient_dim <= 100 else 5e-2
             quantile_error = 2e-2
-            perc_high_error = (diff > epsilon_error).sum() / len(diff)
+            assert np.isfinite(diff).all(), "Nonfinite derivative or metric differences."
+            perc_high_error = (np.abs(diff) > epsilon_error).sum() / len(diff)
 
             if perc_high_error > quantile_error:
                 raise ValueError(
@@ -352,7 +354,8 @@ class TestEllipsoids(unittest.TestCase):
 
             epsilon_error = 1e-2
             quantile_error = 3e-2
-            perc_high_error = (diff > epsilon_error).sum() / len(diff)
+            assert np.isfinite(diff).all(), "Nonfinite derivative or metric differences."
+            perc_high_error = (np.abs(diff) > epsilon_error).sum() / len(diff)
 
             if perc_high_error > quantile_error:
                 raise ValueError(
@@ -499,7 +502,8 @@ class TestHyperboloids(unittest.TestCase):
 
             epsilon_error = 5e-3
             quantile_error = 1e-2
-            perc_high_error = (diff > epsilon_error).sum() / len(diff)
+            assert np.isfinite(diff).all(), "Nonfinite derivative or metric differences."
+            perc_high_error = (np.abs(diff) > epsilon_error).sum() / len(diff)
 
             if perc_high_error > quantile_error:
                 raise ValueError(
@@ -623,7 +627,8 @@ class TestHyperboloids(unittest.TestCase):
 
             epsilon_error = 1e-2 if ambient_dim <= 100 else 5e-2
             quantile_error = 7e-2
-            perc_high_error = (diff > epsilon_error).sum() / len(diff)
+            assert np.isfinite(diff).all(), "Nonfinite derivative or metric differences."
+            perc_high_error = (np.abs(diff) > epsilon_error).sum() / len(diff)
 
             if perc_high_error > quantile_error:
                 raise ValueError(
