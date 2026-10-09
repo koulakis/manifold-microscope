@@ -76,24 +76,18 @@ def extended_coil20(
     dtype: np.dtype = np.float32,
     verbose: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Generate and return a version of the dsprites dataset. This contains images of a sprite with the following
-    variations:
+    """Augment COIL-20 object views with scaling and in-plane rotation.
 
-    - sprite image: Can be a square, triangle or a heart.
-    - size: The sprite can have a number of different sizes in a given range of equidistant scales.
-    - orientation: The sprite can have a number of different orientations on a finite rotation group.
-    - location: The sprite can be in any location of the 2D image, leaving some border space.
-
-    Any possible combination of the above is included in the dataset in order to obtain a full (up to discretization)
-    data manifold. The data then has a shape of (sprites sizes orientations y_values x_values image_height image_width).
+    Loads the processed images via COIL20_PATH. Grid axes are object, original
+    view, size and in-plane angle, followed by image height and width.
 
     Args:
         image_size: The size of the image in pixels. Should be an even number.
         deformation_transforms_initial_size: A size to pad the image before applying rotations.
-        n_sizes: The number of different sprite sizes to use.
+        n_sizes: The number of object sizes before adding the boundary buffer.
         n_angles: The number of rotation angles to use.
-        min_size_ratio: The minimum size ratio to downscale the sprite.
-        max_size_ratio: The maximum size ratio to downscale the sprite.
+        min_size_ratio: The minimum object scale ratio.
+        max_size_ratio: The maximum object scale ratio.
         flat: If true, the dataset is flattened along on the variation dimensions.
         scale: If true, it centers the data around the mean and divides by the standard deviation.
         buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions
@@ -102,8 +96,10 @@ def extended_coil20(
         verbose: If true, progress bars will be printed during data generation.
 
     Returns:
-        The given version of the dSprites dataset of shape (n_shapes n_rotations n_sizes n_angles height width). The last
-        two dimensions correspond to the image shape and the rest to the transforms of the sprite.
+        (images, labels). Unless flat=True, images have shape
+        (20, 18, n_sizes + 2 * buffer_for_measure_estimation, n_angles, height, width)
+        and labels have the same leading grid shape. Image intensities are
+        mapped to [-1, 1] before optional statistical scaling.
     """
     # Add a buffer for the sizes.
     n_sizes = n_sizes + 2 * buffer_for_measure_estimation

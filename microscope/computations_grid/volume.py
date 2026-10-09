@@ -9,20 +9,15 @@ def volume_element_batch(
         features_on_grid: torch.Tensor,
         difference_intervals: list[float]
 ) -> torch.Tensor:
-    """Given a grid with features on the space of the manifold, it computes an estimate of the volume element per point
-    of the grid, excluding border points, using a finite element approximation to compute the Riemannian metric and
-    then the volume element.
+    """Estimate sqrt(det(g)) from central finite differences.
 
     Args:
-        features_on_grid: A tensor of shape (s1 ... sk f), where s_i is the number of points of the i-th dimension
-            of its grid and f the number of features.
-        difference_intervals: The h value for each dimension of the grid.
+        features_on_grid: Tensor of shape (s1, ..., sk, features).
+        difference_intervals: One coordinate spacing per grid axis.
 
     Returns:
-        A tensor of shape (s1_ ... sk_) which has a single volume element value per point. The new dimensions s_i_
-        equal to s_i if the i-th dimension is cyclic, else to s_i - 2 as the computations cannot be performed on
-        the borders.
-    """
+        A tensor of shape (s1 - 2, ..., sk - 2) on the input device.
+        All grid axes are cropped; pad periodic axes first."""
     metric = riemannian_metric(features_on_grid, difference_intervals)
 
     return torch.sqrt(torch.linalg.det(metric))
@@ -35,22 +30,18 @@ def volume_element(
     patch_sizes: list[int],
     device: str | torch.device | None = None
 ) -> np.ndarray:
-    """Given a grid with features on the space of the manifold, it computes an estimate of the volume element per point
-    of the grid, excluding border points, using a finite element approximation to compute the Riemannian metric and
-    then the volume element. It performs the computation on batches of given size to reduce visual memory requirements.
+    """Estimate the volume element of a NumPy grid in patches.
 
     Args:
-        features_on_grid: A tensor of shape (s1 ... sk f), where s_i is the number of points of the i-th dimension
-            of its grid and f the number of features.
-        difference_intervals: The h value for each dimension of the grid.
-        cyclic_dimensions: An optional set of dimensions where the grid is cyclic.
-        patch_sizes: The size of the patch to use. One value per dimension.
-        device: The torch device, e.g. "cpu" or "cuda:0". If None, use CUDA when available, else CPU.
+        features_on_grid: Floating array of shape (s1, ..., sk, features).
+        difference_intervals: One coordinate spacing per grid axis.
+        cyclic_dimensions: Zero-based periodic grid-axis indices.
+        patch_sizes: One patch size per grid axis, each greater than two.
+        device: Torch device; None selects CUDA when available, otherwise CPU.
 
     Returns:
-        A tensor of shape (s1_ ... sk_) which has a single volume element value per point. The new dimensions s_i_
-        equal to s_i if the i-th dimension is cyclic, else to s_i - 2 as the computations cannot be performed on
-        the borders.
+        A NumPy array of shape (s1_out, ..., sk_out), where s_i_out = s_i
+        for periodic axes and s_i - 2 otherwise: one volume element per point.
     """
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"

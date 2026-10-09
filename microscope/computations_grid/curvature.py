@@ -13,22 +13,16 @@ def christoffel_symbols(
     metric_inv: torch.Tensor,
     difference_intervals: list[float]
 ):
-    """Compute the Christoffel symbols of first and second kind with finite difference approximation, given the metric
-    tensor as input.
+    """Estimate Christoffel symbols of both kinds by finite differences.
 
     Args:
-        metric: The metric tensor of shape (s1 ... sk k k).
-        metric_inv: The inverse of the metric tensor, again of shape (s1 ... sk k k). This is precomputed
-            to save compute.
-        difference_intervals: The h value for each dimension of the grid.
+        metric: Metric tensor of shape (s1, ..., sk, k, k).
+        metric_inv: Its precomputed inverse, with the same shape.
+        difference_intervals: One coordinate spacing per grid axis.
 
     Returns:
-        gamma_first_kind: The Christoffel symbols of first kind on a tensor of shape (s1_ ... sk_ k k k).
-        gamma_second_kind: The Christoffel symbols of second kind on a tensor of shape (s1_ ... sk_ k k k).
-
-        In both outputs the new dimensions s_i_ equal to s_i if the i-th dimension is cyclic, else to s_i - 2 as the
-        computations cannot be performed on the borders.
-    """
+        (gamma_first_kind, gamma_second_kind), each a tensor of shape
+        (s1 - 2, ..., sk - 2, k, k, k). All grid axes are cropped."""
     n_dims = len(metric.shape) - 2
     metric_derivatives = partial_derivatives_across_all_dims(
         metric,
@@ -54,23 +48,18 @@ def riemannian_curvature_tensor(
     difference_intervals: list[float],
     kinds: list[str] = ("first", "second")
 ) -> dict[str, Optional[torch.Tensor]]:
-    """Compute the Riemannian curvature tensor from the Christoffel symbols of first and second kind and using finite
-    differences.
+    """Estimate Riemann tensors by differentiating Christoffel symbols.
 
     Args:
-        gamma_first_kind: A tensor with the Christoffel symbols of first kind of shape (s1 ... sk k k k).
-        gamma_second_kind: A tensor with the Christoffel symbols of second kind of shape (s1 ... sk k k k).
-        difference_intervals: The h value for each dimension of the grid.
-        kinds: The kinds of the Riemann tensor to return. Should be a subset of ["first", "second"].
+        gamma_first_kind: First-kind symbols of shape (s1, ..., sk, k, k, k).
+        gamma_second_kind: Second-kind symbols with the same shape.
+        difference_intervals: One coordinate spacing per grid axis.
+        kinds: Requested kinds: "first", "second", or both.
 
     Returns:
-        results: A dictionary with the following optional entries:
-            - first: The Riemann curvature tensor of first kind on a tensor of shape (s1_ ... sk_ k k k k).
-            - second: The Riemann curvature tensor of second kind on a tensor of shape (s1_ ... sk_ k k k k).
-
-        In both outputs the new dimensions s_i_ equal to s_i if the i-th dimension is cyclic, else to s_i - 2 as the
-        computations cannot be performed on the borders.
-    """
+        A dictionary with keys "first" and "second"; unrequested entries are
+        None. Requested tensors have shape (s1 - 2, ..., sk - 2, k, k, k, k).
+        Each kind differentiates its corresponding Christoffel symbols."""
     n_dims = len(gamma_first_kind.shape) - 3
     gamma_derivatives_first_kind = partial_derivatives_across_all_dims(
         gamma_first_kind,
@@ -115,21 +104,20 @@ def scalar_curvature_batch(
     difference_intervals: list[float],
     normalize: bool = False
 ) -> torch.Tensor:
-    """Given a grid with features on the space of the manifold, it computes an estimate of the scalar curvature per
-    point of the grid, excluding points with distance <= 3 from the borders of the grid. The estimation is performed
-    using finite differences and the missing points are a result of loosing one border layer on each differentiation.
+    """Estimate scalar curvature from a tensor grid using finite differences.
 
     Args:
-        tensor: A tensor of shape (s1 ... sk f), where s_i is the number of points of the i-th dimension
-            of its grid and f the number of features.
-        difference_intervals: The h value for each dimension of the grid.
-        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition
-            in Do Carmo.
+        tensor: Tensor of shape (s1, ..., sd, features).
+        difference_intervals: One coordinate spacing per grid axis.
+        normalize: Divide scalar curvature by d * (d - 1); requires d >= 2.
+            This does not rescale the manifold to unit volume.
 
     Returns:
-        A vector with the scala curvature per point of shape (s1_ ... sk_). The new dimensions s_i_ equal to s_i if the
-        i-th dimension is cyclic, else to s_i - 6.
-    """
+        A tensor of shape (s1 - 6, ..., sd - 6) on the input device.
+        All grid axes lose three samples at each end; pad periodic axes first.
+
+    Raises:
+        ValueError: If normalize is requested for d < 2."""
     intrinsic_dim = len(tensor.shape[:-1])
     if normalize and intrinsic_dim < 2:
         raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")
@@ -174,24 +162,20 @@ def scalar_curvature(
     normalize: bool = False,
     device: str | torch.device | None = None
 ) -> np.ndarray:
-    """Given a grid with features on the space of the manifold, it computes an estimate of the scalar curvature per
-    point of the grid, excluding points with distance <= 3 from the borders of the grid. The estimation is performed
-    using finite differences and the missing points are a result of loosing one border layer on each differentiation.
-    It performs the computation on batches of given size to reduce visual memory requirements.
+    """Estimate scalar curvature of a NumPy grid in patches.
 
     Args:
-        features_on_grid: An array of shape (s1 ... sk f), where s_i is the number of points of the i-th dimension
-            of its grid and f the number of features.
-        difference_intervals: The h value for each dimension of the grid.
-        cyclic_dimensions: An optional set of dimensions where the grid is cyclic.
-        patch_sizes: The size of the patch to use. One value per dimension.
-        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition
-            in Do Carmo.
-        device: The torch device, e.g. "cpu" or "cuda:0". If None, use CUDA when available, else CPU.
+        features_on_grid: Floating array of shape (s1, ..., sd, features).
+        difference_intervals: One coordinate spacing per grid axis.
+        cyclic_dimensions: Zero-based periodic grid-axis indices.
+        patch_sizes: One patch size per grid axis, each greater than six.
+        normalize: Divide scalar curvature by d * (d - 1); requires d >= 2.
+            This does not rescale the manifold to unit volume.
+        device: Torch device; None selects CUDA when available, otherwise CPU.
 
     Returns:
-        A vector with the scala curvature per point of shape (s1_ ... sk_). The new dimensions s_i_ equal to s_i if the
-        i-th dimension is cyclic, else to s_i - 6.
+        A NumPy array of shape (s1_out, ..., sd_out), where s_i_out = s_i
+        for periodic axes and s_i - 6 otherwise: one scalar curvature per point.
     """
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"

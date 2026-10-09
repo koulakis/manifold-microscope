@@ -16,7 +16,7 @@ def extract_patches(
     """
     Generalized function to extract overlapping patches from the first n - d dimensions of a multidimensional array,
     leaving the last d dimensions untouched. If size of the array is not divisible by the resulting step size
-    along all spacial dimensions, it will be 0-padded to the next size that is divisible. This means that the caller
+    along all spatial dimensions, it will be wrap-padded to a compatible size. This means that the caller
     is responsible to truncate outputs on a later stage to compensate for those artificial padded values.
 
     Args:

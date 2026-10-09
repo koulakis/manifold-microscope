@@ -42,7 +42,7 @@ def get_difference_intervals(
     Args:
         n_samples_per_dim: The number of samples per dimension of the data.
         range_sizes: The value ranges along each dimension.
-        cyclic_dimensions: An array of booleans indicating which dimensions are cyclic.
+        cyclic_dimensions: Zero-based indices of the periodic grid axes.
 
     Returns:
         A list with the difference interval per dimension.

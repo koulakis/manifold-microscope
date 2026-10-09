@@ -9,16 +9,16 @@ def partial_derivative_approximation(
     dim: int,
     difference_intervals: float
 ) -> torch.Tensor:
-    """Estimate the partial derivative of a tensor along a dimension and a given sample size, assuming the samples are
-    equidistantly placed on a grid.
+    """Estimate a central finite difference along one equally spaced grid axis.
 
     Args:
-        tensor: An input tensor of shape (s1 ... sk f1 ... fl).
-        dim: The index of the dimension along which the partial derivative will be computed.
-        difference_intervals: The h value for each dimension of the grid.
+        tensor: Input tensor of shape (s0, ..., s_{n-1}).
+        dim: Zero-based axis to differentiate.
+        difference_intervals: Scalar coordinate spacing along that axis.
 
     Returns:
-        A tensor of dimension (s1 ... si_ ... sk f1 ... fl) with the partial derivative along the i-th dimension.
+        A tensor of shape (s0, ..., s_dim - 2, ..., s_{n-1}) on the input
+        device. Only axis dim is shortened; all other axes are preserved.
     """
     device = tensor.device
     length = tensor.shape[dim]
@@ -55,21 +55,16 @@ def partial_derivatives_across_all_dims(
     manifold_dim: int,
     difference_intervals: list[float]
 ) -> torch.Tensor:
-    """Given a tensor of shape (s1 ... sk f1 ... fl) it computes its partial derivatives with respect to
-     all its dimensions.
+    """Differentiate along the first manifold_dim axes of an equally spaced grid.
 
-        Args:
-            tensor: A tensor of shape (s1 ... sk f1 ... fl), where s_i is the number of points of the i-th dimension of
-                its grid and f_i is the number of points on additional feature dimensions.
-            manifold_dim: The dimension of the manifold. Any dimensions after those in the tensor are treated as
-                features.
-            difference_intervals: The h value for each dimension of the grid.
+    Args:
+        tensor: Shape (s1, ..., sk, f1, ..., fl), with k = manifold_dim.
+        manifold_dim: Number of parameter axes; remaining axes are features.
+        difference_intervals: One coordinate spacing per parameter axis.
 
-        Returns:
-            A tensor of shape (s1_ ... sk_ k) which stacks the partial derivatives for each dimension on the last
-            coordinate. The new dimensions s_i_ equal to s_i if the i-th dimension is cyclic, else to s_i - 2 as
-            the computations cannot be performed on the borders.
-     """
+    Returns:
+        A tensor of shape (s1 - 2, ..., sk - 2, f1, ..., fl, k) on the
+        input device. All parameter axes are cropped; pad periodic axes first."""
     dim_idxs = set(range(manifold_dim))
 
     # This tensor had shape (s1 ... sk f1 ... fl k)
@@ -95,18 +90,15 @@ def riemannian_metric(
         features_on_grid: torch.Tensor,
         difference_intervals: list[float]
 ) -> torch.Tensor:
-    """Given a grid with features on the space of the manifold, it computes an estimate of the Riemannian metric per
-    point of the grid, excluding border points.
+    """Estimate the induced metric J.T @ J using central finite differences.
 
     Args:
-        features_on_grid: A tensor of shape (s1 ... sk f), where s_i is the number of points of the i-th dimension
-            of its grid and f the number of features.
-        difference_intervals: The h value for each dimension of the grid.
+        features_on_grid: Tensor of shape (s1, ..., sk, features).
+        difference_intervals: One coordinate spacing per grid axis.
 
     Returns:
-        A tensor of shape (s1_ ... sk_ k k) which has a metric tensor per point. The new dimensions s_i_ equal to
-        s_i if the i-th dimension is cyclic, else to s_i - 2 as the computations cannot be performed on the borders.
-     """
+        A tensor of shape (s1 - 2, ..., sk - 2, k, k) on the input device.
+        All grid axes are cropped; pad periodic axes first."""
     partial_derivatives = partial_derivatives_across_all_dims(
         features_on_grid,
         manifold_dim=len(features_on_grid.shape) - 1,
@@ -123,10 +115,19 @@ def partial_derivatives_across_all_dims_batched(
     cyclic_dimensions: list[int],
     device: str | torch.device | None = None
 ):
-    """Compute grid derivatives in patches on the selected device.
+    """Compute a NumPy grid's Jacobian in patches.
 
-    If device is None, use CUDA when available, else CPU. Explicit devices
-    such as "cpu" or "cuda:0" are passed through unchanged.
+    Args:
+        features_on_grid: Floating array of shape (s1, ..., sk, features).
+        difference_intervals: One coordinate spacing per grid axis.
+        patch_sizes: One patch size per grid axis, each greater than two.
+        cyclic_dimensions: Zero-based periodic grid-axis indices.
+        device: Torch device; None selects CUDA when available, otherwise CPU.
+
+    Returns:
+        A NumPy array of shape (s1_out, ..., sk_out, features, k), where
+        s_i_out = s_i for periodic axes and s_i - 2 otherwise. The last axis
+        indexes parameter derivatives. Results are detached from autograd.
     """
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
