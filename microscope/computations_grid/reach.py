@@ -81,6 +81,7 @@ def reach_per_point(
 
     features_on_grid_pt = torch.from_numpy(features_on_grid)
     features_on_grid_cropped = crop_dim_borders(features_on_grid_pt, dim_idxs.difference(cyclic_dimensions))
+    cropped_grid_shape = features_on_grid_cropped.shape[:-1]
 
     if subsample_points is not None:
         features_on_grid_cropped = _subsample_dims(features_on_grid_cropped, subsample_points, dim_idxs)
@@ -145,6 +146,8 @@ def reach_per_point(
             f"{' '.join(dim_variables)} -> {' '.join(repeat_pattern)}",
             **{r: subsample_points for r in repeat_variables}
             )
+        # Repetition can overshoot dimensions not divisible by the subsampling step.
+        grid_reach_estimates = grid_reach_estimates[tuple(slice(0, s) for s in cropped_grid_shape)]
 
     if return_witnesses:
         return grid_reach_estimates, estimate_witnesses

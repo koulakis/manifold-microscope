@@ -68,11 +68,12 @@ def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[
         )
         for name in class_names
     }
+    # Keep the whole grid's weights: non-contributing points have zero curvature.
     normalized_total_curvatures_positive = {
         name: (
                 compute_total_curvature(
-                    curvature=normalized_curvatures[name].flatten()[normalized_curvatures[name].flatten() >= 0],
-                    element=normalized_volume_elements[name].flatten()[normalized_curvatures[name].flatten() >= 0],
+                    curvature=np.maximum(normalized_curvatures[name], 0),
+                    element=normalized_volume_elements[name],
                     range_sizes=range_sizes
                 )
         )
@@ -81,8 +82,8 @@ def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[
     normalized_total_curvatures_negative = {
         name: (
                 compute_total_curvature(
-                    curvature=normalized_curvatures[name].flatten()[normalized_curvatures[name].flatten() < 0],
-                    element=normalized_volume_elements[name].flatten()[normalized_curvatures[name].flatten() < 0],
+                    curvature=np.minimum(normalized_curvatures[name], 0),
+                    element=normalized_volume_elements[name],
                     range_sizes=range_sizes
                 )
         )
@@ -166,6 +167,8 @@ def compute_measures_multiclass(
             f"The number of class names ({len(class_names)} is different than the "
             f"first data dimension ({data.shape[0]})."
         )
+    if len(set(class_names)) != len(class_names):
+        raise ValueError("The class names must be unique.")
     dim_shapes = list(data.shape[1:-1])
     n_dims = len(dim_shapes)
 

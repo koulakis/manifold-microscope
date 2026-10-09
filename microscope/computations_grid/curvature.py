@@ -78,7 +78,7 @@ def riemannian_curvature_tensor(
         difference_intervals=difference_intervals
     )
     gamma_derivatives_second_kind = partial_derivatives_across_all_dims(
-        gamma_first_kind,
+        gamma_second_kind,
         manifold_dim=n_dims,
         difference_intervals=difference_intervals
     )
@@ -131,6 +131,8 @@ def scalar_curvature_batch(
         i-th dimension is cyclic, else to s_i - 6.
     """
     intrinsic_dim = len(tensor.shape[:-1])
+    if normalize and intrinsic_dim < 2:
+        raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")
 
     metric = riemannian_metric(tensor, difference_intervals)
     metric_inv = torch.linalg.inv(metric)
