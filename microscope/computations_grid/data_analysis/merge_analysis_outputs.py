@@ -241,21 +241,6 @@ def main(
             ]
 
             encoder_layers = layers[:6]
-        case "mae":
-            steps = ["random", "002", "020", "100"]
-
-            layers = [
-                "inputs",
-                "normalized_tokens",
-                "encoder_block_01",
-                "encoder_block_03",
-                "latent",
-                "decoder_block_01",
-                "predicted_tokens",
-                "reconstructed_images"
-            ]
-
-            encoder_layers = layers[:5]
         case "cnn":
             steps = ["random", "50k", "250k", "450k", "1_5M"]
 
@@ -274,7 +259,7 @@ def main(
     # TODO: This is temporary given the discrepancy with the triangle instead of ellipse. When resolved, remove it.
     sprites = (
         ["square", "ellipse", "heart"]
-        if ("_custom_" not in data_dir.name) and model in ["mae", "cnn"]
+        if ("_custom_" not in data_dir.name) and model == "cnn"
         else ["square", "triangle", "heart"]
     )
 

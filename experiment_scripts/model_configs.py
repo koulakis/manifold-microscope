@@ -49,43 +49,6 @@ class BetaVAEConfig:
 
 
 @dataclass
-class MAEConfig:
-    output_dir: str
-    exported_datasets_dir: Path
-    dataset: str
-    number_of_dims: int
-    training_ratio: float
-    ratio_per_dim: bool
-    noise_sigma: float
-
-    max_epochs: int = 4_000
-    loss_threshold: float = 0.01
-    n_consecutive_epochs_below_loss_threshold_till_stop: int = 5
-    batch_size: int = 4096
-    num_workers: int = 2
-    epoch_examples: Optional[int] = None
-    plot_interval: Optional[int] = 50
-    base_lr: float = 1.5e-4
-    weight_decay: float = 0.05
-    betas: tuple[float, float] = (0.9, 0.95)
-    use_scheduler: bool = False
-    in_chans: int = 1
-    patch_size: int = 8
-    img_size: int = 64
-    embed_dim: int = 128
-    depth: int = 4
-    num_heads: int = 8
-    pretrained: bool = False
-    drop_rate: float = 0.0
-    drop_path_rate: float = 0.1
-    mask_ratio: float = 0.5
-    latent_dim: int = 10
-    decoder_depth: int = 2
-    device: str = "cuda:0"
-    use_bottleneck: bool = False
-
-
-@dataclass
 class MMLSConfig:
     output_dir: str
     exported_datasets_dir: Path

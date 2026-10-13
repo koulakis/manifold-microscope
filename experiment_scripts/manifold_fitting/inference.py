@@ -5,7 +5,6 @@ import typer
 from tqdm import tqdm
 
 from microscope.datasets.generic_dataset_loader import DatasetName
-from representation_learning.mae.inference_intermediate_layers import main as inference_mae
 from representation_learning.beta_vae.inference_intermediate_layers import main as inference_beta_vae
 
 app = typer.Typer(pretty_exceptions_enable=False)
@@ -28,8 +27,6 @@ def inference_on_model(
     print(f"Inference on {output_path.name}.")
     if model_type == "beta_vae":
         inference_fn = inference_beta_vae
-    elif model_type == "mae":
-        inference_fn = inference_mae
     else:
         raise ValueError(f"Unknown model type: {model_type}.")
 
@@ -90,8 +87,7 @@ def run_inferences(
         "extended_coil20"
     ]
     model_type_list = [
-        "beta_vae",
-        "mae"
+        "beta_vae"
     ]
     training_ratio_per_dim_list = [
         0.4,
@@ -121,8 +117,6 @@ def run_inferences(
     for dataset_name, model_type, training_ratio_per_dim, number_of_dims, noise_sigma in tqdm(hyperparameter_grid):
         # Skip dimension 4 for COIL20.
         if (number_of_dims == 4) and (dataset_name == "extended_coil20"):
-            continue
-        if (number_of_dims == 4) and (model_type == "mae"):
             continue
         model_dir = "__".join([
             dataset_name,

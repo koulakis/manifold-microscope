@@ -160,8 +160,6 @@ def main(
             pbar = tqdm(total=len(inference_output_paths) * len(layer_names))
 
         for layer in layer_names:
-            # if (number_of_dims < 4) or (layer in ["input", "output"]) or (model_type != "mae"):
-            #     print(layer)
             features_on_grid = (
                 intermediate_outputs
                 [layer]
