@@ -94,13 +94,14 @@ class Manifold(ABC):
         """
 
     @abstractmethod
-    def tesselation(self, N: int, normalized: bool = False) -> np.ndarray:
+    def tesselation(self, N: int, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
         """Get samples of the manifold which have local density close to the d-volume element of the manifold,
         i.e. they are as spread as possible.
 
         Args:
             N: The number of points to sample.
             normalized: If true, the manifold is scaled to have d-volume 1 before being sampled.
+            device: Torch device used by surface relaxation; unused by analytic curves.
         """
         pass
 
@@ -223,7 +224,7 @@ class Circle(Manifold):
             reach=np.full(N, R)
         )
 
-    def tesselation(self, N, normalized: bool = False) -> np.ndarray:
+    def tesselation(self, N, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
         R = self.normalize_parameters() if normalized else self.R
         theta = np.linspace(0, 2 * np.pi, N, endpoint=False, dtype=self.dtype)
         return R * np.stack([np.cos(theta), np.sin(theta)], axis=1)
@@ -379,7 +380,7 @@ class Moons(Manifold):
             reach=reach
         )
 
-    def tesselation(self, N, normalized: bool = False) -> np.ndarray:
+    def tesselation(self, N, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
         R = self.normalize_parameters(self.R) if normalized else self.R
 
         # Half points for each moon
@@ -455,8 +456,8 @@ class Sphere(Manifold):
             reach=np.full(N, R)
         )
 
-    def tesselation(self, N, normalized: bool = False, iterations: int = 50) -> np.ndarray:
-        approx_points = cvt_surface(self, N, iterations=iterations, normalized=normalized)
+    def tesselation(self, N, normalized: bool = False, iterations: int = 50, device: str = "cuda:0") -> np.ndarray:
+        approx_points = cvt_surface(self, N, iterations=iterations, normalized=normalized, device=device)
         R = self.normalize_parameters() if normalized else self.R
         projected_points_on_sphere = R * approx_points / np.linalg.norm(approx_points, axis=-1, keepdims=True)
 
@@ -622,8 +623,8 @@ class Torus(Manifold):
             reach=reach
         )
 
-    def tesselation(self, N, iterations: int = 50, normalized: bool = False) -> np.ndarray:
-        approx_points = cvt_surface(self, N, iterations=iterations, normalized=normalized)
+    def tesselation(self, N, iterations: int = 50, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
+        approx_points = cvt_surface(self, N, iterations=iterations, normalized=normalized, device=device)
         # return approx_points
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 

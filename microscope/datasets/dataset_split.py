@@ -90,10 +90,16 @@ def maximal_distance_selection_torch(data: np.ndarray, size: int, device=None, v
         device: Optional "cuda" or "cpu". If None, will try GPU first, fallback to CPU.
         verbose: If true, show progress bar.
     Returns:
-        selected_data: (size, D) tensor
-        selected_idxs: (size, ) tensor of indices
+        selected_data: (size, D) NumPy array
+        selected_idxs: (size, ) NumPy array of distinct indices
     """
     N, D = data.shape
+    if not 0 <= size <= N:
+        raise ValueError("size must be between zero and the number of points.")
+    if size == 0:
+        return data[:0].copy(), np.empty(0, dtype=np.int64)
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     data = torch.from_numpy(data).to(device)
 
@@ -106,6 +112,7 @@ def maximal_distance_selection_torch(data: np.ndarray, size: int, device=None, v
 
     # track nearest distances to selected set
     min_distances = torch.norm(data - data[0], dim=1)
+    min_distances[0] = -torch.inf
 
     for i in tqdm(range(1, size), total=size, disable=not verbose):
         # pick the farthest point
@@ -116,5 +123,6 @@ def maximal_distance_selection_torch(data: np.ndarray, size: int, device=None, v
         # update nearest distances (only vs new point)
         new_distances = torch.norm(data - data[new_point_idx], dim=1)
         min_distances = torch.minimum(min_distances, new_distances)
+        min_distances[new_point_idx] = -torch.inf
 
     return selected_data.cpu().numpy(), selected_idxs.cpu().numpy()

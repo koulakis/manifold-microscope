@@ -1,30 +1,53 @@
-# Existing-code issues deferred to the next step
+# Follow-up status
 
-The reproduction entry points reuse the existing implementations. The following
-issues remain in the older public entry points or their implementations:
+The source fixes below are implemented on the cleanup branch. **They have not
+been executed or tested.** Historical defaults are retained unless an option
+explicitly changes them.
 
-| Existing file(s) | Follow-up |
+| Area | Implemented |
 |---|---|
-| `experiment_scripts/manifold_fitting/inference.py`, both analysis wrappers | Include repetition in experiment-directory naming, or accept explicit model/input directories. They currently build five fields while training writes six. |
-| `experiment_scripts/manifold_fitting/training.py` | Expose dataset/model/dimension/fraction lists, separate repetition seeds, workers and model-config overrides. The new fitting module builds configurations directly and reuses Solver/MMLS. |
-| `representation_learning/beta_vae/solver.py` | Review checkpoint loading's bare torch.load for device/loading-policy portability, and make any strict smoke-budget behavior explicit. Current max_iter can finish the whole epoch. New evaluation uses the existing mapped network-only loader instead. |
-| `microscope/computations_grid/data_analysis/run_data_analysis.py` | Expose/forward device through the CLI and run_single_output. Grid APIs already select CUDA or CPU automatically, but the wrapper does not pass an explicit selection. |
-| `microscope/datasets/generic_dataset_loader.py` | Review explicit device forwarding to farthest-point selection and define behavior when reusing a cached split with a different requested test size. |
-| Toy sweep/projector and `microscope/datasets/toy_manifolds.py` | Thread device through MMLS and CVT calls. Move unused denoising/Lightning imports behind the selected method so MMLS does not require unrelated code. |
-| `representation_learning/beta_vae/inference_intermediate_layers.py` | Make pin_memory conditional on device; explicitly expose seed/decoder-sampling choices if deterministic new runs are wanted. Preserve sampled decoding when comparing with historical outputs. |
-| `notebooks/manifold_fitting/bound_curves_all_methods.ipynb` | Replace obsolete geometry imports and historical absolute paths; eventually refer to the new evaluation/export functions. |
+| Experiment paths | Inference/analysis discover actual six-field directories, including repetition, rather than building an incompatible grid. The second analysis entry point reuses the first. |
+| Training selection | Dataset/model/dimension/fraction/repetition lists, explicit per-repetition seeds, workers, budget flags and JSON model overrides are exposed. The default shared seed remains available. |
+| Checkpoints and stopping | Full trusted local solver checkpoints map to the selected device with explicit `weights_only=False`. Opt-in strict budgets stop at batch/epoch limits; historical epoch-finish behavior remains the default. |
+| Geometry devices | Analysis forwards its device through `run_single_output` into grid measures. The pre-existing reach/derivative device fixes are preserved. |
+| Fixed splits | FPS receives the selected device, supports empty selections and excludes duplicate indices. Conflicting cached effective test sizes raise without overwriting. |
+| Toy fitting | Device reaches MMLS and surface CVT; analytic curves accept the shared option. Denoising/Lightning imports occur only when that method is selected. |
+| Layer inference | Conditional pin memory, optional seed/model architecture and sampled/mean decoding. Native inference records these choices; sampled unseeded decoding remains the default. |
+| Notebook | The methods notebook delegates evaluation/export/plotting to the new modules, with a configurable results root. Obsolete imports, absolute paths, duplicated evaluation and stale saved outputs were removed. |
+| Completion | Older training/inference/analysis entry points now use the same `COMPLETED` semantics. Partial warnings print even if imported code filters Python warnings. No automated deletion/recovery. |
 
-Additional decisions/validation, rather than automatic existing-code edits:
+Focused regression sources were added for FPS reference/duplicate/empty cases,
+cached-split preservation/device forwarding, strict budgets and historical
+epoch finish, full-checkpoint NumPy metadata, mean decoding and partial warnings.
+No tests, imports, CLI help or experiments have been run for these changes.
 
-- The cleanup branch already forwards the reach device to derivative computation
-  and fixes signed curvature integration and subsampled reach shapes. Preserve
-  those fixes and measure their effect when comparing with older paper outputs.
-- Confirm toy reach/measure schema changes when comparing with OLD artifacts.
-  Importing old geometry/curvatures pickles and old YAML configs is deliberately
-  not implemented by these minimal new-run entry points.
-- Reconcile the paper captions' repetition counts with retained runs and the
-  implemented notebook bound-constant fitting with the paper description.
-- Validate datasets/splits, checkpoint errors, bound curves and layer aggregates
-  before claiming exact reproduction. No new scripts have been executed yet.
-- For partial directories, recovery remains a manual next step. Do not add a
-  termination file just because a checkpoint or some plots happen to exist.
+## Still requires validation or historical evidence
+
+- Run the focused regressions, CLI option checks and small CPU/GPU pipelines.
+  Compare fixed splits, checkpoint errors, bound curves and layer aggregates
+  with retained artifacts before claiming reproduction.
+- The cleanup branch fixes signed curvature integration, second-kind Riemann
+  differentiation and subsampled reach shapes. Their numerical effect on the
+  older paper outputs has not been measured. MPS remains unvalidated.
+- Static source comparison with OLD confirms toy-schema renames:
+  `MeasuresGlobal.max_principal` became `max_absolute_principal`, and
+  `MeasuresLocal.principal` became `max_absolute_principal`. Reach field names
+  remain the same; pickle module paths changed from geometry to microscope.
+  Semantic/value agreement and migration of legacy pickles/YAML remain separate
+  work; these scripts use native new-run artifacts.
+- Historical evidence supports three dSprites repetitions, two retained COIL
+  MMLS repetitions and twenty toy examples per size. Figure 5's generic caption
+  says three. The recovered recipe follows retained evidence; recovering a
+  missing COIL repetition/toy raw result or correcting the caption requires
+  further evidence or an author decision.
+- Bound constants follow the implemented notebook: log-log regression of mean
+  errors, then 0.01/0.99 quantiles of fitted-curve/theoretical-shape ratios.
+  The paper describes per-size repetition quantiles and envelope extrema.
+  The original formula is preserved; a prose correction or alternative
+  computation requires a separate decision/comparison.
+- The reason for the historical dSprites inference fix is still unidentified;
+  its inference RNG state is unrecorded. Exposed seed/mean-decoding options do
+  not recover those unknowns.
+- Handle partial directories manually or choose new output roots. Do not add
+  completion markers merely because some checkpoints or plots exist. Markers
+  do not compare settings; changes require fresh output directories.

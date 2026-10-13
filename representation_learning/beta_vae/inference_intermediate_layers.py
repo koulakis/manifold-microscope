@@ -1,4 +1,6 @@
 from pathlib import Path
+from typing import Optional
+import json
 
 import numpy as np
 import torch
@@ -15,7 +17,7 @@ from representation_learning.beta_vae.model import reparametrize, BetaVAE_B, Bet
 app = typer.Typer(pretty_exceptions_enable=False)
 
 
-def get_dataloader(data, batch_size, num_workers):
+def get_dataloader(data, batch_size, num_workers, device="cuda:0"):
     data = torch.from_numpy(data).unsqueeze(1).float()
     train_kwargs = {'data_tensor': data}
 
@@ -25,7 +27,7 @@ def get_dataloader(data, batch_size, num_workers):
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=torch.device(device).type == "cuda",
         drop_last=False
     )
 
@@ -57,7 +59,8 @@ def load_autoencoder_from_checkpoint(
     return autoencoder
 
 
-def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_output: bool):
+def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_output: bool,
+                                     decoder_sampling: bool = True):
     intermediate_outputs = {}
     x = images
     for i, layer in enumerate(autoencoder.encoder):
@@ -68,7 +71,7 @@ def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_outpu
     distributions = x
     mu = distributions[:, :autoencoder.z_dim]
     logvar = distributions[:, autoencoder.z_dim:]
-    z = reparametrize(mu, logvar)
+    z = reparametrize(mu, logvar) if decoder_sampling else mu
 
     intermediate_outputs["mu"] = mu.cpu().numpy()
 
@@ -87,7 +90,8 @@ def gather_intermediate_outputs(
     autoencoder,
     data_loader,
     only_latent_and_output: bool,
-    device="cuda:0"
+    device="cuda:0",
+    decoder_sampling: bool = True
 ) -> dict[str, np.ndarray]:
     autoencoder.to(device)
     autoencoder.eval()
@@ -105,7 +109,8 @@ def gather_intermediate_outputs(
             reconstruction, intermediate = get_intermediate_from_autoencoder(
                 autoencoder,
                 images,
-                only_latent_and_output
+                only_latent_and_output,
+                decoder_sampling=decoder_sampling
             )
 
             for name, tensor_np in intermediate.items():
@@ -135,9 +140,16 @@ def main(
     batch_size: int = 64,
     num_workers: int = 2,
     latent_dim: int = 10,
-    device: str = "cuda:0"
+    device: str = "cuda:0",
+    seed: Optional[int] = None,
+    decoder_sampling: bool = True,
+    model_type: Optional[str] = None
 ):
+    dataset = DatasetName(dataset)
     output_dir.mkdir(exist_ok=True, parents=True)
+    if seed is not None:
+        np.random.seed(seed)
+        torch.manual_seed(seed)
 
     data, _ = load_dataset(
         dataset_name=dataset,
@@ -148,19 +160,17 @@ def main(
         save_train_idx=False,
         weight_subsampling_by_manifold_volume=False,
         return_full_datasets=True,
-        full_datasets_unclipped=True
+        full_datasets_unclipped=True,
+        device=device
     )
     data = (data - data.min()) / (data.max() - data.min())
 
     if len(data) < batch_size:
         batch_size = len(data)
-    dataloader = get_dataloader(data, batch_size, num_workers)
+    dataloader = get_dataloader(data, batch_size, num_workers, device=device)
 
-    match dataset:
-        case DatasetName.extended_coil20:
-            model_type = "H"
-        case _:
-            model_type = "B"
+    if model_type is None:
+        model_type = "H" if dataset == DatasetName.extended_coil20 else "B"
 
     autoencoder = load_autoencoder_from_checkpoint(
         model_type=model_type,
@@ -174,11 +184,16 @@ def main(
         autoencoder=autoencoder,
         data_loader=dataloader,
         only_latent_and_output=only_latent_and_output,
-        device=device
+        device=device,
+        decoder_sampling=decoder_sampling
     )
 
     filename = f'intermediate_outputs_{checkpoint_path.name if not random_model else "random_init"}'
     np.savez(output_dir / filename, **intermediate_outputs)
+    (output_dir / f"{filename}.json").write_text(json.dumps(dict(
+        dataset=dataset.value, number_of_dims=number_of_dims, checkpoint=str(checkpoint_path),
+        model_type=model_type, latent_dim=latent_dim, device=device,
+        seed=seed, decoder_sampling=decoder_sampling), indent=2) + "\n")
 
 
 if __name__ == "__main__":

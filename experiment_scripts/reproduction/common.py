@@ -2,7 +2,6 @@
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-import warnings
 
 COMPLETED = 'COMPLETED'
 
@@ -22,16 +21,16 @@ def run_experiment(directory, action, *, requires=()):
         print(f'Skipping completed experiment: {directory}')
         return True
     if directory.exists():
-        warnings.warn(f'Skipping incomplete experiment (no {COMPLETED}): {directory}', stacklevel=2)
+        print(f'WARNING: Skipping incomplete experiment (no {COMPLETED}): {directory}')
         return False
     missing = [str(path) for path in requires if not is_complete(path)]
     if missing:
-        warnings.warn(f'Skipping {directory}; unfinished inputs: {", ".join(missing)}', stacklevel=2)
+        print(f'WARNING: Skipping {directory}; unfinished inputs: {", ".join(missing)}')
         return False
     directory.mkdir(parents=True)
     expected = action(directory)
     if not expected or not all(Path(path).is_file() for path in expected):
-        warnings.warn(f'Experiment has no complete output; leaving unmarked: {directory}', stacklevel=2)
+        print(f'WARNING: Experiment has no complete output; leaving unmarked: {directory}')
         return False
     (directory / COMPLETED).write_text(datetime.now(timezone.utc).isoformat() + '\n')
     return True

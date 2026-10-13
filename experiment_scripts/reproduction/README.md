@@ -17,10 +17,10 @@ PYENV_VERSION=curvatures pyenv exec python -m experiment_scripts.reproduction.pa
   --output-root ../outputs/PAPER_REPRODUCTION --figures 3 4 5 6
 ```
 
-This command selects the full paper workloads. The reproduction toy/analysis
-entry points currently require CUDA device 0; explicit device forwarding through
-their existing wrappers remains a follow-up. The underlying grid APIs on the
-cleanup branch already select CUDA or CPU automatically. Supply `COIL20_PATH`
+This command selects the full paper workloads and defaults to CUDA device 0.
+`--device cpu` is forwarded through fitting, fixed splits, toy surface relaxation,
+inference and grid analysis. These newly connected paths have not been run;
+full workloads remain substantial on either device. Supply `COIL20_PATH`
 pointing to the processed COIL-20 PNG directory when using that dataset.
 
 Run stages separately against the same root:
@@ -70,7 +70,7 @@ python -m experiment_scripts.reproduction.fitting mmls \
 python -m experiment_scripts.reproduction.fitting vae \
   --dataset custom_dsprites_balanced --dimension 1 --fraction 0.5 --seed 439 \
   --datasets-dir ../outputs/MANUAL_EXPERIMENT/dataset \
-  --max-iter 1 --max-epochs 1 --num-workers 0 \
+  --max-iter 1 --max-epochs 1 --strict-budget --num-workers 0 \
   --output ../outputs/MANUAL_EXPERIMENT/vae
 
 python -m experiment_scripts.reproduction.evaluation \
@@ -81,9 +81,36 @@ python -m experiment_scripts.reproduction.evaluation \
 Separate modules also expose toy fitting (`toy`), layer inference/analysis
 (`layers infer` / `layers analyze`), bound export (`bounds`) and rendering
 (`plots`). They can be called as ordinary functions from another experiment.
-The existing Solver finishes an epoch before stopping, so `--max-iter` is
-not a strict number of batches. Individual fitting/evaluation/inference can
-select CPU; the reproduction analysis and toy entry points still require CUDA.
+By default Solver keeps historical epoch-finish stopping. Add `--strict-budget`
+to VAE fitting to stop at the requested batch/epoch limits. Full trusted local
+solver checkpoints load onto the selected device with an explicit loading policy.
+`--model-overrides` accepts a JSON object of numerical model parameters for one
+fit; dataset/device/path selection stays in the explicit arguments.
+
+Inference defaults to unseeded sampling, storing mu and decoding sampled z.
+The layer module accepts `--seed`; the paper coordinator accepts `--inference-seed`.
+Both accept `--no-decoder-sampling` to decode mu instead. Mean decoding changes
+the experiment from the historical recipe. Seed and sampling choices are saved
+with inference outputs; a seed alone does not establish cross-device agreement.
+
+The older training wrapper also supports repeated `--datasets`, `--models`,
+`--dimensions`, `--fractions`, `--repetitions` and `--seeds` options, plus workers
+and budgets. Seeds correspond in order to selected repetitions; absent explicit
+seeds, its historical single seed is reused. For example, a separate repetition:
+
+```bash
+python -m experiment_scripts.manifold_fitting.training \
+  --output-path ../outputs/SELECTED_EXPERIMENT --datasets custom_dsprites_balanced \
+  --models beta_vae --dimensions 1 --fractions 0.5 --repetitions 2 --seeds 473959 \
+  --device cpu --num-workers 0 --max-iter 1 --max-epochs 1 --strict-budget
+```
+
+Its `--model-overrides` file is keyed by `beta_vae` and/or `MMLS`, for example
+`{"beta_vae": {"z_dim": 4}, "MMLS": {"sigma": 0.5}}`. Explicit budget flags
+override the file. Older inference/analysis wrappers discover actual six-field
+directories, including separate repetitions, and use native JSON configs.
+Their compatibility `skip_done` argument cannot force an overwrite: existing
+outputs always skip. The methods notebook now calls these reproduction modules.
 
 ## Completion and partial results
 
@@ -102,6 +129,9 @@ least two distinct positive-error training sizes for every panel.
 
 Markers do not compare configurations. Use a new output root when changing
 settings or adding results after an export/plot has already completed.
+At the lower-level dataset exporter, a cached split is reused only when its
+effective test count matches `min(max_test_size, floor(0.3 * dataset_size))`.
+An incompatible cache raises and remains untouched; select a fresh directory.
 
 ## Historical scope and follow-ups
 
@@ -117,4 +147,7 @@ The bound constants use the actual notebook formulas, not the different
 envelope procedure described in the paper prose. Exact numerical agreement
 with the original paper is therefore an unverified goal, not a claim.
 
-Required follow-up work in existing files is listed in [FOLLOW_UPS.md](FOLLOW_UPS.md).
+Completed source fixes and remaining historical/validation work are listed in
+[FOLLOW_UPS.md](FOLLOW_UPS.md). Focused regression sources cover FPS/cache behavior,
+strict budgets, full checkpoint loading, mean decoding and partial-directory
+warnings. They have not been executed.

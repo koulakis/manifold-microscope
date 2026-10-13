@@ -297,8 +297,25 @@ def export_fixed_grid_test_set_and_rest_for_train(
     max_test_size: int = 1_000,
     device: str = "cuda:0"
 ):
+    """Export a fixed split, reusing a cache only when its effective test size matches.
+
+    A conflicting cache is preserved and raises ValueError. Use a new output
+    directory to request another split.
+    """
+    if max_test_size < 1:
+        raise ValueError("max_test_size must be positive.")
+    dataset_name = DatasetName(dataset_name).value
     output_path = output_dir / f"{dataset_name}__{number_of_dims}.npz"
     if output_path.exists():
+        with np.load(output_path, allow_pickle=True) as cached:
+            actual_size = len(cached["data_test"])
+            total_size = len(cached["data_train"]) + actual_size
+        expected_size = min(max_test_size, int(0.3 * total_size))
+        if actual_size != expected_size:
+            raise ValueError(
+                f"Cached split {output_path} has {actual_size} test points; "
+                f"requested {expected_size}. Use a new output directory."
+            )
         print(f"Skipping dataset generation for {dataset_name}, {number_of_dims} dimensions as it exists.")
         return
 
@@ -362,10 +379,13 @@ def export_fixed_grid_test_set_and_rest_for_train(
 
     # Extract a test dataset of adequate size.
     test_size = min(max_test_size, int(0.3 * len(data_flat)))
+    if test_size < 1:
+        raise ValueError("Dataset is too small to form a nonempty fixed test split.")
     test_idx = np.zeros(len(data_flat), dtype=bool)
     _, test_idx_integers = maximal_distance_selection_torch(
         data_flat.reshape(-1, np.prod(data_flat.shape[1:])),
         test_size,
+        device=device,
         verbose=True
     )
     test_idx[test_idx_integers] = True
@@ -388,6 +408,7 @@ def export_fixed_grid_test_set_and_rest_for_train(
         output_path,
         dataset_name=dataset_name,
         number_of_dims=number_of_dims,
+        max_test_size=max_test_size,
         data_unclipped=data_unclipped,
         full_clip_slices=full_clip_slices,
         weights=weights,

@@ -17,7 +17,8 @@ Custom dSprites is generated locally. For COIL-20, download the processed images
 | Toy fitting and measures | [fit_and_get_measures.py](../experiment_scripts/toy_manifolds_experiment/fit_and_get_measures.py) |
 | Image MMLS / β-VAE training | [training.py](../experiment_scripts/manifold_fitting/training.py), [model_configs.py](../experiment_scripts/model_configs.py) |
 | Grid measures and exports | [run_data_analysis.py](../microscope/computations_grid/data_analysis/run_data_analysis.py) |
-| Bound curves | [manifold_fitting notebooks](../notebooks/manifold_fitting) |
+| Figures 3–6 recipe | [paper.py](../experiment_scripts/reproduction/paper.py), [commands and options](../experiment_scripts/reproduction/README.md) |
+| Bound curves | [bounds.py](../experiment_scripts/reproduction/bounds.py), [methods notebook](../notebooks/manifold_fitting/bound_curves_all_methods.ipynb) |
 
 Existing experiment commands, retained as starting configurations (not verified paper-reproduction recipes):
 
@@ -37,7 +38,7 @@ python -m experiment_scripts.manifold_fitting.training \
     --output-path results/image_fitting --device cuda:0
 ```
 
-The toy script writes pickled distance/measure results; the image script exports datasets and loops over both datasets, fitting methods, dimensions and training ratios. Inspect its configuration before launching: these are substantial runs, and some helpers still assume CUDA. The older inference/analysis wrappers use experiment naming that differs from training. The modular Figures 3–6 recipe is documented in [the reproduction entry points](../experiment_scripts/reproduction/README.md); it has not yet been executed or tested. Bound notebooks contain local artifact paths; final paper plots were generated separately from exported curves. Stored notebook outputs have not been regenerated for the fixes.
+The toy script writes pickled distance/measure results; the image script exports datasets and loops over selected datasets, fitting methods, dimensions, fractions and repetitions. The inference/analysis wrappers discover the actual six-field directories and require completion markers; incomplete directories warn and skip. The modular Figures 3–6 recipe and configurable training/inference options are documented in [the reproduction entry points](../experiment_scripts/reproduction/README.md). Device selection is forwarded through the reproduction fitting, toy and analysis paths. The new wiring has not been executed or tested; the full workloads remain substantial. The methods notebook delegates to the native modules and its stale saved outputs were cleared; the other historical bound notebooks still contain local paths and stored outputs.
 
 For each retained run, save the commit and dirty diff, exact package versions, command/configuration, seeds, input sources/checksums, hardware/device and outputs. Preserve original and corrected results separately and compare target figures/tables quantitatively. Current scripts do not capture all this provenance automatically.
 

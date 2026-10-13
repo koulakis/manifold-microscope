@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Optional
 
@@ -19,6 +19,7 @@ class BetaVAEConfig:
     device: Optional[str] = None  # New: "cpu", "cuda", "cuda:0", "mps", etc.
     max_iter: float = 2e6
     max_epochs: int = 100_000
+    strict_budget: bool = False  # Stop at exact batch/epoch limits when requested.
     plot_interval: int = 500
     batch_size: int = 64
 
@@ -63,3 +64,12 @@ class MMLSConfig:
     exact_nn_threshold: int = 10_000
     device: str = "cuda:0"
     verbose: bool = True
+
+
+def apply_model_overrides(config, overrides):
+    """Apply model parameters without changing the selected inputs or output paths."""
+    fixed = {"dataset", "number_of_dims", "training_ratio", "ratio_per_dim", "noise_sigma",
+             "output_dir", "ckpt_dir", "exported_datasets_dir", "device", "cuda"}
+    if fixed.intersection(overrides):
+        raise ValueError("Set dataset, device and paths through the experiment arguments.")
+    return replace(config, **overrides)
