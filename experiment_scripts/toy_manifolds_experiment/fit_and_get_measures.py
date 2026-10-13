@@ -20,7 +20,8 @@ def compute_distances(
     fitting_method: str = "MMLS",
     normalized: bool = False,
     error_weight: float = 1.0,
-    device: str = "cuda:0"
+    device: str = "cuda:0",
+    projection_method: str = "thin_svd"
 ):
     if fitting_method.startswith("denoising_autoencoder_"):
         from experiment_scripts.toy_manifolds_experiment.manifold_fitting_denoising_autoencoder import DenoisingAutoencoder
@@ -30,7 +31,8 @@ def compute_distances(
 
             d = manifold.dimension
             k = 5
-            projector = ANNMMLSProjector(samples, d=d, k=k, device=device)
+            projector = ANNMMLSProjector(samples, d=d, k=k, device=device,
+                                        projection_method=projection_method)
             prediction = projector.project(ground_truth)
         case "denoising_autoencoder_normal_noise":
             samples, unitary_normals = manifold.sample(
@@ -122,7 +124,8 @@ def run_size_ablation(
     error_weight: float = 1.0,
     parallel=True,
     max_workers=None,
-    device: str = "cuda:0"
+    device: str = "cuda:0",
+    projection_method: str = "thin_svd"
 ):
     avg_all, haus_all = {}, {}
 
@@ -140,7 +143,8 @@ def run_size_ablation(
                         fitting_method=fitting_method,
                         normalized=normalized,
                         error_weight=error_weight,
-                        device=device
+                        device=device,
+                        projection_method=projection_method
                     )
                     for _ in range(n_examples_per_size)
                 ]
@@ -155,7 +159,8 @@ def run_size_ablation(
                     fitting_method=fitting_method,
                     normalized=normalized,
                     error_weight=error_weight,
-                    device=device
+                    device=device,
+                    projection_method=projection_method
                 )
                 for _ in range(n_examples_per_size)
             ]
@@ -177,7 +182,8 @@ def fit_and_get_measures(
     fitting_method: str = "MMLS",
     normalized: bool = True,
     error_weight: float = 1.0,
-    device: str = "cuda:0"
+    device: str = "cuda:0",
+    projection_method: str = "thin_svd"
 ):
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -205,7 +211,8 @@ def fit_and_get_measures(
             normalized=normalized,
             error_weight=error_weight,
             max_workers=max_workers,
-            device=device
+            device=device,
+            projection_method=projection_method
         )
 
         results[name] = dict(

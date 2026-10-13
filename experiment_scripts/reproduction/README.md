@@ -3,7 +3,9 @@
 This package adds small entry points around the existing dataset, MMLS,
 beta-VAE and geometry implementations.
 The high-level recipe targets Figures 3–6 and retains the final submission
-plotting styles. **These new scripts have not been executed or tested.**
+plotting styles. Focused CPU regressions and reduced CUDA toy runs have passed.
+The full Figure 5 recipe with the faster projector completed on CUDA;
+Figures 3, 4 and 6 have not been run end to end.
 
 Run commands from the new repository root using the project's environment.
 On the desktop use `PYENV_VERSION=curvatures pyenv exec python`; on the Mac
@@ -12,6 +14,11 @@ declares the runtime dependencies; nothing here installs packages.
 
 ## High-level recipe
 
+**Warning:** MMLS uses the faster batched `thin_svd` projector by default.
+Expect slight numerical deviations from the published plots due to SVD
+roundoff and different random samples. The goal is to rerun the experiments
+and obtain very similar plots and trends; seed-level agreement is not required.
+
 ```bash
 PYENV_VERSION=curvatures pyenv exec python -m experiment_scripts.reproduction.paper \
   --output-root ../outputs/PAPER_REPRODUCTION --figures 3 4 5 6
@@ -19,8 +26,8 @@ PYENV_VERSION=curvatures pyenv exec python -m experiment_scripts.reproduction.pa
 
 This command selects the full paper workloads and defaults to CUDA device 0.
 `--device cpu` is forwarded through fitting, fixed splits, toy surface relaxation,
-inference and grid analysis. These newly connected paths have not been run;
-full workloads remain substantial on either device. Supply `COIL20_PATH`
+inference and grid analysis. Full workloads remain substantial on either device.
+Supply `COIL20_PATH`
 pointing to the processed COIL-20 PNG directory when using that dataset.
 
 Run stages separately against the same root:
@@ -31,6 +38,29 @@ python -m experiment_scripts.reproduction.paper --output-root ../outputs/PAPER_R
 python -m experiment_scripts.reproduction.paper --output-root ../outputs/PAPER_REPRODUCTION --stages infer analyze
 python -m experiment_scripts.reproduction.paper --output-root ../outputs/PAPER_REPRODUCTION --stages export plot
 ```
+
+To use the preserved historical covariance SVD, add `--projection-method original`
+to the paper, fitting, training or toy command, or set
+`MMLSConfig.projection_method='original'`. The default `thin_svd` path uses a
+batched thin SVD of weighted centered neighbors; its right singular vectors
+span the same tangent space on regular inputs. Weights and neighbor selection
+are retained, and an ANN index is built only when the existing rule uses it.
+Roundoff and degenerate eigenspaces can differ. `MMLSConfig.projection_batch_size`
+defaults to 32 and can be set through JSON overrides. Each MMLS/toy config
+records the method. Use a fresh output root when switching implementations.
+
+On 2026-10-13, the recovered Figure 5 workload completed on an RTX 4090:
+65 image fits, four toy classes with 1,016 sizes and 20 repetitions each,
+bound export and PNG/PDF rendering. Reusing completed dataset exports, it took
+about 26 minutes 38 seconds. Output counts/finiteness and resume preservation
+were checked. Small real-image comparisons with the original projector differed
+by at most about 1.4e-5 per pixel. The author reviewed the generated Figure 5 PDF
+and accepted its small differences as consistent with the reproduction goal.
+The original full run was stopped before its first fit
+completed. Torus sampling still performs scalar root solves on CPU.
+
+For runs importing optional KeOps, `KEOPS_CACHE_FOLDER` can point to a directory
+inside the output root, alongside any configured Matplotlib/Numba/Python caches.
 
 `--figures` selects a subset. Figure 3 uses dSprites MMLS dimensions 1–4;
 Figure 4 adds 4D beta-VAE fitting/evaluation; Figure 5 uses sphere, torus,
@@ -143,11 +173,14 @@ The caption/repetition discrepancies and unknown historical fixes remain.
 The cleanup branch also includes fixes to signed curvature integration,
 subsampled reach shapes and second-kind Riemann differentiation; their effect
 on the historical figure values has not yet been measured.
-The bound constants use the actual notebook formulas, not the different
-envelope procedure described in the paper prose. Exact numerical agreement
-with the original paper is therefore an unverified goal, not a claim.
+The bound constants use the actual notebook formulas; the paper prose describes
+a different envelope procedure. Record these differences when comparing plot
+trends. Further figure validation remains necessary; exact numerical agreement
+with historical random draws is outside the reproduction goal.
 
 Completed source fixes and remaining historical/validation work are listed in
 [FOLLOW_UPS.md](FOLLOW_UPS.md). Focused regression sources cover FPS/cache behavior,
 strict budgets, full checkpoint loading, mean decoding and partial-directory
-warnings. They have not been executed.
+warnings. Twenty-two focused CPU cases passed across the suite and final option
+checks; broader geometry and layer pipelines
+still require validation against retained paper artifacts.

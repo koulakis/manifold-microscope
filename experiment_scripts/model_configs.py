@@ -64,6 +64,8 @@ class MMLSConfig:
     exact_nn_threshold: int = 10_000
     device: str = "cuda:0"
     verbose: bool = True
+    projection_method: str = "thin_svd"
+    projection_batch_size: int = 32
 
 
 def apply_model_overrides(config, overrides):

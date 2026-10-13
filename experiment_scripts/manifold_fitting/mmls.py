@@ -46,7 +46,11 @@ def fit_mmls(model_config: MMLSConfig) -> None:
         )
         return
 
-    projector = ANNMMLSProjector(data_train, d=number_of_dims, k=number_of_neighbors, verbose=verbose, device=device)
+    projector = ANNMMLSProjector(
+        data_train, d=number_of_dims, k=number_of_neighbors, verbose=verbose, device=device,
+        sigma=model_config.sigma, exact_nn_threshold=model_config.exact_nn_threshold,
+        projection_method=model_config.projection_method,
+        projection_batch_size=model_config.projection_batch_size)
     prediction = projector.project(data_test)
 
     distances = np.linalg.norm(data_test - prediction, axis=-1)
