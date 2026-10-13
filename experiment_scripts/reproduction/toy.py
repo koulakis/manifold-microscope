@@ -5,14 +5,15 @@ from pathlib import Path
 from .common import run_experiment, write_json
 
 
-def fit_toy(output, *, sizes=(25, 5005, 5), repetitions=20, ground_truth=500, workers=16):
+def fit_toy(output, *, sizes=(25, 5005, 5), repetitions=20, ground_truth=500, workers=16,
+            device='cuda:0'):
     def action(directory):
         from experiment_scripts.toy_manifolds_experiment.fit_and_get_measures import fit_and_get_measures
         write_json(directory / 'config.json', dict(sizes=sizes, repetitions=repetitions,
-                                                   ground_truth=ground_truth, workers=workers))
+                                                   ground_truth=ground_truth, workers=workers, device=device))
         fit_and_get_measures(output_path=directory, N_range=tuple(sizes),
                              n_examples_per_size=repetitions, N_ground_truth=ground_truth,
-                             max_workers=workers, fitting_method='MMLS', normalized=True)
+                             max_workers=workers, fitting_method='MMLS', normalized=True, device=device)
         return [directory / 'distance_and_measure_results.pkl']
 
     return run_experiment(output, action)
@@ -25,9 +26,10 @@ def main():
     parser.add_argument('--repetitions', type=int, default=20)
     parser.add_argument('--ground-truth', type=int, default=500)
     parser.add_argument('--workers', type=int, default=16)
+    parser.add_argument('--device', default='cuda:0')
     args = parser.parse_args()
     fit_toy(args.output, sizes=args.sizes, repetitions=args.repetitions,
-            ground_truth=args.ground_truth, workers=args.workers)
+            ground_truth=args.ground_truth, workers=args.workers, device=args.device)
 
 
 if __name__ == '__main__':

@@ -38,7 +38,8 @@ def run_single_output(
     normalize_for_volume: bool,
     dpi: int = 300,
     export_plots: bool = True,
-    n_samples_for_plots: int = 50_000
+    n_samples_for_plots: int = 50_000,
+    device: str | None = None
 ) -> MeasureAggregates:
     measures = compute_measures_multiclass(
         data=features_on_grid,
@@ -47,7 +48,8 @@ def run_single_output(
         cyclic_dimensions=cyclic_dimensions,
         patch_sizes=patch_sizes,
         reach_subsample=2,
-        normalize_for_volume=normalize_for_volume
+        normalize_for_volume=normalize_for_volume,
+        device=device
     )
 
     with open(measures_dir / f"{name}.pkl", "wb") as f:
@@ -92,7 +94,8 @@ def main(
     dpi: int = 300,
     only_evolution: bool = False,
     scales: list[str] = ("linear", "symlog"),
-    n_samples_for_plots: int = 50_000
+    n_samples_for_plots: int = 50_000,
+    device: str = None
 ):
     distributions_dir = output_path / "distributions"
     projection_measures_dir = output_path / "projection_measures"
@@ -120,7 +123,8 @@ def main(
         weight_subsampling_by_manifold_volume=False,
         return_full_datasets=True,
         return_dataset_unflat_with_metadata=True,
-        full_datasets_unclipped=True
+        full_datasets_unclipped=True,
+        device=device
     )
     data_shape = data.shape
     if model_type == "beta_vae":
@@ -180,7 +184,8 @@ def main(
                 dpi=dpi,
                 export_plots=not only_evolution,
                 normalize_for_volume=normalize_for_volume,
-                n_samples_for_plots=n_samples_for_plots
+                n_samples_for_plots=n_samples_for_plots,
+                device=device
             )
 
             aggregates[checkpoint_name].append(intermediate_aggregates)

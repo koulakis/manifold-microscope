@@ -6,7 +6,6 @@ import numpy as np
 import typer
 from tqdm import tqdm
 
-from experiment_scripts.toy_manifolds_experiment.manifold_fitting_denoising_autoencoder import DenoisingAutoencoder
 from microscope.datasets import toy_manifolds
 from experiment_scripts.toy_manifolds_experiment.manifold_fitting_no_noise import ANNMMLSProjector
 
@@ -20,15 +19,18 @@ def compute_distances(
     sigma: float = 0.0001,
     fitting_method: str = "MMLS",
     normalized: bool = False,
-    error_weight: float = 1.0
+    error_weight: float = 1.0,
+    device: str = "cuda:0"
 ):
+    if fitting_method.startswith("denoising_autoencoder_"):
+        from experiment_scripts.toy_manifolds_experiment.manifold_fitting_denoising_autoencoder import DenoisingAutoencoder
     match fitting_method:
         case "MMLS":
             samples = manifold.sample(N, normalized=normalized)
 
             d = manifold.dimension
             k = 5
-            projector = ANNMMLSProjector(samples, d=d, k=k)
+            projector = ANNMMLSProjector(samples, d=d, k=k, device=device)
             prediction = projector.project(ground_truth)
         case "denoising_autoencoder_normal_noise":
             samples, unitary_normals = manifold.sample(
@@ -119,7 +121,8 @@ def run_size_ablation(
     normalized: bool = True,
     error_weight: float = 1.0,
     parallel=True,
-    max_workers=None
+    max_workers=None,
+    device: str = "cuda:0"
 ):
     avg_all, haus_all = {}, {}
 
@@ -136,7 +139,8 @@ def run_size_ablation(
                         sigma=sigma,
                         fitting_method=fitting_method,
                         normalized=normalized,
-                        error_weight=error_weight
+                        error_weight=error_weight,
+                        device=device
                     )
                     for _ in range(n_examples_per_size)
                 ]
@@ -150,7 +154,8 @@ def run_size_ablation(
                     sigma=sigma,
                     fitting_method=fitting_method,
                     normalized=normalized,
-                    error_weight=error_weight
+                    error_weight=error_weight,
+                    device=device
                 )
                 for _ in range(n_examples_per_size)
             ]
@@ -171,7 +176,8 @@ def fit_and_get_measures(
     max_workers: int = 8,
     fitting_method: str = "MMLS",
     normalized: bool = True,
-    error_weight: float = 1.0
+    error_weight: float = 1.0,
+    device: str = "cuda:0"
 ):
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -186,7 +192,7 @@ def fit_and_get_measures(
         name = str(manifold)
         print(f"Fitting on {name}.")
 
-        ground_truth = manifold.tesselation(N=N_ground_truth, normalized=normalized)
+        ground_truth = manifold.tesselation(N=N_ground_truth, normalized=normalized, device=device)
         measures = manifold.measures(normalized=normalized)
         measures_pointwise_on_gt = manifold.measures_pointwise(ground_truth, normalized=normalized)
 
@@ -198,7 +204,8 @@ def fit_and_get_measures(
             fitting_method=fitting_method,
             normalized=normalized,
             error_weight=error_weight,
-            max_workers=max_workers
+            max_workers=max_workers,
+            device=device
         )
 
         results[name] = dict(

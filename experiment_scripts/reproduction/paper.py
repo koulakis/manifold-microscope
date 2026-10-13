@@ -36,12 +36,8 @@ def experiments(figures):
 
 
 def reproduce(output_root, *, figures=(3, 4, 5, 6), stages=STAGES,
-              device='cuda:0', num_workers=2):
+              device='cuda:0', num_workers=2, inference_seed=None, decoder_sampling=True):
     root = Path(output_root).expanduser().resolve()
-    if 6 in figures and 'analyze' in stages and device != 'cuda:0':
-        raise ValueError('Figure 6 analysis currently requires cuda:0; existing device plumbing is deferred.')
-    if 5 in figures and 'fit' in stages and device != 'cuda:0':
-        raise ValueError('Figure 5 toy fitting currently uses cuda:0 internally; device plumbing is deferred.')
     jobs = experiments(figures)
 
     if 'fit' in stages:
@@ -58,7 +54,7 @@ def reproduce(output_root, *, figures=(3, 4, 5, 6), stages=STAGES,
                                 device=device, num_workers=num_workers)
         if 5 in figures:
             toy.fit_toy(root / 'toy', sizes=(25, 5005, 5), repetitions=20,
-                        ground_truth=500, workers=16)
+                        ground_truth=500, workers=16, device=device)
 
     if 'evaluate' in stages and 4 in figures:
         for method, dataset, dimension, fraction, repetition, _ in jobs:
@@ -72,7 +68,8 @@ def reproduce(output_root, *, figures=(3, 4, 5, 6), stages=STAGES,
             model = root / 'fits' / experiment_name(dataset, 'beta_vae', 1.0, dimension, repetition)
             inference = root / 'inference' / label
             if 'infer' in stages:
-                layers.infer(inference, model, device=device, num_workers=num_workers)
+                layers.infer(inference, model, device=device, num_workers=num_workers,
+                             seed=inference_seed, decoder_sampling=decoder_sampling)
             if 'analyze' in stages:
                 layers.analyze(root / 'analysis' / label, inference, device=device)
 
@@ -94,9 +91,12 @@ def main():
     parser.add_argument('--stages', nargs='+', choices=STAGES, default=list(STAGES))
     parser.add_argument('--device', default='cuda:0')
     parser.add_argument('--num-workers', type=int, default=2)
+    parser.add_argument('--inference-seed', type=int)
+    parser.add_argument('--decoder-sampling', action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
     reproduce(args.output_root, figures=args.figures, stages=args.stages,
-              device=args.device, num_workers=args.num_workers)
+              device=args.device, num_workers=args.num_workers,
+              inference_seed=args.inference_seed, decoder_sampling=args.decoder_sampling)
 
 
 if __name__ == '__main__':
