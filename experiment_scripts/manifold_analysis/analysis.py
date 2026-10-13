@@ -52,8 +52,7 @@ def run_analyses(
         "extended_coil20"
     ]
     model_type_list = [
-        "beta_vae",
-        "mae"
+        "beta_vae"
     ]
     training_ratio_per_dim_list = [
         1.0
@@ -80,8 +79,6 @@ def run_analyses(
     for dataset_name, model_type, training_ratio_per_dim, number_of_dims, noise_sigma in tqdm(hyperparameter_grid):
         # Skip dimension 4 for COIL20.
         if (number_of_dims == 4) and (dataset_name == "extended_coil20"):
-            continue
-        if (number_of_dims == 4) and (model_type == "mae"):
             continue
         model_dir = "__".join([
             dataset_name,
