@@ -20,7 +20,8 @@ def export_dataset(output, dataset, dimension, *, max_test_size=500, device='cud
     return run_experiment(output, action)
 
 
-def fit_mmls(output, datasets_dir, dataset, dimension, fraction, *, device='cuda:0', model_overrides=None):
+def fit_mmls(output, datasets_dir, dataset, dimension, fraction, *, device='cuda:0', model_overrides=None,
+             projection_method=None):
     datasets_dir = Path(datasets_dir).expanduser().resolve()
 
     def action(directory):
@@ -32,6 +33,8 @@ def fit_mmls(output, datasets_dir, dataset, dimension, fraction, *, device='cuda
             ratio_per_dim=False, noise_sigma=0, number_of_neighbors=2 * 2 ** dimension,
             device=device)
         config = apply_model_overrides(config, model_overrides or {})
+        if projection_method is not None:
+            config = replace(config, projection_method=projection_method)
         write_json(directory / 'config.json', asdict(config))
         fit(config)
         return list(directory.glob('distance_results_*.pkl'))
@@ -89,6 +92,7 @@ def main():
     parser.add_argument('--max-epochs', type=int)
     parser.add_argument('--strict-budget', action='store_true')
     parser.add_argument('--model-overrides', type=Path, help='JSON object of model parameters.')
+    parser.add_argument('--projection-method', choices=['original', 'thin_svd'])
     args = parser.parse_args()
     if args.method == 'dataset':
         export_dataset(args.output, args.dataset, args.dimension,
@@ -99,7 +103,7 @@ def main():
     overrides = json.loads(args.model_overrides.read_text()) if args.model_overrides else {}
     if args.method == 'mmls':
         fit_mmls(args.output, args.datasets_dir, args.dataset, args.dimension, args.fraction,
-                 device=args.device, model_overrides=overrides)
+                 device=args.device, model_overrides=overrides, projection_method=args.projection_method)
     else:
         fit_vae(args.output, args.datasets_dir, args.dataset, args.dimension, args.fraction,
                 args.seed, device=args.device, num_workers=args.num_workers,

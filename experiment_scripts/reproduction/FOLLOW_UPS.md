@@ -1,8 +1,14 @@
 # Follow-up status
 
-The source fixes below are implemented on the cleanup branch. **They have not
-been executed or tested.** Historical defaults are retained unless an option
-explicitly changes them.
+The source fixes below are implemented on the cleanup branch. Focused CPU
+regressions and reduced CUDA toy runs passed on 2026-10-13. All 65 image fits
+in the recovered Figure 5 recipe completed with the `thin_svd`
+projector; its full toy sweep, export, rendering and resume checks also passed.
+The author reviewed Figure 5 and accepted its small differences. Reproduction
+aims for very similar plots and trends across runs, without seed-level agreement.
+The faster `thin_svd` projector is now the default; `--projection-method original`
+selects the preserved historical covariance SVD. Other historical settings are
+retained unless an option explicitly changes them.
 
 | Area | Implemented |
 |---|---|
@@ -19,13 +25,20 @@ explicitly changes them.
 Focused regression sources were added for FPS reference/duplicate/empty cases,
 cached-split preservation/device forwarding, strict budgets and historical
 epoch finish, full-checkpoint NumPy metadata, mean decoding and partial warnings.
-No tests, imports, CLI help or experiments have been run for these changes.
+The initial focused suite passed (13 tests), and 12 experiment CLI help checks
+passed. With projector/selection regressions added, the focused suite passed
+21 tests; a final focused check passed three option/configuration tests,
+including a newly added training-flag test. Original and thin-SVD projections
+agree on CPU reference cases and GPU dSprites/COIL checks at 1% and 100%
+training fractions (three query images per check, maximum pixel difference
+about 1.4e-5). This is a limited parity check, not a comparison of all historical
+paper values. No dependencies were installed or changed.
 
 ## Still requires validation or historical evidence
 
-- Run the focused regressions, CLI option checks and small CPU/GPU pipelines.
-  Compare fixed splits, checkpoint errors, bound curves and layer aggregates
-  with retained artifacts before claiming reproduction.
+- Run small native beta-VAE/layer pipelines and the remaining figure recipes.
+  Compare bound curves and layer aggregates with retained artifacts to assess
+  similar plots and trends, allowing small sampling and numerical deviations.
 - The cleanup branch fixes signed curvature integration, second-kind Riemann
   differentiation and subsampled reach shapes. Their numerical effect on the
   older paper outputs has not been measured. MPS remains unvalidated.

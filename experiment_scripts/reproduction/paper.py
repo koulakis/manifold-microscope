@@ -36,7 +36,8 @@ def experiments(figures):
 
 
 def reproduce(output_root, *, figures=(3, 4, 5, 6), stages=STAGES,
-              device='cuda:0', num_workers=2, inference_seed=None, decoder_sampling=True):
+              device='cuda:0', num_workers=2, inference_seed=None, decoder_sampling=True,
+              projection_method='thin_svd'):
     root = Path(output_root).expanduser().resolve()
     jobs = experiments(figures)
 
@@ -48,13 +49,14 @@ def reproduce(output_root, *, figures=(3, 4, 5, 6), stages=STAGES,
             output = root / 'fits' / experiment_name(dataset, method, fraction, dimension, repetition)
             dataset_dir = root / 'datasets' / f'{dataset}__{dimension}'
             if method == 'MMLS':
-                fitting.fit_mmls(output, dataset_dir, dataset, dimension, fraction, device=device)
+                fitting.fit_mmls(output, dataset_dir, dataset, dimension, fraction, device=device,
+                                 projection_method=projection_method)
             else:
                 fitting.fit_vae(output, dataset_dir, dataset, dimension, fraction, seed,
                                 device=device, num_workers=num_workers)
         if 5 in figures:
             toy.fit_toy(root / 'toy', sizes=(25, 5005, 5), repetitions=20,
-                        ground_truth=500, workers=16, device=device)
+                        ground_truth=500, workers=16, device=device, projection_method=projection_method)
 
     if 'evaluate' in stages and 4 in figures:
         for method, dataset, dimension, fraction, repetition, _ in jobs:
@@ -93,10 +95,13 @@ def main():
     parser.add_argument('--num-workers', type=int, default=2)
     parser.add_argument('--inference-seed', type=int)
     parser.add_argument('--decoder-sampling', action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument('--projection-method', choices=['original', 'thin_svd'], default='thin_svd',
+                        help='MMLS projector (default: thin_svd; original uses covariance SVD).')
     args = parser.parse_args()
     reproduce(args.output_root, figures=args.figures, stages=args.stages,
               device=args.device, num_workers=args.num_workers,
-              inference_seed=args.inference_seed, decoder_sampling=args.decoder_sampling)
+              inference_seed=args.inference_seed, decoder_sampling=args.decoder_sampling,
+              projection_method=args.projection_method)
 
 
 if __name__ == '__main__':

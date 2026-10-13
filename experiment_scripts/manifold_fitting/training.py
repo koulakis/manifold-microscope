@@ -92,7 +92,8 @@ def run_trainings(
     max_iter: Optional[int] = None,
     max_epochs: Optional[int] = None,
     strict_budget: bool = False,
-    model_overrides: Optional[Path] = None
+    model_overrides: Optional[Path] = None,
+    projection_method: Optional[str] = None
 ) -> None:
     """Run selected jobs; model_overrides is a JSON file keyed by beta_vae/MMLS."""
     datasets = datasets if datasets is not None else [DatasetName.custom_dsprites_balanced, DatasetName.extended_coil20]
@@ -107,6 +108,9 @@ def run_trainings(
         raise ValueError("models must contain beta_vae or MMLS.")
     overrides = json.loads(model_overrides.read_text()) if model_overrides is not None else {}
     vae_overrides = dict(overrides.get("beta_vae", {}))
+    mmls_overrides = dict(overrides.get("MMLS", {}))
+    if projection_method is not None:
+        mmls_overrides["projection_method"] = projection_method
     for name, value in [("max_iter", max_iter), ("max_epochs", max_epochs)]:
         if value is not None:
             vae_overrides[name] = value
@@ -131,7 +135,7 @@ def run_trainings(
                 train_model(output_path / name, exported_datasets_dir, repetition_seed,
                             dataset.value, model, fraction, False, dimension, 0,
                             skip_done=skip_done, device=device, num_workers=num_workers,
-                            model_overrides=vae_overrides if model == "beta_vae" else overrides.get("MMLS", {}))
+                            model_overrides=vae_overrides if model == "beta_vae" else mmls_overrides)
 
 
 if __name__ == "__main__":

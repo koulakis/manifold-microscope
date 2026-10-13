@@ -2,11 +2,16 @@
 
 This repository accompanies [*The Data Manifold under the Microscope*, Marios Koulakis and Constantin Seibold, ICML 2026](https://proceedings.mlr.press/v306/koulakis26a.html). Cite the paper when using the framework; cite source datasets and adapted methods as appropriate.
 
-**Status:** the current checkout is under maintenance, not a validated reproduction release. Original final-experiment artifacts and an end-to-end figure/table reproduction remain to be checked. Package version `0.0.1` alone does not distinguish subsequent source changes: record the Git revision. A future verified paper-compatible release will need frozen source, inputs, configurations and environment details.
+**Status:** Figure 5 has been rerun, checked and reviewed by the author; Figures 3, 4 and 6 still require end-to-end validation. Reproduction aims to obtain very similar plots and trends across runs, allowing small sampling and numerical deviations without requiring seed-level agreement. Package version `0.0.1` alone does not distinguish subsequent source changes: record the Git revision. A validated reproduction release will need frozen source, inputs, configurations and environment details.
 
 Recent maintenance added CPU fallback to device-bearing grid APIs and corrected second-kind Riemann differentiation, signed curvature integration and subsampled reach output shapes. Comparisons with older results must account for these changes; their effect on the paper results has not yet been measured.
 
 ## Setup and entry points
+
+**Warning:** MMLS now defaults to the faster batched thin SVD (`thin_svd`).
+This can produce slight numerical deviations from the original covariance SVD
+and the published plots. To select the preserved original implementation, pass
+`--projection-method original` to a paper, fitting, training or toy command.
 
 From a clone, install experiment dependencies with `python -m pip install -e '.[benchmark]'`. This extra is declared in [pyproject.toml](../pyproject.toml); it is not needed for the README example. Dependencies are not an exact reproduction lockfile.
 
@@ -38,7 +43,7 @@ python -m experiment_scripts.manifold_fitting.training \
     --output-path results/image_fitting --device cuda:0
 ```
 
-The toy script writes pickled distance/measure results; the image script exports datasets and loops over selected datasets, fitting methods, dimensions, fractions and repetitions. The inference/analysis wrappers discover the actual six-field directories and require completion markers; incomplete directories warn and skip. The modular Figures 3–6 recipe and configurable training/inference options are documented in [the reproduction entry points](../experiment_scripts/reproduction/README.md). Device selection is forwarded through the reproduction fitting, toy and analysis paths. The new wiring has not been executed or tested; the full workloads remain substantial. The methods notebook delegates to the native modules and its stale saved outputs were cleared; the other historical bound notebooks still contain local paths and stored outputs.
+The toy script writes pickled distance/measure results; the image script exports datasets and loops over selected datasets, fitting methods, dimensions, fractions and repetitions. The inference/analysis wrappers discover the actual six-field directories and require completion markers; incomplete directories warn and skip. The modular Figures 3–6 recipe and configurable training/inference options are documented in [the reproduction entry points](../experiment_scripts/reproduction/README.md). Device selection is forwarded through the reproduction fitting, toy and analysis paths. Focused CPU regressions, reduced CUDA toy runs and the full recovered Figure 5 recipe passed on 2026-10-13 using `thin_svd`, now the default. Figure 5's output counts/finiteness, rendering and resume behavior were checked; the author found the plots very similar and accepted the small differences. Figures 3, 4 and 6 have not been run end to end. The methods notebook delegates to the native modules and its stale saved outputs were cleared; the other historical bound notebooks still contain local paths and stored outputs.
 
 For each retained run, save the commit and dirty diff, exact package versions, command/configuration, seeds, input sources/checksums, hardware/device and outputs. Preserve original and corrected results separately and compare target figures/tables quantitatively. Current scripts do not capture all this provenance automatically.
 

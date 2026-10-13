@@ -5,13 +5,16 @@ from tqdm import tqdm
 
 
 class ANNMMLSProjector:
-    def __init__(self, X, d, k=5, sigma=1.0, device="cuda:0", exact_nn_threshold=10_000, verbose=False):
+    def __init__(self, X, d, k=5, sigma=1.0, device="cuda:0", exact_nn_threshold=10_000, verbose=False,
+                 projection_method="thin_svd", projection_batch_size=32):
         """
         Args:
             - X: torch.Tensor [N, D] manifold samples
             - d: intrinsic manifold dimension
             - k: number of neighbors
             - sigma: Gaussian kernel width
+            - projection_method: Batched "thin_svd" (default) or "original" covariance SVD.
+            - projection_batch_size: Query batch size for thin_svd only.
         """
         self.X = torch.from_numpy(X).to(device)
         self.d = d
@@ -21,12 +24,20 @@ class ANNMMLSProjector:
         self.device = device
         self.exact_nn_threshold = exact_nn_threshold
         self.verbose = verbose
+        if projection_method not in ("original", "thin_svd"):
+            raise ValueError(f"Unknown projection method: {projection_method}.")
+        if projection_batch_size < 1:
+            raise ValueError("projection_batch_size must be positive.")
+        self.projection_method = projection_method
+        self.projection_batch_size = projection_batch_size
 
         if len(X) < k:
             raise ValueError(f"Received less training points: {len(X)} than the number of neighbors: {k}.")
 
         self.ann_index = None
-        if self.exact_nn_threshold is None or len(X) > self.exact_nn_threshold:
+        # Retain the original eager index behavior. The fast path builds an
+        # index only if project() actually selects the same ANN branch.
+        if projection_method == "original" and (self.exact_nn_threshold is None or len(X) > self.exact_nn_threshold):
             self.build_index()
 
     def build_index(self):
@@ -65,6 +76,10 @@ class ANNMMLSProjector:
             inds = torch.from_numpy(inds).to(self.device)
             p = torch.from_numpy(p).to(self.device)
 
+        if self.projection_method == "thin_svd":
+            return self._project_thin_svd(p, inds, Dsq)
+
+        # Historical covariance implementation is deliberately kept unchanged.
         p_proj = torch.zeros_like(p)
         for i in tqdm(list(range(p.shape[0])), disable=not self.verbose):
             Xi = self.X[inds[i]]
@@ -85,3 +100,28 @@ class ANNMMLSProjector:
             p_proj[i] = proj  # match [D]
 
         return p_proj.detach().cpu().numpy()
+
+    def _project_thin_svd(self, points, indices, distances):
+        """Project using right singular vectors of sqrt(W) @ centered neighbors.
+
+        A.T @ A equals the original weighted covariance. Its leading right
+        singular vectors span the same tangent space. Weights, centering and
+        neighbor selection stay unchanged; roundoff and degenerate eigenspaces
+        can differ from the covariance SVD.
+        """
+        if self.d > min(self.k, self.D):
+            raise ValueError("thin_svd requires d <= min(k, ambient dimension).")
+        projected = torch.empty_like(points)
+        for start in tqdm(range(0, len(points), self.projection_batch_size), disable=not self.verbose):
+            stop = start + self.projection_batch_size
+            neighbors = self.X[indices[start:stop]]
+            weights = torch.exp(-distances[start:stop] / (2 * self.sigma**2))
+            mean = (weights.unsqueeze(-1) * neighbors).sum(1) / weights.sum(1, keepdim=True)
+            centered = neighbors - mean.unsqueeze(1)
+            weighted = weights.sqrt().unsqueeze(-1) * centered
+            _, _, vh = torch.linalg.svd(weighted, full_matrices=False)
+            basis = vh[:, :self.d].transpose(-1, -2)
+            delta = (points[start:stop] - mean).unsqueeze(-1)
+            tangent = basis @ (basis.transpose(-1, -2) @ delta)
+            projected[start:stop] = mean + tangent.squeeze(-1)
+        return projected.detach().cpu().numpy()
