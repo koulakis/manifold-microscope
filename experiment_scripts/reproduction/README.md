@@ -4,8 +4,8 @@ This package adds small entry points around the existing dataset, MMLS,
 beta-VAE and geometry implementations.
 The high-level recipe targets Figures 3–6 and retains the final submission
 plotting styles. Focused CPU regressions and reduced CUDA toy runs have passed.
-The full Figure 5 recipe with the faster projector completed on CUDA;
-Figures 3, 4 and 6 have not been run end to end.
+The full Figure 3 and Figure 5 recipes with the faster projector completed on
+CUDA; Figures 4 and 6 have not been run end to end.
 
 Run commands from the new repository root using the project's environment.
 On the desktop use `PYENV_VERSION=curvatures pyenv exec python`; on the Mac
@@ -58,6 +58,17 @@ by at most about 1.4e-5 per pixel. The author reviewed the generated Figure 5 PD
 and accepted its small differences as consistent with the reproduction goal.
 The original full run was stopped before its first fit
 completed. Torus sampling still performs scalar root solves on CPU.
+
+The Figure 3 dimension ablation also completed on 2026-10-13 in about 6 minutes
+6 seconds, reusing the 4D dataset export. It produced 141 fits: 27/36/39/39 for
+dimensions 1/2/3/4, with three repetitions per feasible training size. The 1D
+10% and 2D 1% fractions have too few neighbors and are skipped, matching the
+retained original plot's count grids. Test counts are 14/230/500/500. Export,
+rendering and resume preservation passed. Full-training mean errors differ
+from retained originals by less than 3.4e-6. Partial-training differences are
+larger: the largest measured mean error difference is about 43% at the 2D 90%
+point (2.865 versus 2.000). Subsampling is unseeded; exact agreement between
+individual partial-training points is not required by the reproduction goal.
 
 For runs importing optional KeOps, `KEOPS_CACHE_FOLDER` can point to a directory
 inside the output root, alongside any configured Matplotlib/Numba/Python caches.

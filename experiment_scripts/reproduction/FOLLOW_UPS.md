@@ -10,6 +10,12 @@ The faster `thin_svd` projector is now the default; `--projection-method origina
 selects the preserved historical covariance SVD. Other historical settings are
 retained unless an option explicitly changes them.
 
+Figure 3's full CUDA profile also passed on 2026-10-13: 141 feasible fits,
+six expected insufficient-neighbor skips, bound export, rendering and resume.
+The training-count grids match retained original plot data; full-training mean
+errors agree within 3.4e-6. Partial-data points vary, including a 43% difference
+at the 2D 90% point. Figures 4 and 6 still require end-to-end execution.
+
 | Area | Implemented |
 |---|---|
 | Experiment paths | Inference/analysis discover actual six-field directories, including repetition, rather than building an incompatible grid. The second analysis entry point reuses the first. |
