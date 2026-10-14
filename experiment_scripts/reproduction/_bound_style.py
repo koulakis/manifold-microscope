@@ -255,7 +255,7 @@ def create_repetitions_shaded_plot(
         legend_y=None
 ):
     """
-    Create line plots with shaded bounds for empirical_all_repetitions data.
+    Create empirical curves, shading ±sigma only with at least three repetitions.
 
     Args:
         data_path: Path to the npz file containing bound data
@@ -371,6 +371,7 @@ def create_repetitions_shaded_plot(
 
         means = []
         stds = []
+        counts = []
         for j in range(len(x)):
             if hasattr(repetitions_data, 'iloc'):
                 values = repetitions_data.iloc[j]
@@ -381,9 +382,11 @@ def create_repetitions_shaded_plot(
                 values = np.array(values)
                 means.append(np.mean(values))
                 stds.append(np.std(values))
+                counts.append(len(values))
             else:
                 means.append(float(values))
                 stds.append(0.0)
+                counts.append(1)
 
         means = np.array(means)
         stds = np.array(stds)
@@ -399,8 +402,13 @@ def create_repetitions_shaded_plot(
             means_sub = means
             stds_sub = stds
 
-        # Plot empirical mean with shaded 2 standard deviations
-        label_text = "Empirical (Mean ± σ)" if i == 0 else ""
+        shade = np.array(counts)[indices] >= 3
+        # Shade only intervals whose two endpoints have enough repetitions.
+        has_band = np.any(shade[:-1] & shade[1:])
+        empirical_label = ('Empirical (Mean ± σ)' if shade.all() else
+                           'Empirical (Mean; ± σ where n ≥ 3)' if has_band else
+                           'Empirical (Mean)' if max(counts) > 1 else 'Empirical')
+        label_text = empirical_label if i == 0 else ""
         axes[i].plot(
             x_relative_sub,
             means_sub,
@@ -412,14 +420,15 @@ def create_repetitions_shaded_plot(
             label=label_text
         )
 
-        # Add shaded region for 2 standard deviations
-        axes[i].fill_between(
-            x_relative_sub,
-            means_sub - stds_sub,
-            means_sub + stds_sub,
-            color='tab:blue',
-            alpha=0.3
-        )
+        if has_band:
+            axes[i].fill_between(
+                x_relative_sub,
+                means_sub - stds_sub,
+                means_sub + stds_sub,
+                where=shade,
+                color='tab:blue',
+                alpha=0.3
+            )
 
         # Configure axes based on no_axes flag
         if no_axes:

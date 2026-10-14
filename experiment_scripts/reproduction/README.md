@@ -6,7 +6,9 @@ The high-level recipe targets Figures 3–6 and retains the final submission
 plotting styles. Focused CPU regressions and reduced CUDA toy runs have passed.
 The full Figure 3 and Figure 5 recipes with the faster projector completed on
 CUDA. Figure 6 training and recovery analysis/rendering also completed; its
-learned-layer agreement with the paper still needs review. Figure 4 remains unrun.
+author has accepted the Figure 6 rerun as sufficiently similar, allowing training
+variation. This is an author review, not seed-level or numerical equivalence.
+Figure 4 remains unrun; quick and full entry points are provided below.
 
 Run commands from the new repository root using the project's environment.
 On the desktop use `PYENV_VERSION=curvatures pyenv exec python`; on the Mac
@@ -96,6 +98,55 @@ from 300-DPI row images; the separate row PDFs retain the renderer's vector
 output. Bounds export includes actual repetition counts and regression values.
 
 ## Individual experiments
+
+### Quick run for Figure 4 using completed Figure 3/6 fits
+
+For a smaller comparison, run one repetition at 5%, 20%, 40%, 60%, 80%, 100%:
+
+```bash
+python -m experiment_scripts.reproduction.quick_figure4 \
+  --output-root ../outputs/FIGURE4_REDUCED \
+  --figure3-root ../outputs/FIGURE3_RUN \
+  --figure6-root ../outputs/FIGURE6_TRAINING_RUN \
+  --device cuda:0 --num-workers 2
+```
+
+The inputs must contain completed native fits. The recipe reuses repetition 2
+of the six dSprites 4D MMLS fits from Figure 3 and the 100% dSprites VAE from
+Figure 6 (use its training root, not the analysis recovery root). It links
+these inputs and the existing fixed dataset into a separate output root;
+source artifacts are only read. Five VAE models are trained at seed 473959,
+matching the reused repetition, with the existing full training budgets.
+All six models receive Figure 4's fixed-test reconstruction-error evaluation,
+including the reused 100% model; Figure 6 layer measures do not replace it.
+Each training/evaluation/export/plot stage runs in a separate process to
+release memory. Completed stages skip; incomplete directories warn and stop
+the recipe for manual preservation before retrying. No partial files are deleted.
+
+The reduced run writes `figures/figure_4/figure_4.{png,pdf}` and retains actual
+training and repetition counts in `bounds/figure_4/counts_and_regression.json`.
+The shared bound renderer omits sigma shading wherever fewer than three
+repetitions are available and adjusts its legend. This is a reduced comparison,
+not the paper's full 13-size, three-repetition experiment; fitted bounds use
+only these six sizes. No Figure 6 inference or geometry analysis is rerun.
+
+### Full run for Figure 4
+
+```bash
+python -m experiment_scripts.reproduction.full_figure4 \
+  --output-root ../outputs/FIGURE4_FULL --device cuda:0 --num-workers 2
+```
+
+This independent recipe exports the fixed dataset and runs the paper's 13 sizes
+(1%, 2%, 5%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 100%) with three
+repetitions: 39 MMLS fits, 39 VAE trainings and 39 evaluations. Seeds are
+439, 437875 and 473959. It uses the same configurations, bound formulas and
+renderer as `paper --figures 4`, with each stage in a separate process for
+memory release. Finished stages skip on restart; partial stages warn and stop.
+Use a separate output root from the quick run. Training may take several days.
+`thin_svd` remains the MMLS default; pass `--projection-method original` for
+the preserved covariance SVD. The output is `figures/figure_4/figure_4.pdf`
+(and PNG), with uncertainty bands wherever at least three repetitions exist.
 
 ### Recover Figure 6 after completed training
 
