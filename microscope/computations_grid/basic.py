@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from microscope.patches import extract_patches, stack_patches
+from microscope.patches import extract_patches
 
 
 def partial_derivative_approximation(
@@ -142,8 +142,13 @@ def partial_derivatives_across_all_dims_batched(
         cyclic_dimensions=cyclic_dimensions
     )
 
-    derivative_patches = []
-    for patch in patches.reshape(-1, *patches.shape[dims:]):
+    output_shape = tuple(s if i in cyclic_dimensions else s - 2
+                         for i, s in enumerate(features_on_grid.shape[:dims]))
+    derivative_array = np.empty((*output_shape, *features_on_grid.shape[dims:], dims),
+                                dtype=features_on_grid.dtype)
+    steps = np.asarray(patch_sizes) - 2
+    for index in np.ndindex(*patches.shape[:dims]):
+        patch = patches[index]
         points_pt_patch = torch.from_numpy(patch).to(device)
 
         volume_pred = partial_derivatives_across_all_dims(
@@ -151,25 +156,12 @@ def partial_derivatives_across_all_dims_batched(
             difference_intervals=difference_intervals,
             manifold_dim=dims
         ).cpu().detach().numpy()
-        derivative_patches.append(volume_pred)
+        starts = np.asarray(index) * steps
+        lengths = np.minimum(steps, np.asarray(output_shape) - starts)
+        if np.all(lengths > 0):
+            destination = tuple(slice(int(s), int(s + n)) for s, n in zip(starts, lengths))
+            source = tuple(slice(0, int(n)) for n in lengths)
+            derivative_array[destination] = volume_pred[source]
 
-    derivative_patches = np.stack(derivative_patches, axis=0).reshape(
-        *patches.shape[:dims],
-        *list(np.array(patches.shape[dims:2 * dims]) - np.array(overlaps)),
-        *patches.shape[2 * dims:],
-        dims
-    )
-
-    derivative_array = stack_patches(derivative_patches, n_features=2)
-
-    # Truncate any padded zeros introduced in the patch extraction.
-    expected_array_shape = tuple(
-        slice(
-            0,
-            s if i in cyclic_dimensions else s - 2
-        )
-        for i, s in enumerate(features_on_grid.shape[:-1])
-    )
-
-    return derivative_array[expected_array_shape]
+    return derivative_array
 
