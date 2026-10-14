@@ -129,8 +129,17 @@ The memory fix passed 22 focused CPU cases. On 2026-10-14 the GPU recovery
 completed in 23 minutes 56 seconds, excluding the previously completed training
 and dSprites inference. All 19 layer outputs (10 dSprites, 9 COIL), class/pair
 counts, grid shapes, finite arrays/aggregates and final images were checked.
-The original training checksums are unchanged. Both datasets' input-layer
-aggregates match the retained paper results exactly. Some learned dSprites
+The original training checksums are unchanged. Both datasets' saved input-layer geometry matches the retained results exactly.
+That completed run used full-grid positive/negative curvature contributions,
+which differ from the historical sign-subset averages even for identical inputs.
+The default now restores the paper definition: average volume-weighted curvature
+over points with curvature >= 0 or < 0, then multiply by the full parameter-domain
+volume. Zeros count in the nonnegative subset; empty subsets yield NaN and NumPy
+warnings. These quantities need not sum to total curvature. The corrected
+full-grid definition is deferred until after the reproduction release. Existing
+figures and serialized aggregates remain unchanged; replot saved measures into
+a fresh output directory to apply the restored definition. The Figure 6 plotter
+recomputes aggregates after clipping; no retraining or geometry rerun is needed. Some learned dSprites
 magnitudes differ substantially (mean latent volume about 9.4 times the retained
 value); scientific agreement needs review. Successful execution alone does not
 establish paper equivalence. Actual peak memory was not recorded.
@@ -220,9 +229,10 @@ MMLS repetitions, one COIL VAE and twenty toy runs per size. dSprites VAE seeds
 are 439/437875/473959; COIL's seed is 438. MMLS and inference preserve their
 historically unseeded behavior; inference stores mu but decodes sampled z.
 The caption/repetition discrepancies and unknown historical fixes remain.
-The cleanup branch also includes fixes to signed curvature integration,
-subsampled reach shapes and second-kind Riemann differentiation; their effect
-on the historical figure values has not yet been measured.
+The cleanup branch also includes fixes to subsampled reach shapes and
+second-kind Riemann differentiation; their effect on historical figure values
+needs separate assessment. Signed-curvature aggregation follows the original
+paper definition described above.
 The bound constants use the actual notebook formulas; the paper prose describes
 a different envelope procedure. Record these differences when comparing plot
 trends. Further figure validation remains necessary; exact numerical agreement

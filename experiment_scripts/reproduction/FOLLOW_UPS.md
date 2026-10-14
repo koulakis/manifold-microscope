@@ -17,8 +17,13 @@ errors agree within 3.4e-6. Partial-data points vary, including a 43% difference
 at the 2D 90% point. Figure 4 still requires end-to-end execution. Figure 6
 training and per-layer GPU recovery completed on 2026-10-14; all 19 layer outputs
 passed structural/finiteness checks and the final figure rendered. Input-layer
-aggregates match retained paper results exactly. Learned dSprites values can
-differ substantially; scientific review remains pending.
+geometry matches retained results exactly. The completed run used corrected
+full-grid signed-curvature aggregation, which changed the positive/negative
+panels even for identical inputs. The paper's sign-subset averages have now been
+restored as the default; 21 focused CPU tests pass and saved input aggregates
+match the historical values exactly. Replot saved measures into fresh output
+directories to apply the restored definition; existing results are preserved.
+Learned dSprites values can differ substantially; scientific review remains pending.
 
 | Area | Implemented |
 |---|---|
@@ -49,9 +54,13 @@ paper values. No dependencies were installed or changed.
 - Run small native beta-VAE/layer pipelines and the remaining figure recipes.
   Compare bound curves and layer aggregates with retained artifacts to assess
   similar plots and trends, allowing small sampling and numerical deviations.
-- The cleanup branch fixes signed curvature integration, second-kind Riemann
-  differentiation and subsampled reach shapes. Their numerical effect on the
-  older paper outputs has not been measured. MPS remains unvalidated.
+- After completing and releasing paper reproduction, introduce the corrected
+  full-grid positive/negative curvature contributions in the modern version.
+  The reproduction version deliberately retains historical sign-subset averages,
+  including NaN for empty subsets.
+- The cleanup branch fixes second-kind Riemann differentiation and subsampled
+  reach shapes. Their numerical effect on older paper outputs needs separate
+  assessment. MPS remains unvalidated.
 - Static source comparison with OLD confirms toy-schema renames:
   `MeasuresGlobal.max_principal` became `max_absolute_principal`, and
   `MeasuresLocal.principal` became `max_absolute_principal`. Reach field names

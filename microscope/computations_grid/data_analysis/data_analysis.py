@@ -47,6 +47,13 @@ class AnalysisResults:
 
 
 def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[float]):
+    """Aggregate measures using the paper's historical sign-subset averages.
+
+    Positive/negative curvature averages use only points with curvature >= 0
+    or < 0, respectively, then multiply by the full parameter-domain volume.
+    They are not additive contributions to total curvature. Empty subsets
+    yield NaN and NumPy warnings, as in the original paper implementation.
+    """
     class_names = list(measures.normalized_volume_elements.keys())
     grid_volume = np.prod(range_sizes)
 
@@ -68,12 +75,12 @@ def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[
         )
         for name in class_names
     }
-    # Keep the whole grid's weights: non-contributing points have zero curvature.
+    # Preserve the paper's subset denominators, including zeros on the positive side.
     normalized_total_curvatures_positive = {
         name: (
                 compute_total_curvature(
-                    curvature=np.maximum(normalized_curvatures[name], 0),
-                    element=normalized_volume_elements[name],
+                    curvature=normalized_curvatures[name].flatten()[normalized_curvatures[name].flatten() >= 0],
+                    element=normalized_volume_elements[name].flatten()[normalized_curvatures[name].flatten() >= 0],
                     range_sizes=range_sizes
                 )
         )
@@ -82,8 +89,8 @@ def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[
     normalized_total_curvatures_negative = {
         name: (
                 compute_total_curvature(
-                    curvature=np.minimum(normalized_curvatures[name], 0),
-                    element=normalized_volume_elements[name],
+                    curvature=normalized_curvatures[name].flatten()[normalized_curvatures[name].flatten() < 0],
+                    element=normalized_volume_elements[name].flatten()[normalized_curvatures[name].flatten() < 0],
                     range_sizes=range_sizes
                 )
         )

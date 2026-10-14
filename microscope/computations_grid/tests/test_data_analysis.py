@@ -1,6 +1,7 @@
 """Hand-calculated aggregates and small CPU integration tests for grid analysis."""
 
 import copy
+from contextlib import nullcontext
 
 import matplotlib
 matplotlib.use("Agg")
@@ -34,6 +35,8 @@ def test_measure_aggregates_hand_calculated(measures):
     assert result.total_volumes == {"a": 99., "b": 101.}
     assert result.normalized_total_volumes == {"a": 12., "b": 18.}
     assert result.normalized_total_curvatures == {"a": -3., "b": 36.}
+    assert result.normalized_total_curvatures_positive == {"a": 12., "b": 96.}
+    assert result.normalized_total_curvatures_negative == {"a": -18., "b": -24.}
     assert result.normalized_min_reaches == {"a": 5., "b": 11.}
     assert result.normalized_total_reaches == {"a": 78., "b": 222.}
     assert result.normalized_total_distances == {("a", "b"): 72.}
@@ -42,11 +45,12 @@ def test_measure_aggregates_hand_calculated(measures):
 
 
 @pytest.mark.parametrize("curvatures,expected_parts", [
-    ([2., -1., 0., 0.], [.25, -.375]),
-    ([2., 1., 3., 4.], [2.5, 0.]),
-    ([-2., -1., -3., -4.], [0., -2.5]),
-], ids=["mixed-with-zero-region", "all-positive", "all-negative"])
-def test_curvature_parts_on_unit_volume_manifold(curvatures, expected_parts):
+    ([2., -1., 0., 0.], [1/3, -1.5]),
+    ([2., 1., 3., 4.], [2.5, np.nan]),
+    ([-2., -1., -3., -4.], [np.nan, -2.5]),
+    ([0., 0., 0., 0.], [0., np.nan]),
+], ids=["mixed-with-zero-region", "all-positive", "all-negative", "all-zero"])
+def test_historical_curvature_sign_subset_averages(curvatures, expected_parts):
     # Four equally spaced parameter-grid points with geometric volume weights
     # [1/8, 3/8, 1/8, 3/8]. The whole manifold has volume 1.
     density = np.array([[.5, 1.5], [.5, 1.5]])
@@ -58,16 +62,19 @@ def test_curvature_parts_on_unit_volume_manifold(curvatures, expected_parts):
         normalized_reaches={"a": np.ones((2, 2))},
         normalized_distances={},
     )
-    result = compute_measure_aggregates_multiclass(measures, [1., 1.])
+    # Historical empty sign subsets yield NaN and NumPy warnings.
+    warning = pytest.warns(RuntimeWarning) if np.isnan(expected_parts).any() else nullcontext()
+    with warning:
+        result = compute_measure_aggregates_multiclass(measures, [1., 1.])
     assert result.normalized_total_volumes["a"] == pytest.approx(1.)
     positive = result.normalized_total_curvatures_positive["a"]
     negative = result.normalized_total_curvatures_negative["a"]
-    # Non-contributing regions retain their volume weight and contribute zero.
-    np.testing.assert_allclose([positive, negative], expected_parts, rtol=0, atol=1e-12)
-    assert positive + negative == pytest.approx(result.normalized_total_curvatures["a"])
-    # The API stores the negative contribution with its sign: sum magnitudes.
-    expected_absolute = expected_parts[0] - expected_parts[1]
-    assert positive + abs(negative) == pytest.approx(expected_absolute)
+    # Zero-curvature points belong to the nonnegative subset. In the mixed
+    # case the two denominators are 3 and 1, rather than the full grid size 4.
+    np.testing.assert_allclose([positive, negative], expected_parts,
+                               rtol=0, atol=1e-12, equal_nan=True)
+    if np.isfinite(expected_parts).all():
+        assert positive + negative != pytest.approx(result.normalized_total_curvatures["a"])
 
 
 @pytest.mark.parametrize("margin,expected", [
