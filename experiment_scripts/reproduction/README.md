@@ -5,7 +5,8 @@ beta-VAE and geometry implementations.
 The high-level recipe targets Figures 3–6 and retains the final submission
 plotting styles. Focused CPU regressions and reduced CUDA toy runs have passed.
 The full Figure 3 and Figure 5 recipes with the faster projector completed on
-CUDA; Figures 4 and 6 have not been run end to end.
+CUDA. Figure 6 training and recovery analysis/rendering also completed; its
+learned-layer agreement with the paper still needs review. Figure 4 remains unrun.
 
 Run commands from the new repository root using the project's environment.
 On the desktop use `PYENV_VERSION=curvatures pyenv exec python`; on the Mac
@@ -95,6 +96,44 @@ from 300-DPI row images; the separate row PDFs retain the renderer's vector
 output. Bounds export includes actual repetition counts and regression values.
 
 ## Individual experiments
+
+### Recover Figure 6 after completed training
+
+For machines with limited host RAM, use a fresh recovery root and run one layer
+per process. This reuses completed inference when available, performs missing
+inference from the completed checkpoints, then analyzes each layer and renders
+Figure 6. It never trains a model or writes into the source run:
+
+```bash
+PYENV_VERSION=curvatures pyenv exec python -u -m experiment_scripts.reproduction.recover_figure6 run \
+  --input ../outputs/PAPER_REPRODUCTION \
+  --output ../outputs/PAPER_FIGURE6_RECOVERY --device cuda:0
+```
+
+On Linux with a systemd user manager, prefix the command with
+`systemd-run --user --scope -p MemoryMax=64G -p MemorySwapMax=1G` to contain
+its memory usage; choose limits that leave ample RAM for the desktop. A limit
+failure stops the job and leaves its partial output for inspection.
+
+`analysis_parts/<dataset>/<layer>/COMPLETED` marks each completed layer;
+`analysis/<dataset>/measures/` collects links only after all layers finish.
+Existing partial directories warn and skip, causing recovery to stop. Preserve
+them under a different name before retrying that layer. Completed layers skip
+on the next invocation. The recovery path produces the measure pickles and
+final Figure 6, omitting the auxiliary reconstruction-distance NPZ and generic
+layer-evolution diagnostic plots. Geometry formulas, normalization, patch sizes
+and reach subsampling are unchanged. Patch iteration avoids materializing the
+whole overlapping patch grid, and derivative patches fill one output array.
+
+The memory fix passed 22 focused CPU cases. On 2026-10-14 the GPU recovery
+completed in 23 minutes 56 seconds, excluding the previously completed training
+and dSprites inference. All 19 layer outputs (10 dSprites, 9 COIL), class/pair
+counts, grid shapes, finite arrays/aggregates and final images were checked.
+The original training checksums are unchanged. Both datasets' input-layer
+aggregates match the retained paper results exactly. Some learned dSprites
+magnitudes differ substantially (mean latent volume about 9.4 times the retained
+value); scientific agreement needs review. Successful execution alone does not
+establish paper equivalence. Actual peak memory was not recorded.
 
 For example, prepare a 1D dataset and fit one model:
 

@@ -14,7 +14,11 @@ Figure 3's full CUDA profile also passed on 2026-10-13: 141 feasible fits,
 six expected insufficient-neighbor skips, bound export, rendering and resume.
 The training-count grids match retained original plot data; full-training mean
 errors agree within 3.4e-6. Partial-data points vary, including a 43% difference
-at the 2D 90% point. Figures 4 and 6 still require end-to-end execution.
+at the 2D 90% point. Figure 4 still requires end-to-end execution. Figure 6
+training and per-layer GPU recovery completed on 2026-10-14; all 19 layer outputs
+passed structural/finiteness checks and the final figure rendered. Input-layer
+aggregates match retained paper results exactly. Learned dSprites values can
+differ substantially; scientific review remains pending.
 
 | Area | Implemented |
 |---|---|

@@ -191,7 +191,9 @@ def scalar_curvature(
     )
 
     volume_patches = []
-    for patch in patches.reshape(-1, *patches.shape[dims:]):
+    # Flattening the strided patch grid copies every overlapping patch.
+    for index in np.ndindex(*patches.shape[:dims]):
+        patch = patches[index]
         points_pt_patch = torch.from_numpy(patch).to(device)
 
         volume_pred = scalar_curvature_batch(
