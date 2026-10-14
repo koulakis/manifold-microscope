@@ -2,12 +2,29 @@
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 COMPLETED = 'COMPLETED'
 
 
 def is_complete(directory):
     return (Path(directory) / COMPLETED).is_file()
+
+
+def run_stage(module, output, *args):
+    """Run a reproduction CLI in a fresh process, stopping on partial results."""
+    output = Path(output)
+    if is_complete(output):
+        print(f'Skipping completed experiment: {output}', flush=True)
+        return
+    if output.exists():
+        print(f'WARNING: Skipping incomplete experiment (no COMPLETED): {output}', flush=True)
+        raise RuntimeError('Preserve the partial directory under another name before retrying.')
+    subprocess.run([sys.executable, '-u', '-m', f'experiment_scripts.reproduction.{module}',
+                    *map(str, args), '--output', str(output)], check=True)
+    if not is_complete(output):
+        raise RuntimeError(f'Stage did not complete: {output}')
 
 
 def run_experiment(directory, action, *, requires=()):
