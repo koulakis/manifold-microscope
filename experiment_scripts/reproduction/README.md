@@ -5,10 +5,11 @@ beta-VAE and geometry implementations.
 The high-level recipe targets Figures 3–6 and retains the final submission
 plotting styles. Focused CPU regressions and reduced CUDA toy runs have passed.
 The full Figure 3 and Figure 5 recipes with the faster projector completed on
-CUDA. Figure 6 training and recovery analysis/rendering also completed; its
-author has accepted the Figure 6 rerun as sufficiently similar, allowing training
-variation. This is an author review, not seed-level or numerical equivalence.
-Figure 4 remains unrun; quick and full entry points are provided below.
+CUDA. Figure 6 training/recovery and the quick Figure 4 experiment also
+completed and passed artifact checks. The author accepts Figures 3–6 as a
+reasonable trend-level paper reproduction. Figure 4 used six sizes and one
+repetition, so its full 13x3 experiment remains available but unrun. These are
+author-reviewed reproduction results, not seed-level numerical equivalence.
 
 Run commands from the new repository root using the project's environment.
 On the desktop use `PYENV_VERSION=curvatures pyenv exec python`; on the Mac
@@ -147,6 +148,17 @@ Use a separate output root from the quick run. Training may take several days.
 `thin_svd` remains the MMLS default; pass `--projection-method original` for
 the preserved covariance SVD. The output is `figures/figure_4/figure_4.pdf`
 (and PNG), with uncertainty bands wherever at least three repetitions exist.
+
+The quick recipe completed on an RTX 4090 on 2026-10-15. Its five new training
+durations total about 7 hours 9 minutes; a stopped first invocation resumed by
+skipping completed stages. All checkpoints and metrics are finite, the six
+requested sample counts are present, reused inputs retained their hashes, and
+the PNG/PDF rendered correctly without a sigma band. Against the retained
+paper curves, the fitted exponent is 0.240 versus 0.220 for MMLS and 0.127
+versus 0.114 for beta-VAE. The largest empirical differences from the paper's
+three-run means are 9.35% and 24.83%. The lower fitted bound differs more
+because the quick run omits the difficult smallest sizes used to fit and scale
+the original curve. The author accepted this as expected for the reduced run.
 
 ### Recover Figure 6 after completed training
 

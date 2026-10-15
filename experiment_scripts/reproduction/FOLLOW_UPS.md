@@ -14,7 +14,10 @@ Figure 3's full CUDA profile also passed on 2026-10-13: 141 feasible fits,
 six expected insufficient-neighbor skips, bound export, rendering and resume.
 The training-count grids match retained original plot data; full-training mean
 errors agree within 3.4e-6. Partial-data points vary, including a 43% difference
-at the 2D 90% point. Figure 4 still requires end-to-end execution. Figure 6
+at the 2D 90% point. The quick Figure 4 run completed on 2026-10-15 with six
+sizes and one repetition; all artifacts passed checks and the author accepted
+its curves as a reasonable reduced reproduction. The full 13x3 recipe remains
+available but unrun. Figure 6
 training and per-layer GPU recovery completed on 2026-10-14; all 19 layer outputs
 passed structural/finiteness checks and the final figure rendered. Input-layer
 geometry matches retained results exactly. The completed run used corrected
@@ -23,7 +26,8 @@ panels even for identical inputs. The paper's sign-subset averages have now been
 restored as the default; 21 focused CPU tests pass and saved input aggregates
 match the historical values exactly. Replot saved measures into fresh output
 directories to apply the restored definition; existing results are preserved.
-Learned dSprites values can differ substantially; scientific review remains pending.
+Learned dSprites values can differ substantially; the author accepted the
+remaining variation for the trend-level reproduction goal.
 
 | Area | Implemented |
 |---|---|
@@ -51,9 +55,10 @@ paper values. No dependencies were installed or changed.
 
 ## Still requires validation or historical evidence
 
-- Run small native beta-VAE/layer pipelines and the remaining figure recipes.
-  Compare bound curves and layer aggregates with retained artifacts to assess
-  similar plots and trends, allowing small sampling and numerical deviations.
+- Freeze the checked Figures 3–6 source, inputs, configurations and environment
+  as a paper-reproduction release. Figure 4's full 13x3 workload remains an
+  optional stronger statistical reproduction, not a blocker for the accepted
+  six-size quick result.
 - After completing and releasing paper reproduction, introduce the corrected
   full-grid positive/negative curvature contributions in the modern version.
   The reproduction version deliberately retains historical sign-subset averages,
