@@ -1,17 +1,12 @@
-# Usage and numerical conventions
+# Usage
 
 Start with the [CPU quickstart](../README.md#quickstart-scalar-curvature-on-a-sphere). Geometry routines estimate quantities from an ordered parameter grid; they do not accept an unordered point cloud as a substitute.
 
 ## Datasets
 
-| Source | Interface |
-| --- | --- |
-| [Toy manifolds](../microscope/datasets/toy_manifolds.py) | `Circle`, `Moons`, `Sphere`, `Torus`: `sample`, `tesselation`, `measures`, `measures_pointwise` |
-| [Custom dSprites](../microscope/datasets/custom_dsprites.py) | `dsprites`, `dsprites_balanced`: generated shapes with scale, rotation and translation axes |
-| [Extended COIL-20](../microscope/datasets/coil20.py) | `extended_coil20`: object views, scale and in-plane rotation; requires separately downloaded images |
-| [Image loader](../microscope/datasets/generic_dataset_loader.py) | `load_dataset_no_split`: selects dataset/dimension and supplies grid metadata |
-
-Toy measures use analytic formulas and some numerical approximations. Image geometry is estimated from the rendered samples; accuracy depends on resolution, rendering and conditioning. See the [dataset notebooks](../notebooks/datasets_and_measures) for visualizations.
+The [toy manifolds](../microscope/datasets/toy_manifolds.py)—`Circle`, `Moons`,
+`Sphere`, `Torus`—provide `sample`, `tesselation`, `measures` and
+`measures_pointwise`. For example:
 
 ```python
 import numpy as np
@@ -23,13 +18,71 @@ points = manifold.sample(100)  # shape (100, 2), uniform in arc length
 print(round(manifold.measures().volume, 3))  # 6.283
 ```
 
-`sample` returns a point cloud. Use an explicit parameter grid, as in the quickstart, for finite differences. `normalized=True` requests unit-volume toy geometry. Sphere/torus `tesselation` currently calls a CUDA-default helper; the circle example works on CPU.
+`normalized=True` requests unit-volume toy geometry. For sphere/torus
+`tesselation`, pass `device="cpu"` to use CPU instead of the CUDA default.
+
+### Image datasets
+
+Custom dSprites is rendered locally and needs no download. For a small loading
+example (too coarse for reliable curvature estimates):
+
+```python
+from microscope.datasets.custom_dsprites import dsprites
+
+images, labels = dsprites(
+    sprites=("square",), n_sizes=3, n_angles=8,
+    max_translation=2, translation_stride=2,
+    processes=(None, None, None, None), verbose=False,
+)
+print(images.shape)  # (1, 3, 8, 2, 2, 64, 64)
+# Axes: class, scale, rotation, y translation, x translation, height, width.
+```
+
+For COIL-20, first download and extract the processed grayscale images from
+[Columbia's dataset page](https://www.cs.columbia.edu/CAVE/software/softlib/coil-20.php).
+Set the directory containing all 20 × 72 PNGs, including `obj1__0.png`:
+
+```bash
+export COIL20_PATH=/path/to/coil-20-proc
+```
+
+```python
+from microscope.datasets.coil20 import load_coil20
+
+views, labels = load_coil20(views_stride=4)
+print(views.shape)  # (20, 18, 128, 128), float32 intensities divided by 256
+```
+
+`extended_coil20` adds scale and in-plane rotation. To load a paper dataset
+with grid metadata:
+
+```python
+from microscope.datasets.generic_dataset_loader import DatasetName, load_dataset_no_split
+
+(images, labels, patch_sizes, difference_intervals, volume_clip_slices,
+ full_clip_slices, range_sizes, cyclic_dimensions) = load_dataset_no_split(
+    DatasetName.custom_dsprites_balanced, number_of_dims=2,
+)
+# images: (classes, scale, rotation, height, width), scaled to [0, 1].
+grid = images.reshape(*images.shape[:-2], -1)
+# grid[0] is one class, ready for the geometry wrappers below.
+```
+
+Balanced dSprites supports dimensions 1–4; `DatasetName.extended_coil20` supports
+1–3. These loaders build full image grids before slicing and can need many GiB
+of RAM. Clipping slices select the interior after derivative estimation. The
+legacy original-dSprites loader needs its external NPZ path configured in
+`original_dsprites.py`; paper recipes use generated custom dSprites.
 
 ## Grid API
 
-Inputs to NumPy wrappers have shape `(s1, ..., sd, features)` and floating dtype. Flatten image axes into `features`, keeping class and parameter axes distinct. Use equally spaced coordinates; `difference_intervals` contains their spacings, while `range_sizes` contains full parameter-range lengths.
+Use floating arrays shaped `(s1, ..., sd, features)` with uniformly spaced
+parameter axes. Flatten image axes into `features`, keeping class axes separate.
+`difference_intervals` gives coordinate spacings; `range_sizes` gives full domain
+lengths. The induced metric must be nonsingular.
 
-`cyclic_dimensions` lists zero-based **axis indices**, not booleans. Sample a periodic axis without duplicating its endpoint. `get_difference_intervals` in [cyclic_dimensions.py](../microscope/cyclic_dimensions.py) uses `range / n` for periodic axes and `range / (n - 1)` otherwise.
+`cyclic_dimensions` lists zero-based periodic axis indices. Omit duplicate
+endpoints on periodic axes; `get_difference_intervals` computes the spacings.
 
 | Operation in `microscope.computations_grid` | Result | Samples removed at each nonperiodic end |
 | --- | --- | --- |
@@ -38,15 +91,64 @@ Inputs to NumPy wrappers have shape `(s1, ..., sd, features)` and floating dtype
 | `curvature.scalar_curvature` | NumPy scalar-curvature array | 3 |
 | `reach.reach_per_point` | NumPy local-reach estimates | 1 |
 
-These wrappers preserve periodic axes and take one `patch_sizes` entry per grid axis. Patch sizes must exceed 2 for derivatives/volume/reach and 6 for curvature; nonperiodic axes also need enough samples for those margins. Smaller patches reduce temporary device memory, but the full input and output grids remain in memory.
+Periodic axes are preserved. Supply one patch size per grid axis, greater than
+2 for derivatives/volume/reach and 6 for curvature, with enough grid samples for
+the stencil. Smaller patches reduce temporary memory; full arrays stay in RAM.
 
-Wrappers accept `device="cpu"`, `"cuda:0"` or a `torch.device`; `None` selects CUDA if available, otherwise CPU. Lower-level tensor operations, including `riemannian_metric` and the `*_batch` routines, use the input tensor's device and crop **every** grid axis; periodic padding is the caller's responsibility. NumPy wrappers detach results from autograd. MPS has not been validated.
+Use `device="cpu"` or `"cuda:0"`; the default selects CUDA when available,
+otherwise CPU. Lower-level tensor APIs use the tensor's device and require
+manual periodic padding. NumPy wrappers detach from autograd; MPS is unvalidated.
 
-## Interpreting results
+### Compute measures on your own dense dataset
 
-- `scalar_curvature(..., normalize=True)` divides by `d * (d - 1)` and rejects `d < 2`. On a surface, this is Gaussian curvature. This option does not rescale the manifold to unit volume. Singular metrics cannot be inverted.
-- `compute_total_volume(element, range_sizes)` is `mean(element) * prod(range_sizes)`. `compute_total_curvature(element, curvature, range_sizes)` integrates their product the same way. Align cropped arrays and choose parameter ranges consistently; these are grid quadratures.
-- Reach searches pairs of sampled points using estimated tangents. Its minimum estimates global reach. `subsample_points=k` keeps every kth point along every axis for both query and candidate points, while derivatives use the full grid. Repeated estimates are cropped back to the original interior shape. Subsampling can miss a bottleneck. `return_witnesses=True` additionally returns flat indices into the cropped, subsampled point array, one per sampled query; witnesses are not expanded.
-- [Multiclass analysis](../microscope/computations_grid/data_analysis/data_analysis.py) returns an `AnalysisResults` dataclass and requires unique class names. `normalize_for_volume=True` rescales by the combined volume of all classes; `normalize_curvatures` separately controls curvature normalization. Fields keep their `normalized_` names even when scaling is disabled. Volume/reach fields are aligned to the smaller curvature grid. Positive and negative curvature integrals use whole-grid weights; the negative contribution stays signed and an absent sign contributes zero.
+Save your ordered grid as `my_grid.npy`. For images, flatten only the image
+axes first. This example assumes `[0, 1] × [0, 2*pi)`, with a periodic second
+axis and at least seven samples on the first:
 
-Dense grids grow multiplicatively with samples per axis; reach uses an exhaustive pair search on the selected points. Begin with small grids. Grid CPU support does not imply that all training and dataset helpers are CPU-ready.
+```python
+import numpy as np
+from microscope.cyclic_dimensions import get_difference_intervals
+from microscope.computations_grid.volume import volume_element, compute_total_volume
+from microscope.computations_grid.curvature import scalar_curvature, compute_total_curvature
+from microscope.computations_grid.reach import reach_per_point
+
+points = np.load("my_grid.npy").astype(np.float64)  # (s1, s2, features)
+ranges, cyclic, patches = [1.0, 2 * np.pi], [1], [13, 17]
+spacing = get_difference_intervals(points.shape[:-1], ranges, cyclic)
+volume = volume_element(points, spacing, cyclic_dimensions=cyclic,
+                        patch_sizes=patches, device="cpu")
+curvature = scalar_curvature(points, spacing, cyclic_dimensions=cyclic,
+                             patch_sizes=patches, device="cpu")
+reach = reach_per_point(points, ranges, patches, cyclic,
+                        subsample_points=4, device="cpu")
+print("Volume:", compute_total_volume(volume, ranges))
+print("Sampled reach:", reach.min())
+# Volume/reach lose one sample per nonperiodic end; curvature loses three.
+aligned_volume = volume[2:-2, :]
+print("Total scalar curvature:", compute_total_curvature(
+    aligned_volume, curvature, ranges,
+))
+```
+
+Set ranges and cyclic axes to match your coordinates. Integrals use cropped-grid
+means and domain lengths, so boundary handling and resolution affect accuracy.
+
+`scalar_curvature(..., normalize=True)` divides by `d * (d - 1)` (requires
+`d >= 2`), giving Gaussian curvature on surfaces. It does not normalize volume.
+Reach uses sampled pairs; its minimum estimates global reach. Subsampling speeds
+the pair search but can miss bottlenecks. Begin with small grids.
+
+For multiple classes, [compute_measures_multiclass](../microscope/computations_grid/data_analysis/data_analysis.py)
+accepts `(classes, s1, ..., sd, features)` and returns arrays, aggregates and
+interclass distances. `normalize_for_volume=True` scales the combined volume
+to one. Historical signed-curvature aggregates use sign-subset averages, so
+they need not sum to total curvature and empty subsets yield NaN.
+
+## Fit models, run inference and analyze representations
+
+The [single-model walkthrough](../experiment_scripts/reproduction/README.md#fit-and-evaluate-one-image-model)
+shows dataset export, MMLS/beta-VAE fitting, evaluation and layer analysis on
+built-in image datasets. A new training dataset requires a compatible loader
+and model input; the direct grid API above needs no training. See the
+[reproduction guide](reproducibility.md) for paper experiments and the
+[dataset notebooks](../notebooks/datasets_and_measures) for visualizations.

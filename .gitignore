@@ -10,5 +10,6 @@ build/
 CLAUDE.md
 results
 *.png
+!docs/images/colorful_mathematical_surface_microscope.png
 dist
 .DS_Store
