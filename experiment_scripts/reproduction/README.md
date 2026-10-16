@@ -1,20 +1,19 @@
 # Paper experiments
 
-This package adds small entry points around the existing dataset, MMLS,
-beta-VAE and geometry implementations.
-The high-level recipe targets Figures 3–6 and retains the final submission
-plotting styles. Focused CPU regressions and reduced CUDA toy runs have passed.
-The full Figure 3 and Figure 5 recipes with the faster projector completed on
-CUDA. Figure 6 training/recovery and the quick Figure 4 experiment also
-completed and passed artifact checks. The author accepts Figures 3–6 as a
-reasonable trend-level paper reproduction. Figure 4 used six sizes and one
-repetition, so its full 13x3 experiment remains available but unrun. These are
-author-reviewed reproduction results, not seed-level numerical equivalence.
+These entry points reproduce Figures 3–6 using the existing dataset, MMLS,
+beta-VAE and geometry implementations and final submission plotting styles.
 
-Run commands from the new repository root using the project's environment.
-On the desktop use `PYENV_VERSION=curvatures pyenv exec python`; on the Mac
-use the corresponding `microscope` environment. The existing benchmark extra
-declares the runtime dependencies; nothing here installs packages.
+**Note:** Paper reproduction is not fully seeded, so plots may vary slightly between runs. They should retain similar shapes and values in comparable ranges.
+
+Figures 3, 5 and 6 and the reduced Figure 4 run have been checked. Figure 4
+used six training sizes and one repetition; its full 13-size, three-repetition
+recipe remains available but has not been rerun.
+
+Run commands from the repository root with Python ≥3.10 and the package's
+experiment dependencies installed: `pip install "manifold-microscope[benchmark]"`
+(or `pip install -e '.[benchmark]'` for a source checkout).
+The commands below use `python` from your selected environment. Dependencies
+are declared in `pyproject.toml`; they are not an exact reproduction lockfile.
 
 ## High-level recipe
 
@@ -24,7 +23,7 @@ roundoff and different random samples. The goal is to rerun the experiments
 and obtain very similar plots and trends; seed-level agreement is not required.
 
 ```bash
-PYENV_VERSION=curvatures pyenv exec python -m experiment_scripts.reproduction.paper \
+python -m experiment_scripts.reproduction.paper \
   --output-root ../outputs/PAPER_REPRODUCTION --figures 3 4 5 6
 ```
 
@@ -58,8 +57,7 @@ On 2026-10-13, the recovered Figure 5 workload completed on an RTX 4090:
 bound export and PNG/PDF rendering. Reusing completed dataset exports, it took
 about 26 minutes 38 seconds. Output counts/finiteness and resume preservation
 were checked. Small real-image comparisons with the original projector differed
-by at most about 1.4e-5 per pixel. The author reviewed the generated Figure 5 PDF
-and accepted its small differences as consistent with the reproduction goal.
+by at most about 1.4e-5 per pixel.
 The original full run was stopped before its first fit
 completed. Torus sampling still performs scalar root solves on CPU.
 
@@ -158,7 +156,7 @@ paper curves, the fitted exponent is 0.240 versus 0.220 for MMLS and 0.127
 versus 0.114 for beta-VAE. The largest empirical differences from the paper's
 three-run means are 9.35% and 24.83%. The lower fitted bound differs more
 because the quick run omits the difficult smallest sizes used to fit and scale
-the original curve. The author accepted this as expected for the reduced run.
+the original curve.
 
 ### Recover Figure 6 after completed training
 
@@ -168,7 +166,7 @@ inference from the completed checkpoints, then analyzes each layer and renders
 Figure 6. It never trains a model or writes into the source run:
 
 ```bash
-PYENV_VERSION=curvatures pyenv exec python -u -m experiment_scripts.reproduction.recover_figure6 run \
+python -u -m experiment_scripts.reproduction.recover_figure6 run \
   --input ../outputs/PAPER_REPRODUCTION \
   --output ../outputs/PAPER_FIGURE6_RECOVERY --device cuda:0
 ```
@@ -204,31 +202,79 @@ figures and serialized aggregates remain unchanged; replot saved measures into
 a fresh output directory to apply the restored definition. The Figure 6 plotter
 recomputes aggregates after clipping; no retraining or geometry rerun is needed. Some learned dSprites
 magnitudes differ substantially (mean latent volume about 9.4 times the retained
-value); scientific agreement needs review. Successful execution alone does not
-establish paper equivalence. Actual peak memory was not recorded.
+value), so individual layer values can show larger differences.
+Actual peak memory was not recorded.
 
-For example, prepare a 1D dataset and fit one model:
+### Fit and evaluate one image model
+
+Prepare a 1D dataset, fit MMLS and train a beta-VAE. Explicit CPU settings make
+this usable without CUDA; dataset export still builds the full image grid
+before slicing and can require many GiB of host RAM. The one-step VAE budget
+checks execution only and does not produce a scientifically useful model.
+Remove the budget flags for the configured full training:
 
 ```bash
 python -m experiment_scripts.reproduction.fitting dataset \
-  --dataset custom_dsprites_balanced --dimension 1 --max-test-size 16 \
+  --dataset custom_dsprites_balanced --dimension 1 --max-test-size 16 --device cpu \
   --output ../outputs/MANUAL_EXPERIMENT/dataset
 
 python -m experiment_scripts.reproduction.fitting mmls \
-  --dataset custom_dsprites_balanced --dimension 1 --fraction 0.5 \
+  --dataset custom_dsprites_balanced --dimension 1 --fraction 0.5 --device cpu \
   --datasets-dir ../outputs/MANUAL_EXPERIMENT/dataset \
   --output ../outputs/MANUAL_EXPERIMENT/mmls
 
 python -m experiment_scripts.reproduction.fitting vae \
-  --dataset custom_dsprites_balanced --dimension 1 --fraction 0.5 --seed 439 \
+  --dataset custom_dsprites_balanced --dimension 1 --fraction 0.5 --seed 439 --device cpu \
   --datasets-dir ../outputs/MANUAL_EXPERIMENT/dataset \
   --max-iter 1 --max-epochs 1 --strict-budget --num-workers 0 \
   --output ../outputs/MANUAL_EXPERIMENT/vae
 
 python -m experiment_scripts.reproduction.evaluation \
   --model-dir ../outputs/MANUAL_EXPERIMENT/vae \
+  --device cpu --num-workers 0 \
   --output ../outputs/MANUAL_EXPERIMENT/evaluation
 ```
+
+MMLS writes fixed-test pointwise errors and their maximum to
+`mmls/distance_results_*.pkl`; this command fits/projects and evaluates in one
+stage, rather than exporting a persistent model checkpoint. VAE training writes
+`vae/checkpoints/last.pth`, and evaluation writes `evaluation/metrics.json` with
+mean and maximum reconstruction error (a pointwise proxy for Hausdorff distance).
+Both fits record configurations and completion markers. Replace the dataset
+with `extended_coil20` after setting `COIL20_PATH`.
+
+### Infer layers and compute geometry
+
+For a completed VAE fit, save its representations with:
+
+```bash
+python -m experiment_scripts.reproduction.layers infer \
+  --input ../outputs/MANUAL_EXPERIMENT/vae \
+  --output ../outputs/MANUAL_EXPERIMENT/inference --device cpu --num-workers 0
+```
+
+Inference writes `intermediate_outputs_last.pth.npz` (input, latent and
+intermediate/output grids), `config.json` and a completion marker. It evaluates
+the dense built-in grid, rather than just the fixed held-out test set.
+For geometry, train a **two-dimensional or higher** dataset/model in a fresh
+root (change `--dimension 1` above to `--dimension 2` and complete the fitting
+and inference stages). Scalar curvature is identically zero for a regular
+one-dimensional manifold; two dimensions give a more informative analysis:
+
+```bash
+python -m experiment_scripts.reproduction.layers analyze \
+  --input ../outputs/MANUAL_EXPERIMENT_2D/inference \
+  --output ../outputs/MANUAL_EXPERIMENT_2D/analysis --device cpu
+```
+
+Analysis writes per-layer `measures/intermediate_outputs_last.pth__<layer>.pkl`
+containing measure arrays and aggregates, plus diagnostic plots. It uses the
+paper's combined unit-volume normalization; scalar curvature is not divided
+by `d * (d - 1)` in this analysis path.
+Dense intermediate-layer grids and pairwise reach searches can be expensive
+on CPU; a small training budget does not reduce inference/analysis grid sizes.
+For the paper's full Figure 6 on limited RAM, prefer the per-layer recovery
+recipe above after completing training.
 
 Separate modules also expose toy fitting (`toy`), layer inference/analysis
 (`layers infer` / `layers analyze`), bound export (`bounds`) and rendering
@@ -298,12 +344,12 @@ needs separate assessment. Signed-curvature aggregation follows the original
 paper definition described above.
 The bound constants use the actual notebook formulas; the paper prose describes
 a different envelope procedure. Record these differences when comparing plot
-trends. Further figure validation remains necessary; exact numerical agreement
-with historical random draws is outside the reproduction goal.
+trends. The checked reproduction scope is described above; exact numerical
+agreement with historical random draws is outside the reproduction goal.
 
 Completed source fixes and remaining historical/validation work are listed in
 [FOLLOW_UPS.md](FOLLOW_UPS.md). Focused regression sources cover FPS/cache behavior,
 strict budgets, full checkpoint loading, mean decoding and partial-directory
 warnings. Twenty-two focused CPU cases passed across the suite and final option
-checks; broader geometry and layer pipelines
-still require validation against retained paper artifacts.
+checks. The later whole-project CPU audit on 2026-10-16 passed 138 tests with
+seven optional slow cases skipped.

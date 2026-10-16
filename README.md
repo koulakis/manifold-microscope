@@ -1,5 +1,7 @@
 # The Data Manifold under the Microscope
 
+<img src="docs/images/colorful_mathematical_surface_microscope.png" alt="A microscope examining a colorful mathematical surface" width="280" align="right">
+
 `manifold-microscope` provides toy and image datasets, plus finite-difference estimates of volume, scalar curvature and reach on parameter grids. It accompanies [Marios Koulakis and Constantin Seibold, *The Data Manifold under the Microscope* (ICML 2026)](https://proceedings.mlr.press/v306/koulakis26a.html).
 
 ## Install
@@ -7,10 +9,14 @@
 Python ≥3.10:
 
 ```bash
-python -m pip install manifold-microscope
+pip install manifold-microscope
 ```
 
-For the code documented here, install from this repository with `python -m pip install -e .`; published releases may lag behind. Experiment scripts additionally require the `[benchmark]` extra: `python -m pip install -e '.[benchmark]'`.
+If you want to use the experiment scripts then run:
+
+```bash
+pip install "manifold-microscope[benchmark]"
+```
 
 ## Quickstart: scalar curvature on a sphere
 
@@ -40,10 +46,28 @@ Grid APIs with a `device` argument default to CUDA when available, otherwise CPU
 
 ## Documentation and paper reproduction
 
-- [Usage and numerical conventions](docs/usage.md)
-- [Reproduction status, experiment entry points and validation](docs/reproducibility.md)
+- [Usage](docs/usage.md)
+- [Paper reproduction](docs/reproducibility.md)
 - [Dataset and geometry notebooks](notebooks/datasets_and_measures)
 
-**Paper reproduction is still being checked.** Recent numerical corrections can change results; the current checkout is not yet a validated reproduction release. Pin the source revision and retain configurations, data and environment details when comparing with the paper.
+**Note:** Paper reproduction is not fully seeded, so plots may vary slightly between runs. They should retain similar shapes and values in comparable ranges.
 
 [BSD-3-Clause license](LICENSE); adapted β-VAE code has a separate [MIT attribution and license](representation_learning/beta_vae/NOTICE.md).
+
+## Citation
+
+If you use our code in your work, please cite our paper:
+
+```bibtex
+@InProceedings{pmlr-v306-koulakis26a,
+  title     = {The Data Manifold under the Microscope},
+  author    = {Koulakis, Marios and Seibold, Constantin},
+  booktitle = {Proceedings of the 43rd International Conference on Machine Learning},
+  pages     = {60568--60602},
+  year      = {2026},
+  volume    = {306},
+  series    = {Proceedings of Machine Learning Research},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v306/koulakis26a.html}
+}
+```
