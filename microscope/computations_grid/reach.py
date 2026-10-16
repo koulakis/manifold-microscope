@@ -42,30 +42,37 @@ def reach_per_point(
     subsample_points: Optional[int] = None,
     batch_size: int = 10,
     return_witnesses: bool = False,
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-    """Estimate the reach based on https://arxiv.org/pdf/1705.04565. The formula is:
+    """Estimate local reach from sampled pairs and finite-difference tangents.
 
-    reach = min_{x != y in M} ||x - y||^2 / (2 d(y - x, T_xM))
-
-    and finite differences are used to approximate the tangent space T_xM.
+    Uses min_{y != x} ||y - x||^2 / (2 d(y - x, T_x M)); see
+    https://arxiv.org/abs/1705.04565. The minimum over x estimates global reach.
 
     Args:
-        features_on_grid: A tensor of shape (s1 ... sk f), where s_i is the number of points of the i-th dimension
-            of its grid and f the number of features.
-        range_sizes: The sizes of the value range of each dimension of the grid.
-        patch_sizes: The sizes of the patches used along each dimension of the grid.
-        cyclic_dimensions: A set of dimensions where the grid is cyclic.
-        batch_size: The size of batches on which the local reach is computed.
-        subsample_points: If set to some integer, then the local reach will be computed only on every
-            n-th point. The tangent spaces will be approximated though with all points.
-        return_witnesses: If true, return the pair point producing the smallest local reach.
-        device: The torch device.
+        features_on_grid: Floating array of shape (s1, ..., sk, features).
+        range_sizes: Full parameter-range length along each grid axis.
+        patch_sizes: Derivative patch sizes, one per axis, each greater than two.
+        cyclic_dimensions: Zero-based periodic grid-axis indices; None means none.
+        subsample_points: Optional positive stride along every axis for both
+            queries and candidates. Tangents are computed from the full grid.
+        batch_size: Number of query points per pair-search batch.
+        return_witnesses: Also return minimizing candidate indices.
+        device: Torch device; None selects CUDA when available, otherwise CPU.
 
     Returns:
-        The reach estimate per point in a tensor of shape (s1_ ... sk_). The new dimensions s_i_ equal to
-        s_i if the i-th dimension is cyclic, else to s_i - 2 as the computations cannot be performed on the borders.
+        A NumPy array of local estimates of shape (s1_out, ..., sk_out), where
+        s_i_out = s_i for periodic axes and s_i - 2 otherwise. Subsampled
+        estimates are repeated and truncated back to this shape.
+
+        If return_witnesses is true, return (estimates, witnesses). The integer
+        witnesses array has shape (N,), with N = prod(ceil(s_i_out / stride))
+        and stride = subsample_points or 1. Each entry is a flat index into the
+        cropped, subsampled point array. Witnesses are not repeated or reshaped.
     """
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     if cyclic_dimensions is None:
         cyclic_dimensions = []
     if len(patch_sizes) != len(range_sizes):
@@ -78,6 +85,7 @@ def reach_per_point(
 
     features_on_grid_pt = torch.from_numpy(features_on_grid)
     features_on_grid_cropped = crop_dim_borders(features_on_grid_pt, dim_idxs.difference(cyclic_dimensions))
+    cropped_grid_shape = features_on_grid_cropped.shape[:-1]
 
     if subsample_points is not None:
         features_on_grid_cropped = _subsample_dims(features_on_grid_cropped, subsample_points, dim_idxs)
@@ -93,7 +101,8 @@ def reach_per_point(
         features_on_grid,
         cyclic_dimensions=cyclic_dimensions,
         difference_intervals=difference_intervals,
-        patch_sizes=patch_sizes
+        patch_sizes=patch_sizes,
+        device=device
     ))
 
     if subsample_points is not None:
@@ -141,6 +150,8 @@ def reach_per_point(
             f"{' '.join(dim_variables)} -> {' '.join(repeat_pattern)}",
             **{r: subsample_points for r in repeat_variables}
             )
+        # Repetition can overshoot dimensions not divisible by the subsampling step.
+        grid_reach_estimates = grid_reach_estimates[tuple(slice(0, s) for s in cropped_grid_shape)]
 
     if return_witnesses:
         return grid_reach_estimates, estimate_witnesses

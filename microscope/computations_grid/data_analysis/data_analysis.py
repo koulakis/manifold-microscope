@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
+import torch
 import seaborn as sns
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -46,6 +47,13 @@ class AnalysisResults:
 
 
 def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[float]):
+    """Aggregate measures using the paper's historical sign-subset averages.
+
+    Positive/negative curvature averages use only points with curvature >= 0
+    or < 0, respectively, then multiply by the full parameter-domain volume.
+    They are not additive contributions to total curvature. Empty subsets
+    yield NaN and NumPy warnings, as in the original paper implementation.
+    """
     class_names = list(measures.normalized_volume_elements.keys())
     grid_volume = np.prod(range_sizes)
 
@@ -67,6 +75,7 @@ def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[
         )
         for name in class_names
     }
+    # Preserve the paper's subset denominators, including zeros on the positive side.
     normalized_total_curvatures_positive = {
         name: (
                 compute_total_curvature(
@@ -136,35 +145,46 @@ def compute_measures_multiclass(
     normalize_curvatures: bool = False,
     reach_subsample: Optional[int] = None,
     reach_batch_size: int = 2,
-    device: str = "cuda:0"
+    device: str | torch.device | None = None
 ) -> AnalysisResults:
-    """Given a multi-class dataset in grid format, compute its volume, curvature and reach per point and generate
-    plots for the analysis of the manifold. Note that the data is rescaled to have a unitary total volume.
+    """Compute per-class grid measures and aggregates.
 
     Args:
-        data: A data array of shape (n_classes d1 ... dk f).
-        class_names: A list of the class names.
-        range_sizes: The sizes of the value range of each dimension of the grid.
-        patch_sizes: The sizes of the patches used along each dimension of the grid.
-        cyclic_dimensions: A set of dimensions where the grid is cyclic.
-        normalize_for_volume: If true, then the data manifold is scaled to have total volume 1 before computing the
-            rest of the measures.
-        normalize_curvatures: If true, it computes a normalized version of the scalar curvature, like in the definition
-            in Do Carmo.
-        reach_subsample: If set to some integer, then the local reach will be computed only on every
-            n-th point. The tangent spaces will be approximated though with all points.
-        reach_batch_size: The size of batches on which the local reach is computed.
-        device: The torch device.
+        data: Floating array of shape (n_classes, s1, ..., sd, features).
+        class_names: Unique names, one for each class.
+        range_sizes: Full parameter-range length along each grid axis.
+        cyclic_dimensions: Zero-based periodic grid-axis indices within a class.
+        patch_sizes: One patch size per grid axis, each greater than six.
+        normalize_for_volume: Rescale all classes together to combined volume 1
+            before computing the remaining measures.
+        normalize_curvatures: Divide scalar curvature by d * (d - 1); requires
+            d >= 2. Independent of volume normalization.
+        reach_subsample: Optional reach query/candidate stride along every axis;
+            derivatives still use the full grid.
+        reach_batch_size: Number of query points per reach batch.
+        device: Torch device; None selects CUDA when available, otherwise CPU.
 
     Returns:
-        A dictionary with all the computed measures.
-    """
+        An AnalysisResults dataclass with measures, measure_aggregates,
+        range_sizes and trim_slices_data. Per-class volume_elements arrays have
+        shape (v1, ..., vd), with v_i = s_i for periodic axes and s_i - 2
+        otherwise. Arrays in normalized_volume_elements, normalized_curvatures,
+        normalized_reaches and the class-pair normalized_distances have shape
+        (c1, ..., cd), with c_i = s_i for periodic axes and s_i - 6 otherwise.
+        Applying trim_slices_data to data yields shape
+        (n_classes, c1, ..., cd, features). Fields retain their normalized_ names
+        even when volume normalization is disabled. No plots are generated.
+
+    Raises:
+        ValueError: If class names are duplicated or their count is incorrect."""
     # Check the number of classes agrees with the data array.
     if len(class_names) != data.shape[0]:
         raise ValueError(
             f"The number of class names ({len(class_names)} is different than the "
             f"first data dimension ({data.shape[0]})."
         )
+    if len(set(class_names)) != len(class_names):
+        raise ValueError("The class names must be unique.")
     dim_shapes = list(data.shape[1:-1])
     n_dims = len(dim_shapes)
 

@@ -251,7 +251,8 @@ def dsprites(
     )
 
     all_ones = np.ones(sprite_images.shape[1:-2], dtype=np.int64)
-    target = np.stack([0*all_ones, 1*all_ones, 2*all_ones], axis=0)
+    label_by_name = {name: label for label, name in LABEL_MAPPING.items()}
+    target = np.stack([label_by_name[name] * all_ones for name in sprites], axis=0)
 
     # Scale the images from [0, 1] to [-1, 1].
     sprite_images = (sprite_images - sprite_images.min()) / (sprite_images.max() - sprite_images.min())

@@ -232,6 +232,17 @@ class Solver(object):
         return tensor_or_module.to(self.device)
 
     def train(self):
+        """Fit the model; strict_budget opts into exact batch and epoch limits.
+
+        Historical default behavior finishes an epoch after a stop condition.
+        """
+        strict_budget = getattr(self.args, "strict_budget", False)
+        if strict_budget:
+            if self.max_iter < 1 or self.max_epochs < 1:
+                raise ValueError("Strict training budgets must be positive.")
+            if self.global_iter >= self.max_iter:
+                print("Training budget already reached by the loaded checkpoint.")
+                return
         # print(f"Train size: {len(self.data_loader.dataset)}, train perc: {self.args.training_ratio}, dataset: {self.args.dataset}, dim: {self.args.number_of_dims}")
         # return
         self.net_mode(train=True)
@@ -251,7 +262,9 @@ class Solver(object):
         patience_epochs = max(5, int(self.args.patience_percentage_epochs * self.max_epochs))
         patience_violations = 0
         while not out:
-            if epoch % (self.plot_interval - 1) == 0:
+            if strict_budget and epoch >= self.max_epochs:
+                break
+            if epoch % max(1, self.plot_interval - 1) == 0:
                 epoch_save = True
             for x in self.data_loader:
                 self.global_iter += 1
@@ -350,6 +363,8 @@ class Solver(object):
                         or patience_exhausted
                 ):
                     out = True
+                    if strict_budget:
+                        break
                 epoch_save = False
             if avg_distance is not None:
                 losses.append(avg_distance.detach().cpu().numpy())
@@ -419,7 +434,8 @@ class Solver(object):
     def load_checkpoint(self, filename):
         file_path = self.ckpt_dir / filename
         if os.path.isfile(file_path):
-            checkpoint = torch.load(file_path)
+            # Full solver checkpoints are trusted local training outputs.
+            checkpoint = torch.load(file_path, map_location=self.device, weights_only=False)
             self.global_iter = checkpoint['iter']
             self.win_recon = checkpoint['win_states']['recon']
             self.win_kld = checkpoint['win_states']['kld']
