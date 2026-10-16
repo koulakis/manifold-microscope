@@ -27,8 +27,7 @@ def invert_integral(
         max_iter=1_000,
         quad_kwargs=None
 ):
-    if quad_kwargs is None:
-        quad_args = DEFAULT_QUAD_KWARGS
+    quad_args = DEFAULT_QUAD_KWARGS if quad_kwargs is None else quad_kwargs
 
     # noinspection PyShadowingNames
     def f_int(t):
