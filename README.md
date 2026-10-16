@@ -1,10 +1,8 @@
 # The Data Manifold under the Microscope
 
-<img src="docs/images/colorful_mathematical_surface_microscope.png" alt="A microscope examining a colorful mathematical surface" width="280" align="right">
-
 `manifold-microscope` provides toy and image datasets, plus finite-difference estimates of volume, scalar curvature and reach on parameter grids. It accompanies [Marios Koulakis and Constantin Seibold, *The Data Manifold under the Microscope* (ICML 2026)](https://proceedings.mlr.press/v306/koulakis26a.html).
 
-## Install
+## Install <img src="docs/images/colorful_mathematical_surface_microscope.png" alt="" width="280" align="right">
 
 Python ≥3.10:
 
