@@ -15,7 +15,7 @@ from microscope.manifold_examples.tests.test_ellipsoid import ellipsoid_2d_surfa
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0"
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def test_volume_element_2d_ellipsoids(self):
         for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
@@ -216,7 +216,7 @@ class TestEllipsoids(unittest.TestCase):
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0"
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     def test_volume_element_2d_hyperboloid(self):
         semi_axes = [5, 1, 3]
