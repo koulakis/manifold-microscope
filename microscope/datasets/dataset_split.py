@@ -11,25 +11,23 @@ def interpolation_splitting(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Stride over the transformation dimensions to select data on a thinner grid. This can be used to measure the
     interpolation performance of a supervised model."""
-    subsample_slices = [slice(None)] * data.ndim
+    grid_shape = data.shape[:-2]
+    subsample_slices = [slice(None)] * len(grid_shape)
     for d in subsample_dims:
-        subsample_slices[d] = slice(0, data.shape[d], stride)
+        subsample_slices[d] = slice(0, grid_shape[d], stride)
     subsample_slices = tuple(subsample_slices)
 
-    train_mask = np.zeros(data.shape, dtype=bool)
+    train_mask = np.zeros(grid_shape, dtype=bool)
     train_mask[subsample_slices] = True
 
-    train_data = data[subsample_slices]
-    train_target = target[subsample_slices[:-2]]
+    data_flat = data.reshape(-1, *data.shape[-2:])
+    target_flat = target.flatten()
+    train_mask = train_mask.flatten()
 
-    test_data = data[~train_mask]
-    test_target = target[~train_mask[..., 0, 0]]
-
-    train_data = train_data.reshape(-1, *train_data.shape[-2:])
-    test_data = test_data.reshape(-1, *test_data.shape[-2:])
-    train_target = train_target.flatten()
-    test_target = test_target.flatten()
-    train_mask = train_mask[..., 0, 0].flatten()
+    train_data = data_flat[train_mask]
+    test_data = data_flat[~train_mask]
+    train_target = target_flat[train_mask]
+    test_target = target_flat[~train_mask]
 
     return train_data, train_target, test_data, test_target, train_mask
 
