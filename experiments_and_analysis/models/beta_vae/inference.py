@@ -59,6 +59,7 @@ def load_autoencoder_from_checkpoint(
 def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_output: bool,
                                      decoder_sampling: bool = True, representations=None):
     intermediate_outputs = {}
+    requested = set(representations) if representations is not None else None
     x = images
     for i, layer in enumerate(autoencoder.encoder):
         x = layer(x)
@@ -66,15 +67,18 @@ def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_outpu
             name = f"encoder_relu_{i}"
             if representations is None or name in representations:
                 intermediate_outputs[name] = x.cpu().numpy().copy()
+                if requested is not None and requested.issubset(intermediate_outputs):
+                    return None, intermediate_outputs
 
     distributions = x
     mu = distributions[:, :autoencoder.z_dim]
     logvar = distributions[:, autoencoder.z_dim:]
-    z = reparametrize(mu, logvar) if decoder_sampling else mu
-
     if representations is None or "mu" in representations:
         intermediate_outputs["mu"] = mu.cpu().numpy().copy()
+        if requested is not None and requested.issubset(intermediate_outputs):
+            return None, intermediate_outputs
 
+    z = reparametrize(mu, logvar) if decoder_sampling else mu
     x = z
     for i, layer in enumerate(autoencoder.decoder):
         x = layer(x)
@@ -82,8 +86,10 @@ def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_outpu
             name = f"decoder_relu_{i}"
             if representations is None or name in representations:
                 intermediate_outputs[name] = x.cpu().numpy().copy()
+                if requested is not None and requested.issubset(intermediate_outputs):
+                    return None, intermediate_outputs
 
-    x_recon = F.sigmoid(x).cpu().numpy()
+    x_recon = F.sigmoid(x).cpu().numpy() if requested is None or 'output' in requested else None
 
     return x_recon, intermediate_outputs
 
@@ -148,8 +154,14 @@ def batches(model, data, representations, *, batch_size=64, device='cpu',
     start = 0
     with torch.no_grad():
         for images in loader:
-            reconstruction, outputs = get_intermediate_from_autoencoder(
-                model, images.to(device), False, decoder_sampling, representations)
-            outputs.update(input=images.numpy(), output=reconstruction)
-            yield start, {name: outputs[name] for name in representations}
+            outputs = {}
+            selected = [name for name in representations if name != 'input']
+            if selected:
+                reconstruction, outputs = get_intermediate_from_autoencoder(
+                    model, images.to(device), False, decoder_sampling, selected)
+                if 'output' in selected:
+                    outputs['output'] = reconstruction
+            if 'input' in representations:
+                outputs['input'] = images.numpy()
+            yield start, outputs
             start += len(images)
