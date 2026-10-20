@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
+from time import time
 
 # Increment when stage implementations change numerical behavior or artifact formats.
 PIPELINE_VERSION = 1
@@ -34,12 +35,20 @@ def is_complete(directory):
     return all((directory / name).is_file() for name in manifest['outputs'])
 
 
+def report_reuse(directory):
+    directory = Path(directory)
+    elapsed = read_json(directory / 'manifest.json').get('elapsed_seconds')
+    timing = f'; original elapsed {elapsed:.2f}s' if elapsed is not None else ''
+    print(f'[{directory.parent.name}] reused {directory.name}{timing}')
+
+
 def begin(directory, config, *, requires=()):
     """Return False for compatible completed work; stop on partial outputs."""
     directory = Path(directory)
     if is_complete(directory):
         if canonical(read_json(directory / 'manifest.json')['config']) != canonical(config):
             raise ValueError(f'Output configuration mismatch: {directory}')
+        report_reuse(directory)
         return False
     if directory.exists():
         raise RuntimeError(f'Incomplete output preserved: {directory}. Move it before retrying.')
@@ -47,18 +56,21 @@ def begin(directory, config, *, requires=()):
     if missing:
         raise RuntimeError(f'Unfinished inputs: {missing}')
     directory.mkdir(parents=True)
-    write_json(directory / 'manifest.json', dict(config=config, outputs=[]))
+    write_json(directory / 'manifest.json', dict(config=config, outputs=[], started_at=time()))
+    print(f'[{directory.parent.name}] starting {directory.name}')
     return True
 
 
-def finish(directory, files):
+def finish(directory, files, *, elapsed_seconds=None):
     directory = Path(directory)
     if not files or not all((directory / name).is_file() for name in files):
         raise RuntimeError(f'Missing stage outputs: {directory}')
     manifest = read_json(directory / 'manifest.json')
     manifest['outputs'] = list(files)
+    manifest['elapsed_seconds'] = time() - manifest['started_at'] if elapsed_seconds is None else elapsed_seconds
     write_json(directory / 'manifest.json', manifest)
     (directory / 'COMPLETED').write_text(datetime.now(timezone.utc).isoformat() + '\n')
+    print(f"[{directory.parent.name}] completed {directory.name} in {manifest['elapsed_seconds']:.2f}s")
 
 
 def stage_ids(config, dataset_identity):

@@ -17,11 +17,44 @@ python -m experiments_and_analysis.scripts.sweep \
 ```
 
 Omit `--dry-run` to execute the sweep and render its requested figures.
-Set `base.device: cuda:0` in a sweep to use CUDA; the default is CPU. Full paper
+Pass `--device cuda:0` (or set `base.device` in a sweep) to use CUDA; the default is CPU. Full paper
 configurations can take many hours; dry runs only expand configurations. Files
 for Figures 3–6 and quick Figure 4 are together in `scripts/configs/paper`.
 Quick Figure 4 now computes all missing fits in the new working directory;
 it does not import old reproduction outputs.
+
+Add `--quick-run` to either runner, or pass `quick_run=True` from Python. All
+quick settings live in `quick.py:QUICK_RUN`: VAE training stops at at most 10,000
+optimizer iterations (`strict_budget: true`); size sweeps use 20%, 50%, 100%
+and one repetition; held-out evaluation uses at most 100 examples. Toy sweeps
+use 25, 250, 1000 training points, one repetition and 100 reference points.
+Smaller existing budgets/size grids are retained. Quick mode keeps model/dataset
+choices, full structured grids and all configured geometry layers, using
+`reach_subsample: 4`. It adds no preview dataset. Repetitions keep the last
+configured trial, allowing Figures 4 and 6 to share their full-size dSprites fit.
+
+For a fresh quick paper run, choose an unused output directory and run:
+
+```bash
+for figure in 3 4 5 6; do
+  python -m experiments_and_analysis.scripts.sweep \
+    --config experiments_and_analysis/scripts/configs/paper/figure${figure}.yaml \
+    --output-dir ../outputs/paper-quick-01 --quick-run --device cuda:0 || break
+done
+```
+
+These presets produce 12, 6, 12 and 2 jobs respectively. Use `--dry-run` to
+export their job lists without executing them. Figure 6 still computes all
+geometry measures on the full grids for every configured layer, so it can take
+substantially longer. Completed compatible work is reused in the shared root;
+quick and full VAE budgets have distinct fit identities. Stage elapsed seconds
+are printed and saved in `manifest.json`; reuse reports the original duration.
+Analysis timing excludes the inference stream; nested split/plot subtasks are
+included in their parent's elapsed time. Dataset loading is timed in the log.
+Both runners check accelerator initialization before loading data or creating
+stage outputs. Dry runs and fully cached runs do not require the accelerator.
+After a failure, preserve/move incomplete stage directories before retrying;
+the runner reports their paths. The loop above stops at the first failed figure.
 
 The same functions accept dictionaries from Python:
 
@@ -84,7 +117,10 @@ directories stop execution and remain untouched. Move a partial directory aside
 before retrying. These outputs use a new layout; old directories are unsupported.
 
 Inference feeds analyses directly. Errors accumulate per batch; geometry handles
-one representation at a time. `inference.buffer: temporary` uses a temporary
+one representation at a time. Only requested representations are copied from
+the network; inference stops after the last required layer. Optional
+`inference.evaluation_size` limits held-out inference without shrinking the
+training set or geometry grid. `inference.buffer: temporary` uses a temporary
 memory-mapped layer array and removes it afterward. `persist: true` keeps arrays
 for later analysis; without persistence, a new analysis may rerun inference.
 MMLS normally references its saved split; `model.parameters.export_points: true`

@@ -1,6 +1,7 @@
 """Run one configured experiment; keep IO and stage selection here."""
 from pathlib import Path
 import pickle
+from time import perf_counter
 
 import numpy as np
 import typer
@@ -8,21 +9,38 @@ import typer
 from ..config import load_config, resolve
 from ..data.preparation import candidates, load_source, normalize, prepare_split, sampling_weights, source_identity, toy_reference
 from ..models.config import MMLSConfig
-from ..outputs import STAGES, begin, finish, identity, is_complete, read_json, stage_ids, write_json
+from ..outputs import STAGES, begin, finish, identity, is_complete, read_json, report_reuse, stage_ids, write_json
+from ..quick import apply_quick_run
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
 
+def check_device(device):
+    """Initialize the requested accelerator before loading data or writing stages."""
+    import torch
+    target = torch.device(device)
+    if target.type == 'cpu':
+        return
+    try:
+        torch.empty(1, device=target)
+    except (RuntimeError, AssertionError) as error:
+        raise RuntimeError(f'Device preflight failed for {device}: {error}') from error
+
+
 def load_dataset(spec, root, device='cpu'):
+    started = perf_counter()
     if spec['name'] not in ('Sphere', 'Torus', 'Circle', 'Moons'):
-        return load_source(spec)
-    reference_config = dict(name=spec['name'], ground_truth_size=spec.get('ground_truth_size', 500),
-                            reference_seed=spec.get('reference_seed', 0))
-    directory = Path(root) / 'splits' / f'reference__{identity(reference_config)}'
-    if begin(directory, reference_config):
-        np.save(directory / 'points.npy', toy_reference(spec, device))
-        finish(directory, ['points.npy'])
-    return load_source(spec, reference=np.load(directory / 'points.npy'))
+        dataset = load_source(spec)
+    else:
+        reference_config = dict(name=spec['name'], ground_truth_size=spec.get('ground_truth_size', 500),
+                                reference_seed=spec.get('reference_seed', 0))
+        directory = Path(root) / 'splits' / f'reference__{identity(reference_config)}'
+        if begin(directory, reference_config):
+            np.save(directory / 'points.npy', toy_reference(spec, device))
+            finish(directory, ['points.npy'])
+        dataset = load_source(spec, reference=np.load(directory / 'points.npy'))
+    print(f"[data] loaded {spec['name']} in {perf_counter() - started:.2f}s")
+    return dataset
 
 
 def prepare_indices(dataset, config, root, source):
@@ -140,6 +158,10 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
             raise ValueError(f'Unknown representations: {set(names) - set(available)}')
         domain = analysis['domain']
         selection = indices[domain]
+        limit = config['inference'].get('evaluation_size')
+        if domain == 'test' and limit is not None and len(selection) > limit:
+            selection = np.sort(np.random.default_rng(config['inference']['seed']).choice(
+                selection, size=limit, replace=False))
         data = None
         for representation in names:
             inference_config = dict(model=model_id if representation != 'input' else None,
@@ -163,6 +185,7 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
             if not begin(directory, analysis_config):
                 results.append(record)
                 continue
+            analysis_started = perf_counter()
             if data is None:
                 data = domain_data(dataset, selection)
             inference_new = representation != 'input' and begin(inference_dir, inference_config)
@@ -172,6 +195,7 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
             values = None
             distances = []
             try:
+                inference_started = perf_counter()
                 reused_values = saved.is_file() or representation == 'input'
                 if representation == 'input':
                     values = data
@@ -195,11 +219,16 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                         values[start:start + len(batch)] = batch
                 if isinstance(values, np.memmap):
                     values.flush()
+                inference_seconds = perf_counter() - inference_started
                 if inference_new:
                     write_json(inference_dir / 'summary.json', dict(number_of_points=len(data),
                                representation=representation, persisted=persist,
                                shape=[len(data), *batch.shape[1:]], dtype=str(batch.dtype)))
-                    finish(inference_dir, ['summary.json'] + (['values.npy'] if persist else []))
+                    finish(inference_dir, ['summary.json'] + (['values.npy'] if persist else []),
+                           elapsed_seconds=inference_seconds)
+                elif representation != 'input' and not reused_values:
+                    # Metadata-only completion cannot supply arrays to a new analysis.
+                    print(f'[inference-outputs] recomputed {inference_id} in {inference_seconds:.2f}s')
                 match analysis['name']:
                     case 'errors':
                         distances = np.concatenate(distances)
@@ -217,7 +246,8 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                         write_json(directory / 'inference.json', dict(directory=str(inference_dir)))
                         files = ['inference.json']
                 write_json(directory / 'result.json', record)
-                finish(directory, files + ['result.json'])
+                finish(directory, files + ['result.json'],
+                       elapsed_seconds=perf_counter() - analysis_started - inference_seconds)
             finally:
                 del values
                 if temporary.exists():
@@ -226,12 +256,10 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
     return results
 
 
-def run(config: dict, output_dir, *, dataset=None):
+def run(config: dict, output_dir, *, dataset=None, quick_run=False):
     """Run a dictionary configuration. An optional loaded Dataset avoids repeated IO."""
-    config = resolve(config)
+    config = apply_quick_run(config) if quick_run else resolve(config)
     root = Path(output_dir).expanduser().resolve()
-    for stage in STAGES:
-        (root / stage).mkdir(parents=True, exist_ok=True)
     source = source_identity(config['dataset'])
     split_id, model_id = stage_ids(config, source)
     experiment_id = identity(dict(config=config, source=source))
@@ -239,6 +267,9 @@ def run(config: dict, output_dir, *, dataset=None):
     completed = completed_result(config, root, source)
     if completed is not None:
         return completed
+    check_device(config['device'])
+    for stage in STAGES:
+        (root / stage).mkdir(parents=True, exist_ok=True)
     configuration_path.parent.mkdir(parents=True, exist_ok=True)
     write_json(configuration_path, config)
     dataset = load_dataset(config['dataset'], root, config['device']) if dataset is None else dataset
@@ -289,13 +320,24 @@ def completed_result(config, root, source=None):
     if result['model_id'] is not None and result.get('status') != 'skipped':
         directories.append(Path(root) / 'trained-models' / result['model_id'])
     directories.extend(Path(record['directory']) for record in result['analyses'])
-    return result if all(is_complete(directory) for directory in directories) else None
+    if not all(is_complete(directory) for directory in directories):
+        return None
+    for directory in directories:
+        report_reuse(directory)
+    return result
 
 
 @app.command()
-def main(config: Path = typer.Option(..., exists=True), output_dir: Path = typer.Option(...)):
+def main(config: Path = typer.Option(..., exists=True), output_dir: Path = typer.Option(...),
+         quick_run: bool = False,
+         device: str = typer.Option(None, help='Override the configured device, e.g. cuda:0.')):
     """Run one YAML/JSON experiment configuration."""
-    run(load_config(config), output_dir)
+    configuration = load_config(config)
+    if device is not None:
+        configuration['device'] = device
+    if quick_run:
+        configuration = apply_quick_run(configuration)
+    run(configuration, output_dir)
 
 
 if __name__ == '__main__':

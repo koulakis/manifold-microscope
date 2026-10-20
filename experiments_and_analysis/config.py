@@ -45,7 +45,10 @@ def resolve(config):
     if unknown:
         raise ValueError(f'Unknown experiment options: {sorted(unknown)}')
     for section in ('split', 'model', 'training', 'inference'):
-        unknown = set(result[section]) - set(defaults[section])
+        allowed = set(defaults[section])
+        if section == 'inference':
+            allowed.add('evaluation_size')
+        unknown = set(result[section]) - allowed
         if unknown:
             raise ValueError(f'Unknown {section} options: {sorted(unknown)}')
     split = result['split']
@@ -80,6 +83,8 @@ def resolve(config):
         result['model']['parameters'] = {**options, 'export_points': parameters.get('export_points', False)}
     if result['inference']['batch_size'] < 1:
         raise ValueError('inference.batch_size must be positive.')
+    if result['inference'].get('evaluation_size', 1) < 1:
+        raise ValueError('inference.evaluation_size must be positive.')
     if result['inference']['buffer'] not in ('memory', 'temporary'):
         raise ValueError('inference.buffer must be memory or temporary.')
     if result['inference']['domain'] not in ('train', 'test', 'grid'):
