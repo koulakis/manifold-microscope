@@ -14,8 +14,8 @@ requires-python = ">=3.10"
 license = "BSD-3-Clause"
 license-files = [
     "LICENSE",
-    "representation_learning/beta_vae/LICENSE",
-    "representation_learning/beta_vae/NOTICE.md"
+    "experiments_and_analysis/models/beta_vae/LICENSE",
+    "experiments_and_analysis/models/beta_vae/NOTICE.md"
 ]
 keywords = [
     "manifold learning",
@@ -68,5 +68,8 @@ Repository = "https://github.com/koulakis/manifold-microscope"
 Issues = "https://github.com/koulakis/manifold-microscope/issues"
 
 [tool.setuptools.packages.find]
-include = ["microscope*", "representation_learning*", "experiment_scripts*"]
+include = ["microscope*", "experiments_and_analysis*"]
 exclude = ["*.tests", "*.tests.*"]
+
+[tool.setuptools.package-data]
+experiments_and_analysis = ["scripts/configs/*.yaml", "scripts/configs/paper/*.yaml"]

@@ -1,0 +1,66 @@
+base:
+  dataset:
+    name: custom_dsprites_balanced
+    dimension: 4
+  split:
+    method: fixed_test
+    max_test_size: 500
+    weighted: true
+  model:
+    name: mmls
+  analyses:
+  - errors
+grid:
+  dataset.dimension:
+  - 1
+  - 2
+  - 3
+  - 4
+  split.train_fraction:
+  - 0.01
+  - 0.02
+  - 0.05
+  - 0.1
+  - 0.2
+  - 0.3
+  - 0.4
+  - 0.5
+  - 0.6
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  repetition:
+  - index: 0
+    seed: 439
+  - index: 1
+    seed: 437875
+  - index: 2
+    seed: 473959
+exclude:
+- dataset.dimension: 1
+  split.train_fraction: 0.01
+- dataset.dimension: 1
+  split.train_fraction: 0.02
+- dataset.dimension: 1
+  split.train_fraction: 0.05
+outputs:
+- name: bounds
+  filename: figure_3
+  panels:
+  - label: dim_1
+    where:
+      dimension: 1
+    dimension: 1
+  - label: dim_2
+    where:
+      dimension: 2
+    dimension: 2
+  - label: dim_3
+    where:
+      dimension: 3
+    dimension: 3
+  - label: dim_4
+    where:
+      dimension: 4
+    dimension: 4
