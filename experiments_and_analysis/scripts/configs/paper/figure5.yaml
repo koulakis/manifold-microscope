@@ -1,0 +1,194 @@
+# Full paper workload; inspect with --dry-run before execution.
+base:
+  analyses:
+  - errors
+groups:
+- base:
+    dataset:
+      name: Sphere
+      dimension: 2
+      ground_truth_size: 500
+    split:
+      method: provided
+      weighted: false
+    model:
+      name: mmls
+      parameters:
+        number_of_neighbors: 5
+  grid:
+    dataset.sample_size:
+      ranges:
+      - - 5
+        - 25
+        - 1
+      - - 25
+        - 5005
+        - 5
+    repetition:
+    - index: 0
+      seed: 1000
+    - index: 1
+      seed: 1001
+    - index: 2
+      seed: 1002
+    - index: 3
+      seed: 1003
+    - index: 4
+      seed: 1004
+    - index: 5
+      seed: 1005
+    - index: 6
+      seed: 1006
+    - index: 7
+      seed: 1007
+    - index: 8
+      seed: 1008
+    - index: 9
+      seed: 1009
+    - index: 10
+      seed: 1010
+    - index: 11
+      seed: 1011
+    - index: 12
+      seed: 1012
+    - index: 13
+      seed: 1013
+    - index: 14
+      seed: 1014
+    - index: 15
+      seed: 1015
+    - index: 16
+      seed: 1016
+    - index: 17
+      seed: 1017
+    - index: 18
+      seed: 1018
+    - index: 19
+      seed: 1019
+- base:
+    dataset:
+      name: Torus
+      dimension: 2
+      ground_truth_size: 500
+    split:
+      method: provided
+      weighted: false
+    model:
+      name: mmls
+      parameters:
+        number_of_neighbors: 5
+  grid:
+    dataset.sample_size:
+      ranges:
+      - - 5
+        - 25
+        - 1
+      - - 25
+        - 5005
+        - 5
+    repetition:
+    - index: 0
+      seed: 1000
+    - index: 1
+      seed: 1001
+    - index: 2
+      seed: 1002
+    - index: 3
+      seed: 1003
+    - index: 4
+      seed: 1004
+    - index: 5
+      seed: 1005
+    - index: 6
+      seed: 1006
+    - index: 7
+      seed: 1007
+    - index: 8
+      seed: 1008
+    - index: 9
+      seed: 1009
+    - index: 10
+      seed: 1010
+    - index: 11
+      seed: 1011
+    - index: 12
+      seed: 1012
+    - index: 13
+      seed: 1013
+    - index: 14
+      seed: 1014
+    - index: 15
+      seed: 1015
+    - index: 16
+      seed: 1016
+    - index: 17
+      seed: 1017
+    - index: 18
+      seed: 1018
+    - index: 19
+      seed: 1019
+- base:
+    dataset:
+      name: custom_dsprites_balanced
+      dimension: 4
+    split: &id001
+      method: fixed_test
+      max_test_size: 500
+      weighted: true
+    model: &id002
+      name: mmls
+  grid:
+    split.train_fraction: &id003
+    - 0.01
+    - 0.02
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    - 0.6
+    - 0.7
+    - 0.8
+    - 0.9
+    - 1.0
+    repetition:
+    - index: 0
+      seed: 439
+    - index: 1
+      seed: 437875
+    - index: 2
+      seed: 473959
+- base:
+    dataset:
+      name: extended_coil20
+      dimension: 3
+    split: *id001
+    model: *id002
+  grid:
+    split.train_fraction: *id003
+    repetition:
+    - index: 0
+      seed: 439
+    - index: 1
+      seed: 440
+outputs:
+- name: bounds
+  filename: figure_5
+  panels:
+  - label: sphere
+    where:
+      dataset.name: Sphere
+    dimension: 2
+  - label: torus
+    where:
+      dataset.name: Torus
+    dimension: 2
+  - label: extended_coil20
+    where:
+      dataset.name: extended_coil20
+    dimension: 3
+  - label: custom_dsprites_balanced
+    where:
+      dataset.name: custom_dsprites_balanced
+    dimension: 4

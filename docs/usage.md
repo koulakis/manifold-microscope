@@ -146,7 +146,7 @@ they need not sum to total curvature and empty subsets yield NaN.
 
 ## Fit models, run inference and analyze representations
 
-The [single-model walkthrough](../experiment_scripts/reproduction/README.md#fit-and-evaluate-one-image-model)
+The [single-model walkthrough](../experiments_and_analysis/README.md)
 shows dataset export, MMLS/beta-VAE fitting, evaluation and layer analysis on
 built-in image datasets. A new training dataset requires a compatible loader
 and model input; the direct grid API above needs no training. See the

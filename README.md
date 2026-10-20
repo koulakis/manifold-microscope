@@ -50,7 +50,7 @@ Grid APIs with a `device` argument default to CUDA when available, otherwise CPU
 
 **Note:** Paper reproduction is not fully seeded, so plots may vary slightly between runs. They should retain similar shapes and values in comparable ranges.
 
-[BSD-3-Clause license](LICENSE); adapted β-VAE code has a separate [MIT attribution and license](representation_learning/beta_vae/NOTICE.md).
+[BSD-3-Clause license](LICENSE); adapted β-VAE code has a separate [MIT attribution and license](experiments_and_analysis/models/beta_vae/NOTICE.md).
 
 ## Citation
 
