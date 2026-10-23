@@ -1,8 +1,8 @@
 """Training solver for the adapted beta-VAE implementation.
 
 Copied and adapted from https://github.com/1Konny/Beta-VAE.
-The upstream project is MIT licensed; see `LICENSE` and `NOTICE.md` in this
-package for the original copyright and attribution.
+The upstream project is MIT licensed; see this package's `LICENSE` and the
+repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
 
 import warnings

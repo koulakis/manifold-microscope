@@ -15,7 +15,7 @@ license = "BSD-3-Clause"
 license-files = [
     "LICENSE",
     "experiments_and_analysis/models/beta_vae/LICENSE",
-    "experiments_and_analysis/models/beta_vae/NOTICE.md"
+    "docs/source/third_party/beta_vae.rst"
 ]
 keywords = [
     "manifold learning",
@@ -52,6 +52,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+docs = [
+    "Sphinx == 8.1.3",
+    "sphinx-rtd-theme == 3.0.2"
+]
 benchmark = [
     "torchvision",
     "typer",
