@@ -1,5 +1,8 @@
 # The Data Manifold under the Microscope
 
+[![Documentation Status](https://readthedocs.org/projects/manifold-microscope/badge/?version=latest)](https://manifold-microscope.readthedocs.io/en/latest/?badge=latest)
+[![PyPI Downloads](https://static.pepy.tech/badge/manifold-microscope)](https://pepy.tech/projects/manifold-microscope)
+
 `manifold-microscope` provides toy and image datasets, plus finite-difference estimates of volume, scalar curvature and reach on parameter grids. It accompanies [Marios Koulakis and Constantin Seibold, *The Data Manifold under the Microscope* (ICML 2026)](https://proceedings.mlr.press/v306/koulakis26a.html).
 
 ## Install <img src="docs/images/colorful_mathematical_surface_microscope.png" alt="" width="280" align="right">
@@ -46,6 +49,13 @@ Custom experiment configs default to CPU; the paper presets explicitly request
 for device overrides, training budgets, progress controls and output formats.
 
 ## Documentation and paper reproduction
+
+For the paper figures, use **version 0.2.0** (Git tag `v0.2.0`). Check out
+that tag and install its experiment dependencies as described in the
+[reproduction guide](docs/source/guide/reproducibility.rst). Later releases may
+introduce different numerical methods, including extrinsic curvature or faster
+reach searches, and may produce different results. Version 0.2.0 is the fixed
+reference for the paper workflow.
 
 - [Documentation index](docs/source/index.rst)
 - [Getting started](docs/source/guide/getting_started.rst) and [API reference](docs/source/api_reference/geometry.rst)

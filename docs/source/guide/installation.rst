@@ -7,6 +7,11 @@ Python 3.10 or later is required. Install the library with:
 
    python -m pip install manifold-microscope
 
+For the paper figures, use **0.2.0**, rather than the newest package release.
+Follow :doc:`reproducibility` to check out the matching tag and install its
+presets, or install the published package with
+``python -m pip install "manifold-microscope[benchmark]==0.2.0"``.
+
 For the model-training and experiment scripts, add the ``benchmark`` extra:
 
 .. code-block:: bash

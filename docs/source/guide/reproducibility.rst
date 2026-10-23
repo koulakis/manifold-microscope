@@ -1,7 +1,38 @@
 Paper reproduction
 ==================
 
-Install from the repository checkout with ``python -m pip install -e '.[benchmark]'``.
+Version 0.2.0 is the fixed reference for reproducing the paper figures. Use
+**Git tag v0.2.0**, including its presets and documentation, for this workflow.
+Later releases may introduce extrinsic curvature, nearest-neighbor reach
+searches or other numerical changes; their outputs need not match the paper
+release. This keeps paper reproduction separate from ongoing method development.
+
+Check out the paper release
+---------------------------
+
+From an existing repository checkout with your local changes committed or
+otherwise saved:
+
+.. code-block:: bash
+
+   git fetch origin --tags
+   git switch --detach v0.2.0
+   python -m pip install -e ".[benchmark]"
+
+For a fresh checkout after the release is published:
+
+.. code-block:: bash
+
+   git clone --branch v0.2.0 https://github.com/koulakis/manifold-microscope.git
+   cd manifold-microscope
+   python -m pip install -e ".[benchmark]"
+
+The tag must be published before these commands can resolve it. The matching
+package is ``manifold-microscope[benchmark]==0.2.0``. The intended frozen docs
+URL is ``https://manifold-microscope.readthedocs.io/en/v0.2.0/`` once that
+version is deployed. ``latest`` follows development and ``stable`` follows
+the newest release, so use the explicit version for paper reproduction.
+
 Custom dSprites is generated locally; COIL-20 needs ``COIL20_PATH`` set as
 described in :doc:`installation`.
 
@@ -65,7 +96,7 @@ Practical settings
 Scope of reproducibility
 ------------------------
 
-The pipeline retains historical normalization, bound formulas and signed-curvature
+The 0.2.0 pipeline retains historical normalization, bound formulas and signed-curvature
 aggregation. Original paper experiments were not fully seeded. Current presets
 record seeds, but small variation across runs and devices remains possible;
 seeded execution does not establish exact equivalence to the original results.

@@ -39,10 +39,21 @@ Publish on Read the Docs
 Read the Docs builds from Git; there is no manual HTML upload:
 
 1. Commit and push the docs and root ``.readthedocs.yaml`` to the public repository.
-2. Import ``koulakis/manifold-microscope`` in Read the Docs, or use its existing
-   project. Select a branch containing these files as the default version.
-3. Trigger a build and open its documentation link after it succeeds.
-4. Activate release tags under Versions when versioned documentation is needed.
+2. In Read the Docs Community, add ``koulakis/manifold-microscope`` as a public
+   project with slug ``manifold-microscope``, or connect its existing project.
+   Grant the Read the Docs GitHub App access to the repository. Select ``main``
+   as the default branch once the docs changes are merged.
+3. Build ``latest`` and open its documentation link after it succeeds. Confirm
+   repository integration receives pushes: the GitHub App handles events
+   automatically; older OAuth integrations use a repository webhook.
+4. After pushing tag ``v0.2.0``, open Versions, activate that version and let
+   its build finish. Keep it active and visible as the fixed paper reference.
+   Verify ``/en/v0.2.0/`` serves the 0.2.0 docs. If its version slug differs,
+   use the exact URL shown by Read the Docs.
+
+``latest`` tracks the default branch; ``stable`` tracks the newest stable
+release. Neither replaces the explicit ``v0.2.0`` version for paper reproduction.
+Future releases can update those aliases while the paper docs stay available.
 
 The root configuration selects Ubuntu 24.04, Python 3.12,
 ``docs/source/conf.py`` and ``docs/requirements.txt``. Warnings fail hosted
@@ -51,3 +62,19 @@ See the official `Read the Docs tutorial
 <https://docs.readthedocs.com/platform/stable/tutorial/index.html>`_ and
 `configuration reference
 <https://docs.readthedocs.com/platform/stable/config-file/v2.html>`_.
+
+README badges
+-------------
+
+The documentation badge needs a public Read the Docs project and a build of
+the version in its URL (currently ``latest``). No separate badge activation
+or token is needed. If it says ``unknown``, check the project slug, version
+activation and build log; a successful build reports ``passing``.
+See `status badges
+<https://docs.readthedocs.com/platform/stable/badges.html>`_.
+
+The Pepy badge counts total PyPI downloads automatically. Public badges need
+no registration, API key, repository webhook or package instrumentation.
+It counts downloads across versions, rather than paper runs or unique users;
+provider and image caching can delay updates. See the `Pepy badge reference
+<https://pepy.tech/pepy-api>`_.
