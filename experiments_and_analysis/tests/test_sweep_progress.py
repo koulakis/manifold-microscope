@@ -1,5 +1,6 @@
 """Sweep display settings preserve execution, caching, and visible failures."""
 import sys
+import io
 
 import pytest
 from tqdm import tqdm
@@ -104,3 +105,20 @@ def test_sweep_cli_quiet_override(tmp_path, monkeypatch, flag, value):
     result = CliRunner().invoke(sweep.app, args)
     assert result.exit_code == 0, result.output
     assert calls[0]['quiet_experiments'] is value
+
+
+def test_nested_bars_write_directly_without_clearing_sweep_on_each_refresh(monkeypatch):
+    stream = io.StringIO()
+    monkeypatch.setattr(sys, 'stderr', stream)
+    redraws = []
+    monkeypatch.setattr(tqdm, 'write', lambda *args, **kwargs: redraws.append(args))
+    with tqdm(total=1, desc='Sweep', position=0, file=stream) as outer:
+        with sweep.experiment_output(False):
+            assert sys.stderr is stream
+            with tqdm(total=2, desc='Reach', mininterval=0) as inner:
+                assert inner.pos == 1
+                inner.update(1)
+                inner.update(1)
+        outer.update(1)
+    assert not redraws
+    assert 'Reach' in stream.getvalue() and 'Sweep' in stream.getvalue()

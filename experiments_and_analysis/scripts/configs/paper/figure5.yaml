@@ -1,6 +1,7 @@
 # Full paper workload; inspect with --dry-run before execution.
 quiet_experiments: true
 base:
+  device: cuda:0
   analyses:
   - errors
 groups:

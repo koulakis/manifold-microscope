@@ -190,13 +190,18 @@ def test_sweep_renders_bounds_from_explicit_results(tmp_path):
     assert (directory / 'tiny_bounds.pdf').read_bytes().startswith(b'%PDF')
 
 
-def test_paper_figures_four_and_six_share_the_full_vae_fit():
+def test_paper_figures_four_and_six_share_fit_when_training_parameters_match():
     from experiments_and_analysis.config import load_config
     configs = Path(__file__).parents[1] / 'scripts/configs/paper'
     figure4 = expand(load_config(configs / 'figure4.yaml'))
     shared = next(job for job in figure4 if job['model']['name'] == 'beta_vae'
                   and job['split']['train_fraction'] == 1 and job['training']['trial'] == 2)
     figure6 = expand(load_config(configs / 'figure6.yaml'))[0]
+    # Figure 6 may deliberately use a shorter budget than Figure 4.
+    changed = deepcopy(shared)
+    changed['model']['parameters']['max_iter'] = shared['model']['parameters']['max_iter'] + 1
+    assert stage_ids(changed, changed['dataset'])[1] != stage_ids(shared, shared['dataset'])[1]
+    shared['model'] = deepcopy(figure6['model'])
     assert stage_ids(shared, shared['dataset'])[1] == stage_ids(figure6, figure6['dataset'])[1]
 
 

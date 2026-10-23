@@ -1,8 +1,10 @@
 """Unavailable devices fail before datasets are loaded or stage files are written."""
 from pathlib import Path
+import importlib
 
 import pytest
 import torch
+import numpy as np
 
 from experiments_and_analysis.config import load_config
 from experiments_and_analysis.scripts import run as single
@@ -52,3 +54,39 @@ def test_all_paper_quick_configs_export_without_cuda(tmp_path, monkeypatch):
         result = sweep.run(load_config(presets / f'figure{figure}.yaml'), tmp_path / 'outputs',
                            quick_run=True, dry_run=True, device='cuda:0')
         assert len(result['configurations']) == expected
+
+
+@pytest.mark.parametrize('name', ['figure3', 'figure4', 'figure4_quick', 'figure5', 'figure6'])
+def test_paper_presets_request_cuda_but_allow_explicit_cpu_override(name):
+    presets = Path(__file__).parents[1] / 'scripts/configs/paper'
+    config = load_config(presets / f'{name}.yaml')
+    assert all(c['device'] == 'cuda:0' for c in sweep.expand(config, quick_run=True))
+    assert all(c['device'] == 'cpu' for c in sweep.expand(config, quick_run=True, device='cpu'))
+
+
+def test_geometry_forwards_explicit_gpu_through_all_measure_kernels(monkeypatch, capsys):
+    from experiments_and_analysis.analyses.geometry import compute
+    from experiments_and_analysis.data.preparation import Dataset
+    module = importlib.import_module('microscope.computations_grid.data_analysis.data_analysis')
+    calls = []
+
+    def volume(*, device, **kwargs):
+        calls.append(('volume', device))
+        return np.ones(24)
+
+    def curvature(*, device, **kwargs):
+        calls.append(('curvature', device))
+        return np.tile([1., -1.], 12)
+
+    def reach(*, device, **kwargs):
+        calls.append(('reach', device))
+        return np.ones(24)
+
+    monkeypatch.setattr(module, 'volume_element', volume)
+    monkeypatch.setattr(module, 'scalar_curvature', curvature)
+    monkeypatch.setattr(module, 'reach_per_point', reach)
+    dataset = Dataset(np.zeros((1, 24, 2)), [2*np.pi], [0], [10], ['circle'], feature_ndim=1)
+    compute(dataset.flat, dataset, normalize_for_volume=False, device='cuda:0')
+    assert calls == [('volume', 'cuda:0'), ('curvature', 'cuda:0'),
+                     ('volume', 'cuda:0'), ('reach', 'cuda:0')]
+    assert '[geometry] computing volume, curvature and reach on cuda:0' in capsys.readouterr().out

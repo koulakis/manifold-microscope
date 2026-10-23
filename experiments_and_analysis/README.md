@@ -23,7 +23,13 @@ skipped jobs. Figures 3 and 5 enable this with top-level
 `quiet_experiments: true`; use `--no-quiet-experiments` to restore detailed
 output. Python callers can pass `quiet_experiments=True` or `False` to
 `run_sweep`. These display options do not change experiment/cache identities.
-Pass `--device cuda:0` (or set `base.device` in a sweep) to use CUDA; the default is CPU. Full paper
+The paper presets explicitly set `base.device: cuda:0` for training,
+inference and the volume/curvature/reach kernels. CUDA initialization errors
+stop execution before dataset loading or new stage outputs; there is no CPU
+fallback for these kernels. Use `--device cpu` or change `base.device` for a
+CPU run. Custom configurations still default to CPU. Geometry logs its device,
+and the reach progress bar includes it. NumPy preparation, aggregation,
+inter-class distances and plotting still use CPU. Full paper
 configurations can take many hours; dry runs only expand configurations. Files
 for Figures 3–6 and quick Figure 4 are together in `scripts/configs/paper`.
 Quick Figure 4 now computes all missing fits in the new working directory;

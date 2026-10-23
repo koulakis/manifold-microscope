@@ -31,7 +31,9 @@ def experiment_output(quiet):
         with open(os.devnull, 'w') as sink, redirect_stdout(sink), redirect_stderr(sink):
             yield
     else:
-        with redirect_stdout(DummyTqdmFile(sys.stdout)), redirect_stderr(DummyTqdmFile(sys.stderr)):
+        # Inner tqdm instances must write directly to stderr. Wrapping their
+        # refreshes in tqdm.write clears/repaints every active bar each time.
+        with redirect_stdout(DummyTqdmFile(sys.stdout)):
             yield
 
 

@@ -1,5 +1,6 @@
 quiet_experiments: true
 base:
+  device: cuda:0
   dataset:
     name: custom_dsprites_balanced
     dimension: 4

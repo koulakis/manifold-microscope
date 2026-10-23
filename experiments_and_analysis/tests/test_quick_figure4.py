@@ -12,6 +12,7 @@ from experiments_and_analysis.scripts import run as single, sweep
 def recipe():
     config = load_config(Path(__file__).parents[1] / 'scripts/configs/paper/figure4_quick.yaml')
     config['base']['split'].update(method='random', weighted=False)
+    config['base']['device'] = 'cpu'
     config['outputs'] = []
     return config
 
