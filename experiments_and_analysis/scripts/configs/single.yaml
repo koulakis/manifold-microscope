@@ -1,0 +1,17 @@
+dataset:
+  name: custom_dsprites_balanced
+  dimension: 4
+split:
+  method: random
+  test_fraction: 0.1
+  seed: 42
+model:
+  name: beta_vae
+training:
+  seed: 439
+analyses:
+- errors
+- name: geometry
+  representations:
+  - mu
+  - output

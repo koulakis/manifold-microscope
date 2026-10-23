@@ -17,6 +17,16 @@ from microscope.computations_grid.data_analysis.data_analysis import (
 )
 
 
+def test_layer_renderer_accepts_explicit_results_without_directory_discovery(tmp_path, results):
+    from experiments_and_analysis.plotting.layers import create_layer_plots
+    create_layer_plots({'input': results, 'mu': results, 'output': results},
+                       dataset_type='synthetic', output_dir=tmp_path,
+                       fontsize=6, plot_height_percentage=20)
+    with Image.open(tmp_path / 'layers_synthetic.png') as image:
+        assert image.width > image.height > 0
+    assert (tmp_path / 'layers_synthetic.pdf').read_bytes().startswith(b'%PDF')
+
+
 @pytest.fixture
 def results():
     rng = np.random.default_rng(17)
@@ -38,7 +48,7 @@ def test_run_single_output_saves_raw_results_and_returns_clipped_aggregates(
 ):
     # The runner imports optional CLI dependencies; geometry itself is tested elsewhere.
     pytest.importorskip("typer")
-    from microscope.computations_grid.data_analysis import run_data_analysis as runner
+    from experiments_and_analysis.analyses import layers as runner
 
     data = np.arange(2*22*3, dtype=float).reshape(2, 22, 3)
     calls = []
@@ -123,7 +133,7 @@ def test_pca_projection_exports_images_and_aligns_sampled_values(tmp_path, monke
 
 def test_merge_layer_evolution_exports_both_scales(tmp_path):
     pytest.importorskip("typer")
-    from microscope.computations_grid.data_analysis.merge_analysis_outputs import merge_layer_evolution
+    from experiments_and_analysis.plotting.merge import merge_layer_evolution
 
     for scale in ["linear", "symlog"]:
         directory = tmp_path / "layer_evolution" / scale

@@ -1,0 +1,50 @@
+base:
+  device: cuda:0
+  dataset:
+    name: custom_dsprites_balanced
+    dimension: 4
+  split:
+    method: fixed_test
+    max_test_size: 500
+    weighted: true
+  model:
+    name: mmls
+  analyses:
+  - errors
+grid:
+  model.name:
+  - mmls
+  - beta_vae
+  split.train_fraction:
+  - 0.01
+  - 0.02
+  - 0.05
+  - 0.1
+  - 0.2
+  - 0.3
+  - 0.4
+  - 0.5
+  - 0.6
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  repetition:
+  - index: 0
+    seed: 439
+  - index: 1
+    seed: 437875
+  - index: 2
+    seed: 473959
+outputs:
+- name: bounds
+  filename: figure_4
+  panels:
+  - label: mmls
+    where:
+      model: mmls
+    dimension: 4
+  - label: beta_vae
+    where:
+      model: beta_vae
+    dimension: 4

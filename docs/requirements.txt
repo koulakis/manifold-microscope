@@ -1,0 +1,4 @@
+# Keep these pins in sync with the docs extra in pyproject.toml.
+# Sphinx 8.1 supports the project's minimum Python version, 3.10.
+Sphinx==8.1.3
+sphinx-rtd-theme==3.0.2

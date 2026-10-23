@@ -1,0 +1,13 @@
+dataset:
+  name: custom_dsprites_balanced
+  dimension: 4
+split:
+  method: full
+model:
+  name: null
+inference:
+  enabled: false
+analyses:
+- name: geometry
+  representations:
+  - input

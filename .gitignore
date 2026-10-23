@@ -6,6 +6,7 @@ manifold_microscope.egg-info
 *.npz
 lightning_logs
 build/
+docs/build/
 *.zip
 CLAUDE.md
 results
