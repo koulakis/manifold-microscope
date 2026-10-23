@@ -7,9 +7,13 @@ import numpy as np
 import typer
 
 from ..config import load_config, resolve
+from ..bundles import output_root
 from ..data.preparation import candidates, load_source, normalize, prepare_split, sampling_weights, source_identity, toy_reference
 from ..models.config import MMLSConfig
-from ..outputs import STAGES, begin, finish, identity, is_complete, read_json, report_reuse, stage_ids, write_json
+from ..outputs import (STAGES, artifact_path, begin, experiment_identity, finish, identity,
+                       is_complete, load_array, read_json, report_reuse, save_array,
+                       stage_directory, stage_ids, write_json)
+from ..paths import dataset_label, experiment_paths, representation_label
 from ..quick import apply_quick_run
 
 app = typer.Typer(pretty_exceptions_enable=False)
@@ -34,7 +38,10 @@ def load_dataset(spec, root, device='cpu'):
     else:
         reference_config = dict(name=spec['name'], ground_truth_size=spec.get('ground_truth_size', 500),
                                 reference_seed=spec.get('reference_seed', 0))
-        directory = Path(root) / 'splits' / f'reference__{identity(reference_config)}'
+        reference_id = identity(reference_config)
+        directory = stage_directory(Path(root) / 'splits', reference_id,
+                                    f"reference__{spec['name']}__n{reference_config['ground_truth_size']}"
+                                    f"__seed{reference_config['reference_seed']}")
         if begin(directory, reference_config):
             np.save(directory / 'points.npy', toy_reference(spec, device))
             finish(directory, ['points.npy'])
@@ -49,7 +56,9 @@ def prepare_indices(dataset, config, root, source):
     if spec['method'] in ('full', 'provided'):
         return prepare_split(dataset, spec, config['device'])
     weight_config = dict(dataset=source, weighted=spec['weighted'])
-    weight_dir = root / 'splits' / f'weights__{identity(weight_config)}'
+    weight_id = identity(weight_config)
+    weight_dir = stage_directory(root / 'splits', weight_id,
+                                 f"weights__{dataset_label(source)}__{'volume' if spec['weighted'] else 'uniform'}")
     if begin(weight_dir, weight_config):
         weights = sampling_weights(dataset, spec['weighted'], config['device'])
         np.save(weight_dir / 'weights.npy', weights)
@@ -59,7 +68,9 @@ def prepare_indices(dataset, config, root, source):
     if spec['method'] == 'fixed_test':
         from microscope.datasets.dataset_split import maximal_distance_selection_torch
         test_config = dict(dataset=source, max_test_size=spec['max_test_size'])
-        test_dir = root / 'splits' / f'test__{identity(test_config)}'
+        test_id = identity(test_config)
+        test_dir = stage_directory(root / 'splits', test_id,
+                                   f"test__{dataset_label(source)}__max{spec['max_test_size']}")
         if begin(test_dir, test_config):
             available = candidates(dataset)
             points = dataset.flat[available].reshape(len(available), -1)
@@ -172,11 +183,12 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                                               if k not in ('representations', 'domain', 'enabled')}
                                              if representation != 'input' else {}))
             inference_id = identity(inference_config)
-            inference_dir = root / 'inference-outputs' / inference_id
+            label = representation_label(config, domain, representation)
+            inference_dir = stage_directory(root / 'inference-outputs', inference_id, label)
             analysis_config = dict(inference=inference_id, analysis={k: v for k, v in analysis.items()
                                                                    if k != 'representations'})
             analysis_id = identity(analysis_config)
-            directory = root / 'analysis-outputs' / analysis_id
+            directory = stage_directory(root / 'analysis-outputs', analysis_id, f"{label}__{analysis['name']}")
             record = dict(id=analysis_id, name=analysis['name'], domain=domain,
                           representation=representation, directory=str(directory),
                           dataset=config['dataset'], model=config['model']['name'],
@@ -201,7 +213,7 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                     values = data
                     batches = [(0, data)]
                 elif reused_values:
-                    values = np.load(saved, mmap_mode='r')
+                    values = load_array(saved, mmap_mode='r')
                     batches = [(0, values)]
                 else:
                     batches = predictions(config, model, data, representation)
@@ -210,7 +222,7 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                         distances.append(pointwise_distances(data[start:start + len(batch)], batch))
                     if (analysis['name'] != 'errors' or persist) and values is None:
                         shape = (len(data), *batch.shape[1:])
-                        if persist or config['inference']['buffer'] == 'temporary':
+                        if (persist or config['inference']['buffer'] == 'temporary') and isinstance(saved, Path):
                             path = saved if persist else temporary
                             values = np.lib.format.open_memmap(path, mode='w+', dtype=batch.dtype, shape=shape)
                         else:
@@ -219,6 +231,8 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                         values[start:start + len(batch)] = batch
                 if isinstance(values, np.memmap):
                     values.flush()
+                if persist and not isinstance(saved, Path) and not reused_values:
+                    save_array(saved, values)
                 inference_seconds = perf_counter() - inference_started
                 if inference_new:
                     write_json(inference_dir / 'summary.json', dict(number_of_points=len(data),
@@ -233,7 +247,7 @@ def analyze(config, dataset, indices, train_count, model, root, model_id):
                     case 'errors':
                         distances = np.concatenate(distances)
                         write_json(directory / 'metrics.json', summarize(distances, train_count))
-                        np.save(directory / 'pointwise_distances.npy', distances)
+                        save_array(directory / 'pointwise_distances.npy', distances)
                         files = ['metrics.json', 'pointwise_distances.npy']
                     case 'geometry':
                         options = {k: v for k, v in analysis.items()
@@ -260,25 +274,36 @@ def run(config: dict, output_dir, *, dataset=None, quick_run=False):
     """Run a dictionary configuration. An optional loaded Dataset avoids repeated IO."""
     config = apply_quick_run(config) if quick_run else resolve(config)
     root = Path(output_dir).expanduser().resolve()
+    artifacts = output_root(config, root)
+    if isinstance(artifacts, Path):
+        return _run(config, root, dataset=dataset, artifacts=artifacts)
+    with artifacts.bundle.transaction(experiment_identity(config, source_identity(config['dataset']))):
+        return _run(config, root, dataset=dataset, artifacts=artifacts)
+
+
+def _run(config, root, *, dataset, artifacts):
+    """One execution path for both directory and bundled stage artifacts."""
     source = source_identity(config['dataset'])
     split_id, model_id = stage_ids(config, source)
-    experiment_id = identity(dict(config=config, source=source))
-    configuration_path = root / 'experiment-configurations' / experiment_id / 'config.json'
+    experiment_id = experiment_identity(config, source)
+    paths = experiment_paths(artifacts, config, source)
+    configuration_path = paths['configuration'] / 'config.json'
     completed = completed_result(config, root, source)
     if completed is not None:
         return completed
     check_device(config['device'])
     for stage in STAGES:
-        (root / stage).mkdir(parents=True, exist_ok=True)
+        (artifacts / stage).mkdir(parents=True, exist_ok=True)
     configuration_path.parent.mkdir(parents=True, exist_ok=True)
     write_json(configuration_path, config)
     dataset = load_dataset(config['dataset'], root, config['device']) if dataset is None else dataset
-    split_dir = root / 'splits' / split_id
+    split_dir = paths['split']
     if begin(split_dir, dict(dataset=source, split=config['split'])):
         train, test = prepare_indices(dataset, config, root, source)
-        np.savez(split_dir / 'indices.npz', train=train, test=test)
+        with (split_dir / 'indices.npz').open('wb') as stream:
+            np.savez(stream, train=train, test=test)
         finish(split_dir, ['indices.npz'])
-    with np.load(split_dir / 'indices.npz') as split:
+    with (split_dir / 'indices.npz').open('rb') as stream, np.load(stream) as split:
         train, test = split['train'], split['test']
     if (config['model']['name'] == 'mmls'
             and len(train) < config['model']['parameters']['number_of_neighbors']):
@@ -288,7 +313,7 @@ def run(config: dict, output_dir, *, dataset=None, quick_run=False):
         write_json(configuration_path.with_name('result.json'), result)
         print(f"Skipping {experiment_id}: {result['reason']}")
         return result
-    model_dir = root / 'trained-models' / model_id
+    model_dir = paths['model']
     if config['model']['name'] is not None:
         if not config['training']['enabled'] and not is_complete(model_dir):
             raise RuntimeError(f'Training disabled but required fit is missing: {model_dir}')
@@ -303,7 +328,7 @@ def run(config: dict, output_dir, *, dataset=None, quick_run=False):
     else:
         model, model_id = None, None
     indices = dict(train=train, test=test, grid=None, split_id=split_id)
-    records = analyze(config, dataset, indices, len(train), model, root, model_id)
+    records = analyze(config, dataset, indices, len(train), model, artifacts, model_id)
     result = dict(experiment_id=experiment_id, split_id=split_id, model_id=model_id,
                   configuration=str(configuration_path), analyses=records)
     write_json(configuration_path.with_name('result.json'), result)
@@ -312,14 +337,15 @@ def run(config: dict, output_dir, *, dataset=None, quick_run=False):
 
 def completed_result(config, root, source=None):
     source = source_identity(config['dataset']) if source is None else source
-    path = Path(root) / 'experiment-configurations' / identity(dict(config=config, source=source)) / 'result.json'
+    paths = experiment_paths(output_root(config, root), config, source)
+    path = paths['configuration'] / 'result.json'
     if not path.is_file():
         return None
     result = read_json(path)
-    directories = [Path(root) / 'splits' / result['split_id']]
+    directories = [paths['split']]
     if result['model_id'] is not None and result.get('status') != 'skipped':
-        directories.append(Path(root) / 'trained-models' / result['model_id'])
-    directories.extend(Path(record['directory']) for record in result['analyses'])
+        directories.append(paths['model'])
+    directories.extend(artifact_path(record['directory']) for record in result['analyses'])
     if not all(is_complete(directory) for directory in directories):
         return None
     for directory in directories:

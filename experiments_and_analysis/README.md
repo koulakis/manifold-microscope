@@ -17,6 +17,12 @@ python -m experiments_and_analysis.scripts.sweep \
 ```
 
 Omit `--dry-run` to execute the sweep and render its requested figures.
+Sweeps show an overall progress bar alongside each experiment's output.
+Use `--quiet-experiments` to show only the sweep bar, including cached and
+skipped jobs. Figures 3 and 5 enable this with top-level
+`quiet_experiments: true`; use `--no-quiet-experiments` to restore detailed
+output. Python callers can pass `quiet_experiments=True` or `False` to
+`run_sweep`. These display options do not change experiment/cache identities.
 Pass `--device cuda:0` (or set `base.device` in a sweep) to use CUDA; the default is CPU. Full paper
 configurations can take many hours; dry runs only expand configurations. Files
 for Figures 3–6 and quick Figure 4 are together in `scripts/configs/paper`.
@@ -106,7 +112,72 @@ trained-models/             Checkpoints or MMLS projector state
 inference-outputs/          Metadata; arrays only if persist is true
 analysis-outputs/           Errors, geometry and plot-ready aggregate curves
 plots/                      Requested PNG/PDF figures
+experiment-bundles/         Compact pickle outputs for small toy MMLS runs
 ```
+
+Figure 5's Sphere/Torus groups use `output_layout: bundled`. Each dataset,
+fixed configuration and repetition gets one readable bundle folder containing
+all its sample sizes: **40 toy bundle folders for the full preset**, plus the
+ordinary image-dataset outputs. Experiments still run separately and
+sequentially. Each has its own hashes, seeds, results and completion state;
+the single-experiment runner also accepts this layout. Other workflows default
+to `output_layout: directories`. Bundling currently supports toy MMLS with a
+`provided` split and reconstruction-error analyses.
+
+Each bundle contains:
+
+- `results.pkl`: a normal pickle dictionary with every experiment's resolved
+  configuration, result, stage metadata/timings, split indices, model state,
+  pointwise errors and any requested persisted arrays. NumPy payloads are
+  decoded to arrays/dictionaries when exported.
+- `summary.csv`: one row per error analysis, with sample size, seed, trial,
+  counts, error metrics and elapsed time; skipped jobs are included.
+- `family.pkl`: the bundle's fixed configuration and export checkpoint.
+- `progress.pkl`: an incremental, framed pickle journal for resuming. It
+  commits whole experiments without rewriting the growing export each time.
+
+Shared reference points remain in the normal `splits/reference__.../points.npy`
+cache. No per-experiment subdirectories or temporary experiment trees are
+created for bundled runs. Exports refresh at sweep exit, including Ctrl+C,
+or after a direct single run. A hard kill can leave an older export; rerun the
+command to reuse committed work, or call `export_bundle(bundle_directory)`
+from `experiments_and_analysis.bundles` to refresh it without executing jobs.
+
+Load results with standard pickle:
+
+```python
+import pickle
+from pathlib import Path
+
+for directory in Path("../outputs/new-experiments/experiment-bundles").iterdir():
+    with (directory / "results.pkl").open("rb") as stream:
+        bundle = pickle.load(stream)
+    for experiment in bundle["experiments"].values():
+        config = experiment["configuration"]
+        for analysis in experiment["stages"].get("analysis-outputs", {}).values():
+            metrics = analysis["metrics.json"]
+            distances = analysis["pointwise_distances.npy"]  # NumPy array
+```
+
+New output folders use descriptive fields separated by `__`, followed by their
+existing 20-character content hash. Fields depend on the stage:
+
+| Output | Information in the name |
+| --- | --- |
+| Experiment configurations and fits | Dataset, dimension, model, training fraction or toy sample count, seed, trial; MMLS neighbor count/projection method or VAE architecture/latent size/iteration budget |
+| Splits | Dataset, dimension, split method, training percentage, weighting, test size setting and sampling seed |
+| Shared weights/test/reference sets | Dataset and dimension where applicable, weighting or test/reference size; reference seed |
+| Inference and analyses | Fit details, train/test/grid domain, representation/layer, analysis type; input grid geometry uses only dataset details |
+| Sweeps, aggregates and plots | Requested figure/filename, followed by the hash |
+
+For example, a fit may be named
+`custom_dsprites_balanced__dim4__mmls__k32__thin_svd__fixed_test__train20pct__weighted__testmax500__seed439__trial0__<hash>`.
+`train20pct` refers to 20% of the available training pool after holding out the
+test set. Toy runs use `n250`, for example, for 250 sampled training points.
+Names are sanitized and length-limited; the hash still distinguishes all
+configuration details. Full parameters remain in the JSON files.
+Only the descriptive naming convention is supported; hash-only output folders
+from earlier runs are ignored.
 
 Stage identities include their inputs and relevant parameters. Training seeds
 and `training.trial` distinguish repetitions. New analyses/layers reuse matching
@@ -114,7 +185,8 @@ fits. Stage implementations use an explicit format/behavior version in
 `outputs.py`; increment it when changing numerical behavior. Completed stages
 verify their manifest and declared files; partial
 directories stop execution and remain untouched. Move a partial directory aside
-before retrying. These outputs use a new layout; old directories are unsupported.
+before retrying. Output layouts from before the `experiments_and_analysis`
+pipeline are unsupported.
 
 Inference feeds analyses directly. Errors accumulate per batch; geometry handles
 one representation at a time. Only requested representations are copied from

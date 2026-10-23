@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 from ..analyses.bounds import _curve
-from ..outputs import begin, finish, identity, read_json, write_json
+from ..outputs import artifact_path, begin, finish, identity, read_json, stage_directory, write_json
 
 
 def matches(record, selection):
@@ -29,7 +29,7 @@ def bound_data(records, panels):
                     and matches(record, panel.get('where', {}))]
         # An analysis can be referenced by several experiment configurations.
         selected = {record['id']: record for record in selected}.values()
-        rows = [read_json(Path(record['directory']) / 'metrics.json') for record in selected]
+        rows = [read_json(artifact_path(record['directory']) / 'metrics.json') for record in selected]
         curves[panel['label']], summaries[panel['label']] = _curve(rows, panel['dimension'])
     return curves, summaries
 
@@ -60,13 +60,14 @@ def render(records, request, output_dir):
     root = Path(output_dir)
     config = dict(request=request, results=sorted({r['id'] for r in records}))
     plot_id = identity(config)
-    directory = root / 'plots' / f"{request['filename']}__{plot_id}"
+    directory = stage_directory(root / 'plots', plot_id, request['filename'])
     if not begin(directory, config):
         return directory
     match request['name']:
         case 'bounds':
             curves, summaries = bound_data(records, request['panels'])
-            aggregate_dir = root / 'analysis-outputs' / f'aggregate__{plot_id}'
+            aggregate_dir = stage_directory(root / 'analysis-outputs', plot_id,
+                                            f"aggregate__{request['filename']}__bounds")
             if begin(aggregate_dir, config):
                 np.savez(aggregate_dir / 'curves.npz', **curves)
                 write_json(aggregate_dir / 'regression.json', summaries)

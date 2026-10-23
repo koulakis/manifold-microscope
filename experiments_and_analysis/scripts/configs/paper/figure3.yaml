@@ -1,3 +1,4 @@
+quiet_experiments: true
 base:
   dataset:
     name: custom_dsprites_balanced

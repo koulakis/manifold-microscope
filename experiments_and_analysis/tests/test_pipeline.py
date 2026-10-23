@@ -60,7 +60,7 @@ def test_real_mmls_run_reuses_fit_for_new_analysis_and_resumes(tmp_path, monkeyp
     config = circle_config(tmp_path)
     root = tmp_path / 'outputs'
     first = single.run(config, root)
-    model_dir = root / 'trained-models' / first['model_id']
+    model_dir = next((root / 'trained-models').glob(f"*__{first['model_id']}"))
     before = {p: p.read_bytes() for p in model_dir.rglob('*') if p.is_file()}
     assert not (model_dir / 'training_points.npy').exists()
     metrics = read_json(Path(first['analyses'][0]['directory']) / 'metrics.json')
@@ -148,7 +148,7 @@ def test_one_step_vae_checkpoint_and_named_inference(tmp_path):
                       z_dim=2, batch_size=2, max_iter=1, max_epochs=1, strict_budget=True)),
                   inference=dict(domain='train', representations=['mu', 'output'], persist=True, batch_size=2))
     result = single.run(config, tmp_path / 'outputs')
-    model_dir = tmp_path / 'outputs/trained-models' / result['model_id']
+    model_dir = next((tmp_path / 'outputs/trained-models').glob(f"*__{result['model_id']}"))
     assert len(list((tmp_path / 'outputs/inference-outputs').glob('*/values.npy'))) == 2
     checkpoint = torch.load(model_dir / 'checkpoints/last.pth', weights_only=False, map_location='cpu')
     assert checkpoint['iter'] == 1

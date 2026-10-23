@@ -5,7 +5,7 @@ import pytest
 
 from experiments_and_analysis.config import load_config
 from experiments_and_analysis.data.preparation import Dataset
-from experiments_and_analysis.outputs import stage_ids
+from experiments_and_analysis.paths import experiment_paths
 from experiments_and_analysis.scripts import run as single, sweep
 
 
@@ -45,8 +45,7 @@ def test_six_trainings_per_model_and_resume(tmp_path, monkeypatch):
 def test_incomplete_stage_preserved_and_blocks_export(tmp_path, monkeypatch):
     config = recipe()
     job = sweep.expand(config)[0]
-    _, model_id = stage_ids(job, job['dataset'])
-    partial = tmp_path / 'trained-models' / model_id
+    partial = experiment_paths(tmp_path, job, job['dataset'])['model']
     partial.mkdir(parents=True)
     artifact = partial / 'checkpoint'
     artifact.write_text('keep me')
