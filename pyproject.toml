@@ -8,14 +8,14 @@ authors = [
     {name = "Marios Koulakis"}
 ]
 description = "The data manifold under the microscope."
-version = "0.1.0"
+version = "0.2.0"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "BSD-3-Clause"
 license-files = [
     "LICENSE",
-    "representation_learning/beta_vae/LICENSE",
-    "representation_learning/beta_vae/NOTICE.md"
+    "experiments_and_analysis/models/beta_vae/LICENSE",
+    "docs/source/third_party/beta_vae.rst"
 ]
 keywords = [
     "manifold learning",
@@ -52,6 +52,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+docs = [
+    "Sphinx == 8.1.3",
+    "sphinx-rtd-theme == 3.0.2"
+]
 benchmark = [
     "torchvision",
     "typer",
@@ -68,5 +72,8 @@ Repository = "https://github.com/koulakis/manifold-microscope"
 Issues = "https://github.com/koulakis/manifold-microscope/issues"
 
 [tool.setuptools.packages.find]
-include = ["microscope*", "representation_learning*", "experiment_scripts*"]
+include = ["microscope*", "experiments_and_analysis*"]
 exclude = ["*.tests", "*.tests.*"]
+
+[tool.setuptools.package-data]
+experiments_and_analysis = ["scripts/configs/*.yaml", "scripts/configs/paper/*.yaml"]

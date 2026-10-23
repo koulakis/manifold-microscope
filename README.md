@@ -1,5 +1,8 @@
 # The Data Manifold under the Microscope
 
+[![Documentation Status](https://readthedocs.org/projects/manifold-microscope/badge/?version=latest)](https://manifold-microscope.readthedocs.io/en/latest/?badge=latest)
+[![PyPI Downloads](https://static.pepy.tech/badge/manifold-microscope)](https://pepy.tech/projects/manifold-microscope)
+
 `manifold-microscope` provides toy and image datasets, plus finite-difference estimates of volume, scalar curvature and reach on parameter grids. It accompanies [Marios Koulakis and Constantin Seibold, *The Data Manifold under the Microscope* (ICML 2026)](https://proceedings.mlr.press/v306/koulakis26a.html).
 
 ## Install <img src="docs/images/colorful_mathematical_surface_microscope.png" alt="" width="280" align="right">
@@ -7,13 +10,13 @@
 Python ≥3.10:
 
 ```bash
-pip install manifold-microscope
+python -m pip install manifold-microscope
 ```
 
-If you want to use the experiment scripts then run:
+For the experiment scripts:
 
 ```bash
-pip install "manifold-microscope[benchmark]"
+python -m pip install "manifold-microscope[benchmark]"
 ```
 
 ## Quickstart: scalar curvature on a sphere
@@ -40,17 +43,32 @@ print(f"Mean scalar curvature: {curvature.mean():.3f}")
 # Approximately 0.5: a sphere has scalar curvature 2 / radius**2.
 ```
 
-Grid APIs with a `device` argument default to CUDA when available, otherwise CPU. Dense image grids and experiment scripts have additional resource/device requirements.
+Grid APIs with a `device` argument select CUDA when available, otherwise CPU.
+Custom experiment configs default to CPU; the paper presets explicitly request
+`cuda:0` and fail if it cannot initialize. See the [experiment guide](docs/source/guide/experiments.rst)
+for device overrides, training budgets, progress controls and output formats.
 
 ## Documentation and paper reproduction
 
-- [Usage](docs/usage.md)
-- [Paper reproduction](docs/reproducibility.md)
+For the paper figures, use **version 0.2.0** (Git tag `v0.2.0`). Check out
+that tag and install its experiment dependencies as described in the
+[reproduction guide](docs/source/guide/reproducibility.rst). Later releases may
+introduce different numerical methods, including extrinsic curvature or faster
+reach searches, and may produce different results. Version 0.2.0 is the fixed
+reference for the paper workflow.
+
+- [Documentation index](docs/source/index.rst)
+- [Getting started](docs/source/guide/getting_started.rst) and [API reference](docs/source/api_reference/geometry.rst)
+- [Paper reproduction](docs/source/guide/reproducibility.rst)
+- [Configuration and defaults](docs/source/guide/configuration.rst)
+- [Outputs and reuse](docs/source/guide/outputs.rst)
+- [Build and publish the docs](docs/source/guide/building.rst)
 - [Dataset and geometry notebooks](notebooks/datasets_and_measures)
 
-**Note:** Paper reproduction is not fully seeded, so plots may vary slightly between runs. They should retain similar shapes and values in comparable ranges.
+**Note:** The original paper experiments were not fully seeded. Current presets
+specify seeds, but plots may still vary slightly across runs or devices.
 
-[BSD-3-Clause license](LICENSE); adapted β-VAE code has a separate [MIT attribution and license](representation_learning/beta_vae/NOTICE.md).
+[BSD-3-Clause license](LICENSE); adapted β-VAE code has a separate [MIT attribution and license](docs/source/third_party/beta_vae.rst).
 
 ## Citation
 
