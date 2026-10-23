@@ -10,6 +10,11 @@ Start with :doc:`guide/installation` and the CPU example in
 :doc:`guide/getting_started`. To run the paper experiments, see
 :doc:`guide/reproducibility`.
 
+**Paper reproduction uses version 0.2.0 (Git tag v0.2.0).** Later releases may
+change numerical methods and results. Use that tag and its versioned
+documentation for the paper workflow; :doc:`guide/reproducibility` gives the
+checkout and installation commands.
+
 .. toctree::
    :maxdepth: 1
    :caption: User Guide
