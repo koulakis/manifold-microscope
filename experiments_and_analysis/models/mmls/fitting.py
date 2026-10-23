@@ -1,13 +1,10 @@
 """MMLS fitting and projector-state IO, separate from projection and metrics."""
 from dataclasses import asdict
-from pathlib import Path
 import pickle
-
-import numpy as np
 
 from ..config import MMLSConfig
 from .projector import ANNMMLSProjector
-from ...outputs import read_json, write_json
+from ...outputs import artifact_path, load_array, read_json, save_array, write_json
 
 
 def fit(data, config: MMLSConfig, device='cpu'):
@@ -21,21 +18,21 @@ def fit(data, config: MMLSConfig, device='cpu'):
 
 def save_projector(projector, config, directory, *, split_id=None, export_points=False):
     """Normally reference saved split indices; optionally export a standalone fit."""
-    directory = Path(directory)
+    directory = artifact_path(directory)
     write_json(directory / 'projector.json', dict(parameters=asdict(config), split_id=split_id,
                                                  exported_points=export_points))
     if export_points:
-        np.save(directory / 'training_points.npy', projector.X.detach().cpu().numpy())
+        save_array(directory / 'training_points.npy', projector.X.detach().cpu().numpy())
     if projector.ann_index is not None:
         with (directory / 'neighbors.pkl').open('wb') as stream:
             pickle.dump(projector.ann_index, stream, -1)
 
 
 def load_projector(directory, *, training_points=None, device='cpu'):
-    directory = Path(directory)
+    directory = artifact_path(directory)
     state = read_json(directory / 'projector.json')
     if state['exported_points']:
-        training_points = np.load(directory / 'training_points.npy')
+        training_points = load_array(directory / 'training_points.npy')
     if training_points is None:
         raise ValueError('Supply the training points selected by the saved split.')
     projector = fit(training_points, MMLSConfig(**state['parameters']), device)

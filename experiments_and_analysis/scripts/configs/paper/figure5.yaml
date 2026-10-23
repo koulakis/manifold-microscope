@@ -1,9 +1,11 @@
 # Full paper workload; inspect with --dry-run before execution.
+quiet_experiments: true
 base:
   analyses:
   - errors
 groups:
 - base:
+    output_layout: bundled
     dataset:
       name: Sphere
       dimension: 2
@@ -66,6 +68,7 @@ groups:
     - index: 19
       seed: 1019
 - base:
+    output_layout: bundled
     dataset:
       name: Torus
       dimension: 2

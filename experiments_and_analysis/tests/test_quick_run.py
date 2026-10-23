@@ -104,7 +104,8 @@ def test_quick_random_evaluation_caps_predictions_preserving_train_and_grid(tmp_
                   inference=dict(persist=True), analyses=['errors'])
     root = tmp_path / 'outputs'
     result = single.run(config, root, quick_run=True)
-    with np.load(root / 'splits' / result['split_id'] / 'indices.npz') as split:
+    split_dir = next((root / 'splits').glob(f"*__{result['split_id']}"))
+    with np.load(split_dir / 'indices.npz') as split:
         assert len(split['train']) == 60 and len(split['test']) == 180
     assert len(load_source(config['dataset']).flat) == 240
     assert np.load(next((root / 'inference-outputs').glob('*/values.npy'))).shape == (100, 3)

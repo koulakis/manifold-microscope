@@ -39,7 +39,7 @@ def resolve(config):
         inference=dict(enabled=True, domain='test', representations=['output'],
                        batch_size=64, seed=seed, decoder_sampling=True,
                        persist=False, buffer='memory'),
-        analyses=[], repetition=repetition, device='cpu', num_workers=0)
+        analyses=[], repetition=repetition, device='cpu', num_workers=0, output_layout='directories')
     result = merge(defaults, config)
     unknown = set(result) - set(defaults)
     if unknown:
@@ -120,4 +120,11 @@ def resolve(config):
             raise ValueError('Model inference is required for non-input representations.')
         analyses.append(analysis)
     result['analyses'] = analyses
+    if result['output_layout'] not in ('directories', 'bundled'):
+        raise ValueError('output_layout must be directories or bundled.')
+    if result['output_layout'] == 'bundled' and not (
+            result['dataset']['name'] in ('Sphere', 'Torus', 'Circle', 'Moons')
+            and result['model']['name'] == 'mmls' and split['method'] == 'provided'
+            and analyses and all(a['name'] == 'errors' for a in analyses)):
+        raise ValueError('Bundled outputs require a toy MMLS experiment with provided splits and error analyses.')
     return result
