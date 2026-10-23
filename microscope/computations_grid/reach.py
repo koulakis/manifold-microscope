@@ -121,7 +121,7 @@ def reach_per_point(
     if len(features_on_grid_cropped_flat) % batch_size != 0:
         iteration_batch_ranges += [(batch_size*num_ranges, len(features_on_grid_cropped_flat))]
 
-    for s, e in tqdm(iteration_batch_ranges):
+    for s, e in tqdm(iteration_batch_ranges, desc=f'Reach ({device})', unit='batch'):
         x = features_on_grid_cropped_flat[s:e].to(device)
         T_x = tangent_vectors_flat[s:e].to(device)
         d_y_tang_x = _distances_to_tangent_space(T_x, features_on_grid_cropped_flat, x)
