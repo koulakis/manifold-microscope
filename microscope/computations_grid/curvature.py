@@ -1,11 +1,11 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import torch
 from einops import einops
 
 from microscope.computations_grid.basic import partial_derivatives_across_all_dims, crop_dim_borders, riemannian_metric
-from microscope.patches import extract_patches, stack_patches
+from microscope.patches import extract_patches
 
 
 def christoffel_symbols(
@@ -177,6 +177,22 @@ def scalar_curvature(
         A NumPy array of shape (s1_out, ..., sd_out), where s_i_out = s_i
         for periodic axes and s_i - 6 otherwise: one scalar curvature per point.
     """
+    return _scalar_curvature_in_patches(
+        features_on_grid, difference_intervals, cyclic_dimensions, patch_sizes,
+        normalize, device, scalar_curvature_batch
+    )
+
+
+def _scalar_curvature_in_patches(
+    features_on_grid: np.ndarray,
+    difference_intervals: list[float],
+    cyclic_dimensions: list[int],
+    patch_sizes: list[int],
+    normalize: bool,
+    device: str | torch.device | None,
+    batch_computation: Callable[[torch.Tensor, list[float], bool], torch.Tensor]
+) -> np.ndarray:
+    """Share the six-point halo and output stitching between curvature methods."""
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -190,37 +206,30 @@ def scalar_curvature(
         cyclic_dimensions=cyclic_dimensions
     )
 
-    volume_patches = []
+    output_shape = tuple(
+        s if i in cyclic_dimensions else s - 6
+        for i, s in enumerate(features_on_grid.shape[:-1])
+    )
+    curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
+    steps = np.asarray(patch_sizes) - 6
     # Flattening the strided patch grid copies every overlapping patch.
     for index in np.ndindex(*patches.shape[:dims]):
         patch = patches[index]
         points_pt_patch = torch.from_numpy(patch).to(device)
 
-        volume_pred = scalar_curvature_batch(
+        curvature_pred = batch_computation(
             points_pt_patch,
             difference_intervals=difference_intervals,
             normalize=normalize
         ).cpu().detach().numpy()
-        volume_patches.append(volume_pred)
+        starts = np.asarray(index) * steps
+        lengths = np.minimum(steps, np.asarray(output_shape) - starts)
+        if np.all(lengths > 0):
+            destination = tuple(slice(int(s), int(s + n)) for s, n in zip(starts, lengths))
+            source = tuple(slice(0, int(n)) for n in lengths)
+            curvature_array[destination] = curvature_pred[source]
 
-    volume_patches = np.stack(volume_patches, axis=0).reshape(
-        *patches.shape[:dims],
-        *list(np.array(patches.shape[dims:2 * dims]) - np.array(overlaps)),
-        *patches.shape[2 * dims:-1],
-    )
-
-    curvature_array = stack_patches(volume_patches, n_features=0)
-
-    # Truncate any padded zeros introduced in the patch extraction.
-    expected_array_shape = tuple(
-        slice(
-            0,
-            s if i in cyclic_dimensions else s - 6
-        )
-        for i, s in enumerate(features_on_grid.shape[:-1])
-    )
-
-    return curvature_array[expected_array_shape]
+    return curvature_array
 
 
 def compute_total_curvature(element: np.ndarray, curvature: np.ndarray, range_sizes: list[float]) -> float:
