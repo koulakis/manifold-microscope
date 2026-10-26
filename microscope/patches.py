@@ -4,6 +4,7 @@ import numpy as np
 from einops import einops
 
 from microscope.cyclic_dimensions import pad_cyclic_dimensions
+from microscope._grid_validation import cyclic_axes, integer_list
 
 
 def extract_patches(
@@ -33,7 +34,12 @@ def extract_patches(
     if cyclic_dimensions is None:
         cyclic_dimensions = []
 
+    patch_sizes = integer_list(patch_sizes, "patch sizes", minimum=1)
+    overlaps = integer_list(overlaps, "patch overlaps")
     n_dim = len(patch_sizes)
+    if not 1 <= n_dim <= array.ndim:
+        raise ValueError("patch sizes must cover between one and all array axes.")
+    cyclic_dimensions = cyclic_axes(cyclic_dimensions, n_dim)
     n_features = len(array.shape) - n_dim
 
     if len(overlaps) != n_dim:
@@ -41,6 +47,11 @@ def extract_patches(
             f"The shape dimensions of the patch sizes ({n_dim}) differ from the "
             f"shape dimensions of the overlaps ({len(overlaps)})."
         )
+    if any(p <= overlap for p, overlap in zip(patch_sizes, overlaps)):
+        raise ValueError("Each patch size must exceed its overlap.")
+    if any(n == 0 or (axis not in cyclic_dimensions and n <= overlaps[axis])
+           for axis, n in enumerate(array.shape[:n_dim])):
+        raise ValueError("Grid axes must have a nonempty patch interior.")
     # Handle cyclic dimensions by padding the array
     array = pad_cyclic_dimensions(
         array,
@@ -63,7 +74,7 @@ def extract_patches(
         array = np.pad(
             array,
             pad_width=
-            tuple((0, r) for r in (step_sizes - residue))
+            tuple((0, r) for r in ((step_sizes - residue) % step_sizes))
             + tuple(((0, 0) for _ in range(n_features))),
             mode="wrap"
         )

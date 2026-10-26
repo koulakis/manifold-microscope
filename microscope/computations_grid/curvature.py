@@ -4,8 +4,10 @@ import numpy as np
 import torch
 from einops import einops
 
-from microscope.computations_grid.basic import partial_derivatives_across_all_dims, crop_dim_borders, riemannian_metric
+from microscope.computations_grid.basic import partial_derivatives_across_all_dims, crop_dim_borders
 from microscope.patches import extract_patches
+from microscope._grid_validation import cyclic_axes, integer_list, spacings
+from microscope.computations_grid._curvature_geometry import metric_and_inverse, validate_tensor
 
 
 def christoffel_symbols(
@@ -60,16 +62,16 @@ def riemannian_curvature_tensor(
         A dictionary with keys "first" and "second"; unrequested entries are
         None. Requested tensors have shape (s1 - 2, ..., sk - 2, k, k, k, k).
         Each kind differentiates its corresponding Christoffel symbols."""
+    if not set(kinds) <= {"first", "second"}:
+        raise ValueError("Riemann kinds must be 'first' or 'second'.")
     n_dims = len(gamma_first_kind.shape) - 3
-    gamma_derivatives_first_kind = partial_derivatives_across_all_dims(
-        gamma_first_kind,
-        manifold_dim=n_dims,
-        difference_intervals=difference_intervals
+    gamma_derivatives_first_kind = (
+        partial_derivatives_across_all_dims(gamma_first_kind, n_dims, difference_intervals)
+        if "first" in kinds else None
     )
-    gamma_derivatives_second_kind = partial_derivatives_across_all_dims(
-        gamma_second_kind,
-        manifold_dim=n_dims,
-        difference_intervals=difference_intervals
+    gamma_derivatives_second_kind = (
+        partial_derivatives_across_all_dims(gamma_second_kind, n_dims, difference_intervals)
+        if "second" in kinds else None
     )
 
     dim_idxs = set(np.arange(n_dims))
@@ -117,13 +119,23 @@ def scalar_curvature_batch(
         All grid axes lose three samples at each end; pad periodic axes first.
 
     Raises:
-        ValueError: If normalize is requested for d < 2."""
+        ValueError: For invalid grids/spacings or normalize with d < 2.
+        torch.linalg.LinAlgError: For numerically rank-deficient tangents,
+            with the first affected batch-grid index in the message.
+
+    Well-conditioned Gram metrics are inverted directly. Points failing the
+    dtype-aware spectral check use QR tangent factors instead. This cannot
+    remove all sensitivity of metric differentiation in poorly conditioned
+    coordinate charts; use float64 and appropriate scales.
+    """
+    difference_intervals = validate_tensor(tensor, difference_intervals, border=3)
     intrinsic_dim = len(tensor.shape[:-1])
     if normalize and intrinsic_dim < 2:
         raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")
 
-    metric = riemannian_metric(tensor, difference_intervals)
-    metric_inv = torch.linalg.inv(metric)
+    tangent = partial_derivatives_across_all_dims(tensor, intrinsic_dim, difference_intervals)
+    metric, metric_inv = metric_and_inverse(tangent)
+    del tangent
 
     gamma_first_kind, gamma_second_kind = christoffel_symbols(
         metric,
@@ -176,6 +188,11 @@ def scalar_curvature(
     Returns:
         A NumPy array of shape (s1_out, ..., sd_out), where s_i_out = s_i
         for periodic axes and s_i - 6 otherwise: one scalar curvature per point.
+
+    Inputs must be finite float32/float64 samples on an equally spaced grid.
+    Integer/complex/half inputs are rejected. Periodic axes must be distinct
+    valid axis indices. Partial patches are cropped before differentiation so
+    artificial wrap padding is never used for metric inversion.
     """
     return _scalar_curvature_in_patches(
         features_on_grid, difference_intervals, cyclic_dimensions, patch_sizes,
@@ -196,7 +213,19 @@ def _scalar_curvature_in_patches(
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    dims = len(patch_sizes)
+    if features_on_grid.dtype not in (np.dtype("float32"), np.dtype("float64")):
+        raise TypeError("Curvature requires float32 or float64 inputs.")
+    dims = features_on_grid.ndim - 1
+    if dims < 1 or features_on_grid.shape[-1] < dims:
+        raise ValueError("A grid needs ambient dimension >= intrinsic dimension >= 1.")
+    difference_intervals = spacings(difference_intervals, dims)
+    patch_sizes = integer_list(patch_sizes, "patch sizes", minimum=7)
+    if len(patch_sizes) != dims:
+        raise ValueError("One patch size is required per grid axis.")
+    cyclic_dimensions = cyclic_axes(cyclic_dimensions, dims)
+    if any(n < (3 if axis in cyclic_dimensions else 7)
+           for axis, n in enumerate(features_on_grid.shape[:-1])):
+        raise ValueError("Grid axes need at least seven noncyclic or three cyclic samples.")
     overlaps = dims * [6]
 
     patches = extract_patches(
@@ -214,7 +243,15 @@ def _scalar_curvature_in_patches(
     steps = np.asarray(patch_sizes) - 6
     # Flattening the strided patch grid copies every overlapping patch.
     for index in np.ndindex(*patches.shape[:dims]):
-        patch = patches[index]
+        starts = np.asarray(index) * steps
+        lengths = np.minimum(steps, np.asarray(output_shape) - starts)
+        if not np.all(lengths > 0):
+            continue
+        # Unused wrap padding can create rank loss. Compute only the genuine
+        # output extent plus its halo, including on a partial final patch.
+        patch = patches[index][tuple(slice(0, int(n + 6)) for n in lengths)]
+        if any(stride < 0 for stride in patch.strides):
+            patch = np.ascontiguousarray(patch)
         points_pt_patch = torch.from_numpy(patch).to(device)
 
         curvature_pred = batch_computation(
@@ -222,12 +259,8 @@ def _scalar_curvature_in_patches(
             difference_intervals=difference_intervals,
             normalize=normalize
         ).cpu().detach().numpy()
-        starts = np.asarray(index) * steps
-        lengths = np.minimum(steps, np.asarray(output_shape) - starts)
-        if np.all(lengths > 0):
-            destination = tuple(slice(int(s), int(s + n)) for s, n in zip(starts, lengths))
-            source = tuple(slice(0, int(n)) for n in lengths)
-            curvature_array[destination] = curvature_pred[source]
+        destination = tuple(slice(int(s), int(s + n)) for s, n in zip(starts, lengths))
+        curvature_array[destination] = curvature_pred
 
     return curvature_array
 

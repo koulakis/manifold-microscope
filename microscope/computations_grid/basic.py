@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from microscope.patches import extract_patches
+from microscope._grid_validation import spacings
 
 
 def partial_derivative_approximation(
@@ -20,6 +21,7 @@ def partial_derivative_approximation(
         A tensor of shape (s0, ..., s_dim - 2, ..., s_{n-1}) on the input
         device. Only axis dim is shortened; all other axes are preserved.
     """
+    difference_intervals = spacings([difference_intervals], 1)[0]
     device = tensor.device
     length = tensor.shape[dim]
 
@@ -65,6 +67,9 @@ def partial_derivatives_across_all_dims(
     Returns:
         A tensor of shape (s1 - 2, ..., sk - 2, f1, ..., fl, k) on the
         input device. All parameter axes are cropped; pad periodic axes first."""
+    if not 1 <= manifold_dim <= tensor.ndim:
+        raise ValueError("manifold_dim must identify the leading grid axes.")
+    difference_intervals = spacings(difference_intervals, manifold_dim)
     dim_idxs = set(range(manifold_dim))
 
     # This tensor had shape (s1 ... sk f1 ... fl k)
