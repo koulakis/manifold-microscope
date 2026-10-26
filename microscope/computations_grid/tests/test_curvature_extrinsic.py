@@ -112,3 +112,34 @@ def test_rank_failure_and_normalization_dimension_match_intrinsic():
     curve = torch.arange(9., dtype=torch.float64)[:, None]
     with pytest.raises(ValueError, match="dimension|normaliz"):
         scalar_curvature_batch(curve, [1.], normalize=True)
+
+
+def test_coarse_ellipsoid_cancels_stencil_bias_against_implicit_reference():
+    # For x.T A x = 1 in R^3, scalar curvature = 2 det(A) / ||Ax||^4.
+    # This reference avoids the sampler's symbolic coordinate formula.
+    radii = np.array([1., 1.5, 3.])
+    points, _, _, _ = sample_ellipsoid_on_grid(
+        semi_axes=radii, n_samples_per_dim=[16, 19], ambient_space_dim=3,
+        fraction_of_angles=.8, apply_random_isometry=False,
+    )
+    normal = points[3:-3, 3:-3] / radii**2
+    truth = 2 / np.prod(radii**2) / np.sum(normal**2, axis=-1)**2
+    result = scalar_curvature_batch(torch.from_numpy(points), [.6*np.pi/15, 2*np.pi/19])
+    np.testing.assert_allclose(result.numpy(), truth, atol=2e-12, rtol=0)
+
+
+def test_quartic_graph_extrinsic_error_converges_at_second_order():
+    # Generic graph, without the matched trigonometric derivative factors.
+    # Compare at a fixed physical point to exclude changes of cropped domain.
+    u0, v0 = .6, .7
+    fu, fv = .8*u0**3 + .1*v0, 1.2*v0**3 + .1*u0
+    truth = 2*(2.4*u0**2 * 3.6*v0**2 - .1**2)/(1 + fu**2 + fv**2)**2
+    errors = []
+    for h in [.04, .02, .01]:
+        u, v = np.meshgrid(u0 + np.arange(-3, 4)*h,
+                           v0 + np.arange(-3, 4)*h, indexing="ij")
+        points = np.stack([u, v, .2*u**4 + .3*v**4 + .1*u*v], axis=-1)
+        result = scalar_curvature_batch(torch.from_numpy(points), [h, h]).item()
+        errors.append(abs(result - truth))
+    # Halving h reduces the leading O(h^2) error by approximately four.
+    np.testing.assert_allclose(np.array(errors[:-1])/errors[1:], 4, rtol=.02)

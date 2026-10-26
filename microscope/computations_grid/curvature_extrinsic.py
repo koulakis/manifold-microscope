@@ -73,6 +73,12 @@ def scalar_curvature_batch(
     a radius-r sphere has positive scalar curvature d(d-1)/r². ``normalize``
     divides by d(d-1), and requires d >= 2. The output has shape
     (s1 - 6, ..., sd - 6), matching the intrinsic batch function.
+
+    For the separable sin/cos and sinh/cosh parameterizations used by the
+    analytic manifold examples, matched central-difference factors cancel
+    in the Gauss contraction. Their errors can therefore be dominated by
+    roundoff even on coarse grids and grow as spacing decreases. Generic
+    smooth embeddings retain finite-difference truncation error.
     """
     intrinsic_dim = tensor.ndim - 1
     if normalize and intrinsic_dim < 2:
