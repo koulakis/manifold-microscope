@@ -8,12 +8,19 @@ from microscope.computations_grid.basic import (
     partial_derivatives_across_all_dims,
 )
 from microscope.computations_grid.curvature import _scalar_curvature_in_patches
+from microscope.computations_grid._curvature_geometry import tangent_geometry, validate_tensor
 
 
 def _second_fundamental_form_and_metric(
     tensor: torch.Tensor,
     difference_intervals: list[float],
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    form, metric, _ = _normal_geometry(tensor, difference_intervals)
+    return form, metric
+
+
+def _normal_geometry(tensor, difference_intervals):
+    difference_intervals = validate_tensor(tensor, difference_intervals, border=2)
     intrinsic_dim = tensor.ndim - 1
     grid_axes = set(range(intrinsic_dim))
 
@@ -26,17 +33,14 @@ def _second_fundamental_form_and_metric(
     )
     tangent = crop_dim_borders(tangent, grid_axes)
 
-    metric = tangent.transpose(-1, -2) @ tangent
+    metric, frame, inverse_factor = tangent_geometry(tangent)
     tangent_components = torch.einsum(
-        "...ar,...aij->...rij", tangent, second_derivatives
+        "...ar,...aij->...rij", frame, second_derivatives
     )
-    coefficients = torch.linalg.solve(
-        metric, tangent_components.flatten(start_dim=-2)
-    ).unflatten(-1, (intrinsic_dim, intrinsic_dim))
     form = second_derivatives - torch.einsum(
-        "...ar,...rij->...aij", tangent, coefficients
+        "...ar,...rij->...aij", frame, tangent_components
     )
-    return form, metric
+    return form, metric, inverse_factor
 
 
 def second_fundamental_form(
@@ -55,8 +59,8 @@ def second_fundamental_form(
         of B(∂i, ∂j). All grid axes are cropped by two at each end; pad
         periodic axes first. Full tangent rank is required.
 
-    The tangent projection uses only a d-by-d solve. No ambient-sized normal
-    basis or ambient-by-ambient projector is constructed.
+    The projection uses a reduced QR tangent frame with d columns. No full
+    ambient normal basis or ambient-by-ambient projector is constructed.
     """
     form, _ = _second_fundamental_form_and_metric(tensor, difference_intervals)
     return form
@@ -79,21 +83,31 @@ def scalar_curvature_batch(
     in the Gauss contraction. Their errors can therefore be dominated by
     roundoff even on coarse grids and grow as spacing decreases. Generic
     smooth embeddings retain finite-difference truncation error.
+
+    A reduced QR tangent frame avoids normal equations for projection.
+    Sectional Gauss terms avoid subtracting large diagonal self-contributions.
+    Numerical rank loss raises a LinAlgError with a batch-grid location;
+    near-singular charts can still amplify input and differentiation errors.
     """
+    difference_intervals = validate_tensor(tensor, difference_intervals, border=3)
     intrinsic_dim = tensor.ndim - 1
     if normalize and intrinsic_dim < 2:
         raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")
 
-    form, metric = _second_fundamental_form_and_metric(tensor, difference_intervals)
-    metric_inv = torch.linalg.inv(metric)
-
-    # Sum over the ambient axis once. The remaining Gram tensor has only d^4
-    # entries per point, even when the ambient embedding is very large.
-    gram = torch.einsum("...aij,...akl->...ijkl", form, form)
-    scalar = (
-        torch.einsum("...ij,...kl,...ijkl->...", metric_inv, metric_inv, gram)
-        - torch.einsum("...ik,...jl,...ijkl->...", metric_inv, metric_inv, gram)
+    form, metric, inverse_factor = _normal_geometry(tensor, difference_intervals)
+    orthonormal_form = torch.einsum(
+        "...pi,...apq,...qj->...aij", inverse_factor, form, inverse_factor
     )
+    # R = 2 sum_{i<j} (<B_ii,B_jj> - <B_ij,B_ji>) in an orthonormal frame.
+    # Cancelling the diagonal self-contributions algebraically avoids the
+    # catastrophic subtraction of ||trace B||² and ||B||².
+    scalar = torch.zeros_like(metric[..., 0, 0])
+    for i in range(intrinsic_dim):
+        for j in range(i + 1, intrinsic_dim):
+            scalar = scalar + 2*(
+                (orthonormal_form[..., i, i]*orthonormal_form[..., j, j]).sum(-1)
+                - (orthonormal_form[..., i, j]*orthonormal_form[..., j, i]).sum(-1)
+            )
     if normalize:
         scalar = scalar / (intrinsic_dim * (intrinsic_dim - 1))
 
