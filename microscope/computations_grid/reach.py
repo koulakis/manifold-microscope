@@ -17,6 +17,16 @@ def _distances_to_tangent_space(tangent_vectors: torch.Tensor, points: torch.Ten
     return distance*normal_fraction
 
 
+def _chord_geometry(points, x):
+    """Return stable chord lengths and unit chords for pair-search methods."""
+    differences = points[None] - x[:, None]
+    scale = differences.abs().amax(dim=-1)
+    differences = differences / torch.where(scale > 0, scale, 1.)[..., None]
+    length = torch.linalg.vector_norm(differences, dim=-1)
+    unit = differences / torch.where(length > 0, length, 1.)[..., None]
+    return scale*length, unit
+
+
 def _pair_geometry(frame, points, x):
     """Return chord lengths and normal fractions without an ambient projector.
 
@@ -24,16 +34,12 @@ def _pair_geometry(frame, points, x):
     norm underflow. Residuals at the QR projection's roundoff scale are zero.
     Nonfinite intermediate values are checked by the caller, never filled in.
     """
-    differences = points[None] - x[:, None]
-    scale = differences.abs().amax(dim=-1)
-    differences = differences / torch.where(scale > 0, scale, 1.)[..., None]
-    length = torch.linalg.vector_norm(differences, dim=-1)
-    unit = differences / torch.where(length > 0, length, 1.)[..., None]
+    distance, unit = _chord_geometry(points, x)
     normal = unit - (unit @ frame) @ frame.transpose(-1, -2)
     fraction = torch.linalg.vector_norm(normal, dim=-1)
     tolerance = 8*torch.finfo(frame.dtype).eps*frame.shape[-1]
     fraction = torch.where(fraction <= tolerance, 0., fraction)
-    return scale*length, fraction
+    return distance, fraction
 
 
 def _subsample_dims(tensor: torch.Tensor, take_every_k: int, dim_idxs: set[int]) -> torch.Tensor:
