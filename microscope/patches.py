@@ -7,6 +7,48 @@ from microscope.cyclic_dimensions import pad_cyclic_dimensions
 from microscope._grid_validation import cyclic_axes, integer_list
 
 
+def _iter_patches_with_halo(array, patch_sizes, halo, cyclic_dimensions):
+    """Yield (output slices, input tile) without padding the whole array.
+
+    Leading grid axes use the given patch sizes. Each output tile is disjoint;
+    its input includes ``halo`` samples on each side. Nonperiodic outputs lose
+    that border, while periodic outputs retain every sample. Interior tiles
+    are views; only tiles crossing periodic boundaries need wrapped copies.
+    Trailing feature axes are untouched. Callers validate sizes and axes.
+    """
+    dims = len(patch_sizes)
+    shape = array.shape[:dims]
+    output_shape = [n if a in cyclic_dimensions else n-2*halo
+                    for a, n in enumerate(shape)]
+    steps = [p-2*halo for p in patch_sizes]
+    counts = [(n+step-1)//step for n, step in zip(output_shape, steps)]
+    for index in np.ndindex(*counts):
+        starts = [i*step for i, step in zip(index, steps)]
+        lengths = [min(step, n-start) for step, n, start
+                   in zip(steps, output_shape, starts)]
+        source, wrapped = [], []
+        for axis, (start, length, n) in enumerate(zip(starts, lengths, shape)):
+            first = start-halo if axis in cyclic_dimensions else start
+            last = first+length+2*halo
+            if first >= 0 and last <= n:
+                source.append(slice(first, last))
+            else:
+                source.append(slice(None))
+                wrapped.append((axis, np.arange(first, last) % n))
+        if wrapped:
+            # Gather all axes together: sequential np.take calls would retain
+            # entire other wrapped axes in intermediate copies at corners.
+            coordinates = dict(wrapped)
+            indices = [coordinates[a] if a in coordinates else np.arange(s.start, s.stop)
+                       for a, s in enumerate(source)]
+            patch = array[np.ix_(*indices)]
+        else:
+            patch = array[tuple(source)]
+        destination = tuple(slice(start, start+length)
+                            for start, length in zip(starts, lengths))
+        yield destination, patch
+
+
 def extract_patches(
         array: np.ndarray,
         patch_sizes: list[int],
