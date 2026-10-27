@@ -19,7 +19,7 @@ def _second_fundamental_form_and_metric(
     return form, metric
 
 
-def _normal_geometry(tensor, difference_intervals):
+def _normal_geometry(tensor, difference_intervals, *, return_frame=False):
     difference_intervals = validate_tensor(tensor, difference_intervals, border=2)
     intrinsic_dim = tensor.ndim - 1
     grid_axes = set(range(intrinsic_dim))
@@ -40,6 +40,8 @@ def _normal_geometry(tensor, difference_intervals):
     form = second_derivatives - torch.einsum(
         "...ar,...rij->...aij", frame, tangent_components
     )
+    if return_frame:
+        return form, metric, inverse_factor, frame
     return form, metric, inverse_factor
 
 
