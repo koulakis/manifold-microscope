@@ -28,7 +28,11 @@ def tangent_geometry(tangent, *, grid_indices=None):
     if not torch.isfinite(tangent).all():
         raise FloatingPointError("Nonfinite finite-difference tangent vectors.")
     frame, factor = torch.linalg.qr(tangent, mode="reduced")
+    if not torch.isfinite(factor).all():
+        raise FloatingPointError("Tangent QR overflow at the working dtype; rescale the embedding.")
     singular_values = torch.linalg.svdvals(factor)
+    if not torch.isfinite(singular_values).all():
+        raise FloatingPointError("Tangent singular-value overflow; rescale the embedding.")
     largest, smallest = singular_values[..., 0], singular_values[..., -1]
     tolerance = torch.finfo(tangent.dtype).eps*tangent.shape[-1]*largest
     invalid = smallest <= tolerance

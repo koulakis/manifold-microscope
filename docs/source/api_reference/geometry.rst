@@ -48,12 +48,15 @@ Curvature
 Reach
 -----
 
-.. py:function:: reach_per_point(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, return_witnesses=False, device=None)
+.. py:function:: reach_per_point(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, return_witnesses=False, device=None, *, candidate_batch_size=1024, min_pair_distance=None)
    :module: microscope.computations_grid.reach
 
    Returns local-reach estimates shaped ``(s1_out, ..., sd_out)``, with
    ``s_out = s - 2`` for nonperiodic axes. The minimum estimates global reach.
-   Patch sizes must exceed two.
+   Inputs must be finite float32/float64 arrays. Patch sizes must exceed two;
+   batch sizes and subsampling strides must be positive integers. Negative
+   NumPy strides are supported. Tangent frames reuse the shared reduced-QR
+   geometry and diagnose numerical rank loss with an input-grid location.
 
    ``subsample_points`` is a stride applied to queries and candidates along
    every axis; tangents still use the full grid. Subsampled estimates are
@@ -63,7 +66,30 @@ Reach
    Witnesses have shape ``(N,)``, where
    ``N = prod(ceil(s_out / stride))`` and ``stride = subsample_points or 1``.
    Values index the flattened, cropped, subsampled candidate array;
-   witnesses are not repeated or reshaped.
+   witnesses are not repeated or reshaped. Infinite flat estimates retain a
+   distinct eligible witness. No distinct eligible candidate raises ValueError.
+
+   ``candidate_batch_size`` bounds candidate-side device storage in addition
+   to query-side ``batch_size``. Only these chunks move to the device. The
+   search still visits every eligible sampled pair and forms no ambient by
+   ambient projection matrix.
+
+   Exact duplicate coordinates are excluded. The default
+   ``min_pair_distance=None`` raises on positive separations below a roundoff
+   threshold: eight times dtype epsilon times the Euclidean norm of the
+   maximum absolute sampled coordinate in each ambient axis. An explicit
+   nonnegative value excludes pairs at or below that distance; zero includes
+   all distinct coordinates and disables the automatic diagnostic. A positive
+   cutoff is an approximation that can omit a real bottleneck. Invalid data
+   and nonfinite arithmetic are reported, not replaced with finite sentinels.
+
+   This tangent-space formula estimates an underlying smooth embedded
+   manifold without boundary. It omits boundary normal-cone contributions to
+   the reach of a bounded parameter image, such as an annulus. Approximate
+   tangents and roundoff can underestimate true reach; convergence must be
+   checked for generic parameterizations. Normal fractions at the QR
+   projection's roundoff scale (eight times dtype epsilon times intrinsic
+   dimension) are treated as zero, preserving infinite flat ratios.
 
 Multiple classes
 ----------------
