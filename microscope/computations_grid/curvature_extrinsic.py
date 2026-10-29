@@ -7,8 +7,9 @@ from microscope.computations_grid.basic import (
     crop_dim_borders,
     partial_derivatives_across_all_dims,
 )
-from microscope.computations_grid.curvature import _scalar_curvature_in_patches
+from microscope.computations_grid.curvature import _validate_curvature_grid
 from microscope.computations_grid._curvature_geometry import tangent_geometry, validate_tensor
+from microscope.patches import _iter_patches_with_halo
 
 
 def _normal_geometry(
@@ -23,7 +24,7 @@ def _normal_geometry(
         difference_intervals: Coordinate spacing along each of the d grid axes.
         return_frame: Also return the orthonormal tangent frame.
     """
-    difference_intervals = validate_tensor(tensor, difference_intervals, border=2)
+    validate_tensor(tensor, difference_intervals, border=2)
     intrinsic_dim = tensor.ndim - 1
     grid_axes = set(range(intrinsic_dim))
 
@@ -108,7 +109,7 @@ def scalar_curvature_batch(
         difference_intervals: Coordinate spacing along each of the d grid axes.
         normalize: Divide scalar curvature by d * (d - 1).
     """
-    difference_intervals = validate_tensor(tensor, difference_intervals, border=3)
+    validate_tensor(tensor, difference_intervals, border=3)
     intrinsic_dim = tensor.ndim - 1
     if normalize and intrinsic_dim < 2:
         raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")
@@ -159,12 +160,31 @@ def scalar_curvature(
         normalize: Divide scalar curvature by d * (d - 1).
         device: Torch device; None selects CUDA when available, otherwise CPU.
     """
-    return _scalar_curvature_in_patches(
+    _validate_curvature_grid(
         features_on_grid,
         difference_intervals,
         cyclic_dimensions,
-        patch_sizes,
-        normalize,
-        device,
-        scalar_curvature_batch
+        patch_sizes
     )
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    output_shape = tuple(
+        s if i in cyclic_dimensions else s - 6
+        for i, s in enumerate(features_on_grid.shape[:-1])
+    )
+    curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
+    for destination, patch in _iter_patches_with_halo(
+        features_on_grid,
+        patch_sizes,
+        3,
+        cyclic_dimensions
+    ):
+        if any(stride < 0 for stride in patch.strides):
+            patch = np.ascontiguousarray(patch)
+        points_pt_patch = torch.from_numpy(patch).to(device)
+        curvature_array[destination] = scalar_curvature_batch(
+            points_pt_patch,
+            difference_intervals=difference_intervals,
+            normalize=normalize
+        ).cpu().detach().numpy()
+    return curvature_array

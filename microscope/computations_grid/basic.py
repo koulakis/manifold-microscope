@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from microscope.patches import extract_patches
-from microscope._grid_validation import spacings
+from microscope._grid_validation import validate_spacings
 
 
 def partial_derivative_approximation(
@@ -21,7 +21,7 @@ def partial_derivative_approximation(
         A tensor of shape (s0, ..., s_dim - 2, ..., s_{n-1}) on the input device. Only axis dim is shortened; all other
         axes are preserved.
     """
-    difference_intervals = spacings([difference_intervals], 1)[0]
+    validate_spacings([difference_intervals], 1)
     device = tensor.device
     length = tensor.shape[dim]
 
@@ -60,7 +60,7 @@ def _validate_derivative_inputs(
     tensor: torch.Tensor,
     manifold_dim: int,
     difference_intervals: list[float]
-) -> list[float]:
+) -> None:
     """Validate leading differentiation axes and their spacings.
 
     Require 1 <= manifold_dim <= tensor.ndim and exactly that many finite, nonzero real coordinate spacings.
@@ -72,8 +72,7 @@ def _validate_derivative_inputs(
     """
     if not 1 <= manifold_dim <= tensor.ndim:
         raise ValueError("manifold_dim must identify the leading grid axes.")
-    difference_intervals = spacings(difference_intervals, manifold_dim)
-    return difference_intervals
+    validate_spacings(difference_intervals, manifold_dim)
 
 
 def partial_derivatives_across_all_dims(
@@ -94,10 +93,9 @@ def partial_derivatives_across_all_dims(
         A tensor of shape (s1 - 2, ..., sk - 2, f1, ..., fl, k) on the input device. All parameter axes are cropped; pad
         periodic axes first.
     """
-    difference_intervals = _validate_derivative_inputs(tensor, manifold_dim, difference_intervals)
+    _validate_derivative_inputs(tensor, manifold_dim, difference_intervals)
     dim_idxs = set(range(manifold_dim))
 
-    # This tensor had shape (s1 ... sk f1 ... fl k)
     partial_derivatives = torch.stack(
         [
             crop_dim_borders(
@@ -172,10 +170,15 @@ def partial_derivatives_across_all_dims_batched(
         cyclic_dimensions=cyclic_dimensions
     )
 
-    output_shape = tuple(s if i in cyclic_dimensions else s - 2
-                         for i, s in enumerate(features_on_grid.shape[:dims]))
-    derivative_array = np.empty((*output_shape, *features_on_grid.shape[dims:], dims),
-                                dtype=features_on_grid.dtype)
+    output_shape = tuple(
+        s if i in cyclic_dimensions else s - 2
+        for i, s in enumerate(features_on_grid.shape[:dims])
+    )
+    derivative_array = np.empty(
+        (*output_shape, *features_on_grid.shape[dims:], dims),
+        dtype=features_on_grid.dtype
+    )
+
     steps = np.asarray(patch_sizes) - 2
     for index in np.ndindex(*patches.shape[:dims]):
         patch = patches[index]
@@ -186,6 +189,7 @@ def partial_derivatives_across_all_dims_batched(
             difference_intervals=difference_intervals,
             manifold_dim=dims
         ).cpu().detach().numpy()
+        
         starts = np.asarray(index) * steps
         lengths = np.minimum(steps, np.asarray(output_shape) - starts)
         if np.all(lengths > 0):

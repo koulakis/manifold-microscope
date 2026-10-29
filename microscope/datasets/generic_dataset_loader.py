@@ -307,8 +307,8 @@ def export_fixed_grid_test_set_and_rest_for_train(
     """
     if max_test_size < 1:
         raise ValueError("max_test_size must be positive.")
-    dataset_name = DatasetName(dataset_name).value
-    output_path = output_dir / f"{dataset_name}__{number_of_dims}.npz"
+    dataset_key = DatasetName(dataset_name).value
+    output_path = output_dir / f"{dataset_key}__{number_of_dims}.npz"
     if output_path.exists():
         with np.load(output_path, allow_pickle=True) as cached:
             actual_size = len(cached["data_test"])
@@ -319,7 +319,7 @@ def export_fixed_grid_test_set_and_rest_for_train(
                 f"Cached split {output_path} has {actual_size} test points; "
                 f"requested {expected_size}. Use a new output directory."
             )
-        print(f"Skipping dataset generation for {dataset_name}, {number_of_dims} dimensions as it exists.")
+        print(f"Skipping dataset generation for {dataset_key}, {number_of_dims} dimensions as it exists.")
         return
 
     # Load the whole dataset.
@@ -339,7 +339,7 @@ def export_fixed_grid_test_set_and_rest_for_train(
     )
 
     # Compute volume weights.
-    match dataset_name:
+    match dataset_key:
         case DatasetName.custom_dsprites_balanced | DatasetName.extended_coil20:
             # Get weights which simulate the volume distribution.
             data_volume_clipped = data_unclipped[volume_clip_slices]
@@ -373,7 +373,7 @@ def export_fixed_grid_test_set_and_rest_for_train(
             n_examples = np.prod(data_unclipped.shape[:-2])
             weights = np.ones(data_unclipped.shape[:-2]) / n_examples
         case _:
-            raise ValueError(f"Unhandled dataset: {dataset_name}")
+            raise ValueError(f"Unhandled dataset: {dataset_key}")
 
     # Flatten the data.
     data_flat = data.reshape(-1, *data.shape[-2:])
@@ -409,7 +409,7 @@ def export_fixed_grid_test_set_and_rest_for_train(
     # Export the train, test datasets, indices and weights.
     np.savez(
         output_path,
-        dataset_name=dataset_name,
+        dataset_name=dataset_key,
         number_of_dims=number_of_dims,
         max_test_size=max_test_size,
         data_unclipped=data_unclipped,
@@ -434,7 +434,7 @@ def load_dataset_fixed_test_split(
     training_ratio: float,
     noise_sigma: float,
     weight_subsampling_by_manifold_volume: bool = True
-) -> tuple[np.ndarray, ...]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load one of the datasets applying different transforms and splits.
 
     Args:
@@ -457,11 +457,13 @@ def load_dataset_fixed_test_split(
     """
     # Load the dataset info.
     if isinstance(dataset_name, Enum):
-        dataset_name = dataset_name.value
-    filename = f"{dataset_name}__{number_of_dims}.npz"
+        dataset_key = dataset_name.value
+    else:
+        dataset_key = dataset_name
+    filename = f"{dataset_key}__{number_of_dims}.npz"
     data_info = np.load(datasets_dir / filename, allow_pickle=True)
 
-    number_of_dims = data_info["number_of_dims"]
+    cached_number_of_dims = data_info["number_of_dims"]
     data_train = data_info["data_train"]
     data_test = data_info["data_test"]
     weights_train = data_info["weights_train"]
@@ -470,7 +472,7 @@ def load_dataset_fixed_test_split(
 
     # Subsample the training set.
     if ratio_per_dim:
-        subsampling_ratio = training_ratio ** number_of_dims
+        subsampling_ratio = training_ratio ** cached_number_of_dims
     else:
         subsampling_ratio = training_ratio
 

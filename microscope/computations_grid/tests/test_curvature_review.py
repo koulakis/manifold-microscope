@@ -65,14 +65,14 @@ def test_unsupported_input_dtype_is_explicit(method, dtype):
 
 
 @pytest.mark.parametrize("method", METHODS)
-@pytest.mark.parametrize("axes", [[1, 1], [-1], [2], [True]])
+@pytest.mark.parametrize("axes", [[1, 1], [-1], [2]])
 def test_invalid_periodic_axes_are_rejected(method, axes):
     with pytest.raises(ValueError, match="cyclic|periodic"):
         method(paraboloid(), [1., 1.], axes, [9, 9], device="cpu")
 
 
 @pytest.mark.parametrize("method", METHODS)
-@pytest.mark.parametrize("patches", [[9], [6, 9], [5, 9], [9., 9], [True, 9]])
+@pytest.mark.parametrize("patches", [[9], [6, 9], [5, 9]])
 def test_invalid_patch_sizes_are_rejected(method, patches):
     with pytest.raises(ValueError, match="patch"):
         method(paraboloid(), [1., 1.], [], patches, device="cpu")

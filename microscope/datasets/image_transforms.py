@@ -116,8 +116,8 @@ def translate_image(
 def apply_transform(
     transform_name: str,
     image_grid: np.ndarray,
-    transform: Callable[[np.ndarray, ...], np.ndarray],
-    transform_range: tuple[str, list | np.ndarray],
+    transform: Callable[..., np.ndarray],
+    transform_range: tuple[str, list[int] | np.ndarray],
     axis: int = 0,
     processes: Optional[int] = None,
     verbose: bool = False

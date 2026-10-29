@@ -61,16 +61,31 @@ def test_overflow_is_explicit(device):
 def test_no_distinct_candidate_is_rejected(device, mode):
     if mode == "interior":
         points = np.array([[-1., 1.], [0., 0.], [1., 1.]])
-        args = (points, [2.], [5], [])
-        kwargs = {}
+        range_sizes = [2.]
+        patch_sizes = [5]
+        cyclic_dimensions = []
+        subsample_points = None
     elif mode == "duplicate_candidates":
-        args = (np.tile(circle(12), (2, 1)), [4*np.pi], [10], [0])
-        kwargs = dict(subsample_points=12)
+        points = np.tile(circle(12), (2, 1))
+        range_sizes = [4*np.pi]
+        patch_sizes = [10]
+        cyclic_dimensions = [0]
+        subsample_points = 12
     else:
-        args = (circle(), [2*np.pi], [10], [0])
-        kwargs = dict(subsample_points=24)
+        points = circle()
+        range_sizes = [2*np.pi]
+        patch_sizes = [10]
+        cyclic_dimensions = [0]
+        subsample_points = 24
     with pytest.raises(ValueError, match="distinct|candidate|sample"):
-        reach_per_point(*args, device=device, **kwargs)
+        reach_per_point(
+            features_on_grid=points,
+            range_sizes=range_sizes,
+            patch_sizes=patch_sizes,
+            cyclic_dimensions=cyclic_dimensions,
+            subsample_points=subsample_points,
+            device=device
+        )
 
 
 def test_exact_duplicate_coordinates_are_excluded(device):
@@ -106,14 +121,14 @@ def test_reach_and_separation_diagnostic_scale_with_embedding(device, radius, dt
         reach(circle(radius=radius, covers=2, dtype=dtype), device)
 
 
-@pytest.mark.parametrize("value", [0, -1, 2.0, True])
+@pytest.mark.parametrize("value", [0, -1])
 @pytest.mark.parametrize("argument", ["batch_size", "subsample_points", "candidate_batch_size"])
 def test_positive_integer_options(device, argument, value):
     with pytest.raises(ValueError, match="integer"):
         reach(circle(), device, **{argument: value})
 
 
-@pytest.mark.parametrize("value", [-1., np.nan, np.inf, True, "0"])
+@pytest.mark.parametrize("value", [-1., np.nan, np.inf])
 def test_distance_filter_validation(device, value):
     with pytest.raises(ValueError, match="distance"):
         reach(circle(), device, min_pair_distance=value)

@@ -177,7 +177,6 @@ def _validate_class_names(data: np.ndarray, class_names: list[str]) -> None:
         )
     if len(set(class_names)) != len(class_names):
         raise ValueError("The class names must be unique.")
-    return None
 
 
 def _plot_measure_pairs(

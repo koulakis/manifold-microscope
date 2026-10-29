@@ -48,17 +48,17 @@ def plot_points(
     pts_flattened = pts.reshape((-1, 3))[idx]
     xs, ys, zs = pts_flattened[:, 0], pts_flattened[:, 1], pts_flattened[:, 2]
 
-    fig, axes = plt.subplots(
+    fig, axes_grid = plt.subplots(
         1,
         n_plots,
         figsize=(size_mult * n_plots, size_mult),
         subplot_kw=dict(projection='3d'),
         squeeze=False
     )
-    axes: list[mplot3d.axes3d.Axes3D] = axes[0]
+    axes = axes_grid[0]
     limits = (-limit, limit)
 
-    ax = axes[0]
+    ax: mplot3d.axes3d.Axes3D = axes[0]
     ax.scatter(
         xs,
         ys,

@@ -84,18 +84,6 @@
     "count": 1
   },
   {
-    "file": "experiments_and_analysis/models/beta_vae/inference.py",
-    "rule": "reportArgumentType",
-    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"data_tensor\" of type \"Tensor\" in function \"__init__\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
-    "count": 1
-  },
-  {
-    "file": "experiments_and_analysis/models/beta_vae/inference.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"Tensor\" is not assignable to declared type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\"Tensor\" is not assignable to \"ndarray[Unknown, Unknown]\"",
-    "count": 1
-  },
-  {
     "file": "experiments_and_analysis/models/beta_vae/model.py",
     "rule": "reportGeneralTypeIssues",
     "message": "\"Module\" is not iterable\n\u00a0\u00a0\"__iter__\" method not defined",
@@ -250,30 +238,6 @@
     "rule": "reportArgumentType",
     "message": "Argument of type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"SupportsWrite[bytes]\" in function \"dump\"\n\u00a0\u00a0Type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" is not assignable to type \"SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(s: str, /) -> int\" is not assignable to type \"(s: _T_contra@SupportsWrite, /) -> object\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Parameter 1: type \"_T_contra@SupportsWrite\" is incompatible with type \"str\"",
     "count": 1
-  },
-  {
-    "file": "experiments_and_analysis/models/mmls/projector.py",
-    "rule": "reportArgumentType",
-    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"input\" of type \"Tensor\" in function \"zeros_like\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
-    "count": 1
-  },
-  {
-    "file": "experiments_and_analysis/models/mmls/projector.py",
-    "rule": "reportArgumentType",
-    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"points\" of type \"Tensor\" in function \"_project_thin_svd\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
-    "count": 1
-  },
-  {
-    "file": "experiments_and_analysis/models/mmls/projector.py",
-    "rule": "reportArgumentType",
-    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"x1\" of type \"Tensor\" in function \"cdist\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
-    "count": 1
-  },
-  {
-    "file": "experiments_and_analysis/models/mmls/projector.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"Tensor\" is not assignable to declared type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\"Tensor\" is not assignable to \"ndarray[Unknown, Unknown]\"",
-    "count": 2
   },
   {
     "file": "experiments_and_analysis/models/mmls/projector.py",
@@ -492,60 +456,6 @@
     "count": 1
   },
   {
-    "file": "microscope/computations_grid/_curvature_geometry.py",
-    "rule": "reportPrivateImportUsage",
-    "message": "\"LinAlgError\" is not exported from module \"torch.linalg\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportArgumentType",
-    "message": "Argument of type \"Tensor | Unknown\" cannot be assigned to parameter \"value\" of type \"None\" in function \"__setitem__\"\n\u00a0\u00a0Type \"Tensor | Unknown\" is not assignable to type \"None\"\n\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"None\"",
-    "count": 2
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportArgumentType",
-    "message": "Expression of type \"tuple[Literal['first'], Literal['second']]\" cannot be assigned to parameter of type \"list[str]\"\n\u00a0\u00a0\"tuple[Literal['first'], Literal['second']]\" is not assignable to \"list[str]\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportCallIssue",
-    "message": "Expected 2 more positional arguments",
-    "count": 1
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportOperatorIssue",
-    "message": "Operator \"*\" not supported for types \"float\" and \"Tensor | None\"\n\u00a0\u00a0Operator \"*\" not supported for types \"float\" and \"None\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportOperatorIssue",
-    "message": "Operator \"*\" not supported for types \"float\" and \"Tensor | Unknown | None\"\n\u00a0\u00a0Operator \"*\" not supported for types \"float\" and \"None\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportOperatorIssue",
-    "message": "Operator \"-\" not supported for types \"Tensor | None\" and \"Tensor | None\"\n\u00a0\u00a0Operator \"-\" not supported for types \"Tensor\" and \"None\"\n\u00a0\u00a0Operator \"-\" not supported for types \"None\" and \"Tensor\"\n\u00a0\u00a0Operator \"-\" not supported for types \"None\" and \"None\"",
-    "count": 2
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportReturnType",
-    "message": "Type \"Tensor | Unknown | None\" is not assignable to return type \"Tensor\"\n\u00a0\u00a0Type \"Tensor | Unknown | None\" is not assignable to type \"Tensor\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"Tensor\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/computations_grid/curvature.py",
-    "rule": "reportReturnType",
-    "message": "Type \"dict[str, None]\" is not assignable to return type \"dict[str, Tensor | None]\"\n\u00a0\u00a0\"dict[str, None]\" is not assignable to \"dict[str, Tensor | None]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_VT@dict\" is invariant, but \"None\" is not the same as \"Tensor | None\"\n\u00a0\u00a0\u00a0\u00a0Consider switching from \"dict\" to \"Mapping\" which is covariant in the value type",
-    "count": 1
-  },
-  {
     "file": "microscope/computations_grid/data_analysis/data_analysis.py",
     "rule": "reportArgumentType",
     "message": "Argument of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"normalized_curvatures\" of type \"dict[str, ndarray[Unknown, Unknown]]\" in function \"__init__\"\n\u00a0\u00a0\"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str, ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str | tuple[str, str]\" is not the same as \"str\"",
@@ -654,18 +564,6 @@
     "count": 4
   },
   {
-    "file": "microscope/datasets/custom_dsprites.py",
-    "rule": "reportArgumentType",
-    "message": "Expression of type \"tuple[None, None, None, None]\" cannot be assigned to parameter of type \"list[int | None]\"\n\u00a0\u00a0\"tuple[None, None, None, None]\" is not assignable to \"list[int | None]\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/datasets/dataset_split.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"Tensor\" is not assignable to declared type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\"Tensor\" is not assignable to \"ndarray[Unknown, Unknown]\"",
-    "count": 1
-  },
-  {
     "file": "microscope/datasets/generic_dataset_loader.py",
     "rule": "reportArgumentType",
     "message": "Argument of type \"list[int] | None\" cannot be assigned to parameter \"cyclic_dimensions\" of type \"list[int]\" in function \"get_difference_intervals\"\n\u00a0\u00a0Type \"list[int] | None\" is not assignable to type \"list[int]\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"list[int]\"",
@@ -679,12 +577,6 @@
   },
   {
     "file": "microscope/datasets/generic_dataset_loader.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"Literal['dsprites', 'dsprites_single_size', 'custom_dsprites_single_size', 'custom_dsprites', 'custom_dsprites_balanced', 'extended_coil20']\" is not assignable to declared type \"DatasetName\"\n\u00a0\u00a0Type \"Literal['dsprites', 'dsprites_single_size', 'custom_dsprites_single_size', 'custom_dsprites', 'custom_dsprites_balanced', 'extended_coil20']\" is not assignable to type \"DatasetName\"\n\u00a0\u00a0\u00a0\u00a0\"Literal['custom_dsprites']\" is not assignable to \"DatasetName\"",
-    "count": 2
-  },
-  {
-    "file": "microscope/datasets/generic_dataset_loader.py",
     "rule": "reportOptionalOperand",
     "message": "Operator \"/\" not supported for \"None\"",
     "count": 1
@@ -693,12 +585,6 @@
     "file": "microscope/datasets/image_transforms.py",
     "rule": "reportArgumentType",
     "message": "Argument of type \"NDArray[floating[Any]]\" cannot be assigned to parameter \"center\" of type \"Point2f\" in function \"getRotationMatrix2D\"\n\u00a0\u00a0\"ndarray[Any, dtype[floating[Any]]]\" is not assignable to \"Sequence[float]\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/datasets/image_transforms.py",
-    "rule": "reportInvalidTypeForm",
-    "message": "\"...\" is not allowed in this context",
     "count": 1
   },
   {
@@ -738,30 +624,6 @@
     "count": 3
   },
   {
-    "file": "microscope/manifold_examples/plotting.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"Axes3D\" is not assignable to declared type \"list[Axes3D]\"\n\u00a0\u00a0\"Axes3D\" is not assignable to \"list[Axes3D]\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/manifold_examples/plotting.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"ndarray[Unknown, Unknown]\" is not assignable to declared type \"list[Axes3D]\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"list[Axes3D]\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/manifold_examples/sampling_uniform.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"NDArray[Any]\" is not assignable to declared type \"list[float]\"\n\u00a0\u00a0\"ndarray[Any, dtype[Any]]\" is not assignable to \"list[float]\"",
-    "count": 2
-  },
-  {
-    "file": "microscope/manifold_examples/sampling_uniform.py",
-    "rule": "reportReturnType",
-    "message": "Type \"tuple[ndarray[Unknown, Unknown] | tuple[Unknown, ...], list[float], ndarray[Unknown, Unknown]]\" is not assignable to return type \"tuple[ndarray[Unknown, Unknown] | tuple[Unknown, ...], ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\"list[float]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
-    "count": 2
-  },
-  {
     "file": "microscope/manifold_examples/symbolic_computations.py",
     "rule": "reportArgumentType",
     "message": "Argument of type \"float\" cannot be assigned to parameter \"seconds\" of type \"int\"\n\u00a0\u00a0\"float\" is not assignable to \"int\"",
@@ -771,18 +633,6 @@
     "file": "microscope/manifold_examples/symbolic_computations.py",
     "rule": "reportReturnType",
     "message": "Type \"tuple[Unknown | ndarray[Unknown, Unknown], Unknown | ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to return type \"tuple[Expr, ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0Type \"Unknown | ndarray[Unknown, Unknown]\" is not assignable to type \"Expr\"\n\u00a0\u00a0\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Expr\"",
-    "count": 1
-  },
-  {
-    "file": "microscope/patches.py",
-    "rule": "reportAssignmentType",
-    "message": "Type \"NDArray[Any]\" is not assignable to declared type \"list[int]\"\n\u00a0\u00a0\"ndarray[Any, dtype[Any]]\" is not assignable to \"list[int]\"",
-    "count": 2
-  },
-  {
-    "file": "microscope/patches.py",
-    "rule": "reportOperatorIssue",
-    "message": "Operator \"-\" not supported for types \"list[int]\" and \"list[int]\"",
     "count": 1
   }
 ]

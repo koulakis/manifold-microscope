@@ -1,15 +1,15 @@
 """Conditioned metric inversion and reduced-QR tangent geometry."""
 import torch
 
-from microscope._grid_validation import spacings
+from microscope._grid_validation import validate_spacings
 
 
 def validate_tensor(
     tensor: torch.Tensor,
     intervals: list[float],
     border: int
-) -> list[float]:
-    """Validate a tensor embedding and return its coordinate spacings.
+) -> None:
+    """Validate a tensor embedding and its coordinate spacings.
 
     Require finite float32/float64 values with ambient dimension f >= d >= 1. Each grid axis must have more than 2 *
     border points. Intervals must be finite nonzero real spacings, one per grid axis.
@@ -24,12 +24,11 @@ def validate_tensor(
     dims = tensor.ndim - 1
     if dims < 1 or tensor.shape[-1] < dims:
         raise ValueError("A grid needs at least one coordinate and ambient dimension >= intrinsic dimension.")
-    intervals = spacings(intervals, dims)
+    validate_spacings(intervals, dims)
     if any(n <= 2*border for n in tensor.shape[:-1]):
         raise ValueError(f"Each batch grid axis needs at least {2*border + 1} points.")
     if not torch.isfinite(tensor).all():
         raise ValueError("Curvature inputs must contain only finite values.")
-    return intervals
 
 
 def tangent_geometry(
@@ -39,7 +38,7 @@ def tangent_geometry(
     """Return g, an orthonormal tangent frame and the inverse QR factor.
 
     QR preserves full-rank tangents whose tiny components disappear in J.T J. A small intrinsic-size SVD diagnoses
-    numerical rank before any solve. No ambient-by-ambient projector is formed and no regularization is added.
+    numerical rank before any solve.
 
     Args:
         tangent: Tangent matrices, shape (... f d).
@@ -48,11 +47,14 @@ def tangent_geometry(
     if not torch.isfinite(tangent).all():
         raise FloatingPointError("Nonfinite finite-difference tangent vectors.")
     frame, factor = torch.linalg.qr(tangent, mode="reduced")
+
     if not torch.isfinite(factor).all():
         raise FloatingPointError("Tangent QR overflow at the working dtype; rescale the embedding.")
+    
     singular_values = torch.linalg.svdvals(factor)
     if not torch.isfinite(singular_values).all():
         raise FloatingPointError("Tangent singular-value overflow; rescale the embedding.")
+    
     largest, smallest = singular_values[..., 0], singular_values[..., -1]
     tolerance = torch.finfo(tangent.dtype).eps*tangent.shape[-1]*largest
     invalid = smallest <= tolerance
@@ -61,14 +63,17 @@ def tangent_geometry(
         ratio = (smallest[index]/largest[index]).item() if largest[index] > 0 else 0.
         if grid_indices is not None:
             index = tuple(grid_indices[index[0]].tolist())
-        raise torch.linalg.LinAlgError(
+        # PyTorch 2.7 exposes this alias but its typing does not mark the renamed import as public.
+        raise torch.linalg.LinAlgError(  # pyright: ignore[reportPrivateImportUsage]
             f"Tangent rank deficient at working precision at grid index {index}; "
             f"smallest/largest singular value = {ratio:.3g}."
         )
+    
     identity = torch.eye(factor.shape[-1], dtype=factor.dtype, device=factor.device)
     inverse_factor = torch.linalg.solve_triangular(
         factor, identity.expand_as(factor), upper=True
     )
+
     metric = tangent.transpose(-1, -2) @ tangent
     if not torch.isfinite(metric).all():
         raise FloatingPointError("Metric overflow at the working dtype; rescale the embedding.")

@@ -32,8 +32,8 @@ training dependencies.
 
 ## Existing typing issues
 
-`pyright-baseline.json` records the 176 existing diagnostics found when these checks were introduced. The type-check
-runner passes the current Python interpreter explicitly to Pyright, compares diagnostic paths/rules/messages and
+`pyright-baseline.json` records the remaining existing diagnostics; 176 were present when checks were introduced.
+The runner passes the current Python interpreter explicitly to Pyright, compares diagnostic paths/rules/messages and
 counts against that file, and fails on new diagnostics. Source line movement does not change a diagnostic's identity.
 Missing dependencies always fail, including when refreshing the baseline. Resolved diagnostics also require a baseline
 refresh so the recorded debt stays current.
@@ -48,6 +48,26 @@ python tools/check_types.py --update-baseline
 Review the resulting JSON diff and commit it with the corresponding fix or deliberate tooling/dependency upgrade.
 Do not regenerate the baseline merely to make a new type error pass. Diagnostic details can change with scientific
 dependency versions, so use the same development environment when comparing results.
+
+## VS Code diagnostics
+
+Enable the Microsoft Python and Pylance extensions, then use **Python: Select Interpreter** to choose the development
+environment. Open this repository as a workspace folder so Pylance reads `[tool.pyright]` from `pyproject.toml`.
+For inline diagnostics and Problems entries throughout the workspace, use these VS Code settings:
+
+```json
+{
+  "python.languageServer": "Pylance",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticMode": "workspace"
+}
+```
+
+After changing the interpreter or configuration, run **Python: Restart Language Server**. Open **View: Toggle Problems**
+from the Command Palette to inspect diagnostics. Pylance reports existing issues as well as new ones; the custom
+`pyright-baseline.json` comparison applies only to `tools/check_types.py` and the pre-commit hook.
+Pylance bundles its own checker version, so editor diagnostics can differ slightly from the pinned command-line version.
+See the [Python settings reference](https://code.visualstudio.com/docs/python/settings-reference).
 
 ## Style conventions
 

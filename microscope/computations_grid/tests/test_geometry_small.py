@@ -30,14 +30,31 @@ def test_affine_grid_preserves_derivative_axes_and_metric(dtype):
     direct = partial_derivatives_across_all_dims(tensor, 2, [.25, .5])
     np.testing.assert_allclose(direct.numpy(), expected_derivatives, atol=1e-6)
     np.testing.assert_allclose(riemannian_metric(tensor, [.25, .5]).numpy(), expected_metric)
-    kwargs = dict(patch_sizes=[9, 10], cyclic_dimensions=[], device="cpu")
-    batched = partial_derivatives_across_all_dims_batched(points, [.25, .5], **kwargs)
+    batched = partial_derivatives_across_all_dims_batched(
+        features_on_grid=points,
+        difference_intervals=[.25, .5],
+        patch_sizes=[9, 10],
+        cyclic_dimensions=[],
+        device="cpu"
+    )
     assert batched.dtype == dtype
     np.testing.assert_allclose(batched, expected_derivatives, atol=1e-6)
-    np.testing.assert_allclose(volume_element(points, [.25, .5], **kwargs),
-                               np.full((9, 11), np.sqrt(285)), rtol=1e-6)
-    np.testing.assert_allclose(scalar_curvature(points, [.25, .5], **kwargs),
-                               np.zeros((5, 7)), atol=1e-5)
+    volume = volume_element(
+        features_on_grid=points,
+        difference_intervals=[.25, .5],
+        patch_sizes=[9, 10],
+        cyclic_dimensions=[],
+        device="cpu"
+    )
+    curvature = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=[.25, .5],
+        cyclic_dimensions=[],
+        patch_sizes=[9, 10],
+        device="cpu"
+    )
+    np.testing.assert_allclose(volume, np.full((9, 11), np.sqrt(285)), rtol=1e-6)
+    np.testing.assert_allclose(curvature, np.zeros((5, 7)), atol=1e-5)
 
 
 @pytest.fixture
@@ -83,9 +100,21 @@ def test_sphere_curvature_normalization_and_patch_seams():
     u, v = np.meshgrid(latitude, longitude, indexing="ij")
     points = 2*np.stack([np.cos(u)*np.cos(v), np.cos(u)*np.sin(v), np.sin(u)], axis=-1)
     intervals = [latitude[1] - latitude[0], 2*np.pi/48]
-    kwargs = dict(cyclic_dimensions=[1], device="cpu")
-    raw = scalar_curvature(points, intervals, patch_sizes=[13, 17], **kwargs)
-    normalized = scalar_curvature(points, intervals, patch_sizes=[13, 17], normalize=True, **kwargs)
+    raw = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        device="cpu"
+    )
+    normalized = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        normalize=True,
+        device="cpu"
+    )
     padded = np.pad(points, ((0, 0), (3, 3), (0, 0)), mode="wrap")
     direct = scalar_curvature_batch(torch.from_numpy(padded), intervals).numpy()
     np.testing.assert_allclose(raw, direct, rtol=1e-10, atol=1e-10)
