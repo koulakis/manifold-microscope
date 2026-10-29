@@ -193,6 +193,7 @@ def cvt_surface(
 class Circle(Manifold):
     @property
     def dimension(self) -> int:
+        """Return the intrinsic manifold dimension."""
         return 1
 
     @staticmethod
@@ -311,6 +312,7 @@ class Circle(Manifold):
 class Moons(Manifold):
     @property
     def dimension(self) -> int:
+        """Return the intrinsic manifold dimension."""
         return 1
 
     @staticmethod
@@ -537,6 +539,7 @@ class Moons(Manifold):
 class Sphere(Manifold):
     @property
     def dimension(self) -> int:
+        """Return the intrinsic manifold dimension."""
         return 2
 
     @staticmethod
@@ -664,6 +667,7 @@ class Sphere(Manifold):
 class Torus(Manifold):
     @property
     def dimension(self) -> int:
+        """Return the intrinsic manifold dimension."""
         return 2
 
     def __init__(

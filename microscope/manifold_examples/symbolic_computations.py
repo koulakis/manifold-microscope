@@ -1,4 +1,3 @@
-import multiprocessing
 import time
 import signal
 from collections.abc import Iterator
@@ -11,7 +10,6 @@ import sympy as sp
 from sympy import sin, cos, sinh, cosh, Matrix
 import numpy as np
 import einops
-from joblib import Parallel, delayed
 
 from microscope.manifold_examples.utils import parallel_apply
 
@@ -48,7 +46,8 @@ class TimeIt:
         print(f"{self.process_name} done, time elapsed: {time_elapsed:.3f} seconds.\n")
 
 
-class TimeoutException(Exception): pass
+class TimeoutException(Exception):
+    pass
 
 
 @contextmanager

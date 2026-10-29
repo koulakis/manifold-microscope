@@ -224,7 +224,7 @@ def sample_manifold_uniformly(
     elif dim == 3:
         reverse_parameter_mapping = uniform_to_parameter_space_dim_3
     else:
-        raise ValueError(f"Only support uniform sampling on 2 or 3 dimensional manifolds.")
+        raise ValueError("Only support uniform sampling on 2 or 3 dimensional manifolds.")
 
     # Get the uniform samples on the parameter space.
     samples = np.random.uniform(0, 1, size=(n_samples, dim))

@@ -65,6 +65,11 @@ benchmark = [
     "matplotlib",
     "pandas"
 ]
+dev = [
+    "ruff == 0.17.3",
+    "pyright[nodejs] == 1.1.414",
+    "pre-commit == 4.6.2"
+]
 
 [project.urls]
 Homepage = "https://github.com/koulakis/manifold-microscope"
@@ -80,6 +85,32 @@ experiments_and_analysis = ["scripts/configs/*.yaml", "scripts/configs/paper/*.y
 
 [tool.ruff]
 line-length = 120
+target-version = "py310"
+include = ["microscope/**/*.py", "experiments_and_analysis/**/*.py", "tools/**/*.py"]
+force-exclude = true
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "E501", "F", "ANN", "D102", "D103", "D107", "D417"]
+# Flexible values in scientific and configuration code may use Any.
+ignore = ["ANN401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures and regression tests do not need public API documentation/types.
+"**/tests/**" = ["ANN", "D", "E501"]
+# The solver configures warning filtering before importing training dependencies.
+"experiments_and_analysis/models/beta_vae/solver.py" = ["E402"]
+# Generated symbolic expressions are kept intact for comparison with their source.
+"microscope/manifold_examples/ellipsoid.py" = ["E501"]
+"microscope/manifold_examples/hyperboloid.py" = ["E501"]
+
+[tool.pyright]
+include = ["microscope", "experiments_and_analysis", "tools"]
+exclude = ["**/tests", "**/__pycache__"]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
 
 [tool.black]
 line-length = 120
