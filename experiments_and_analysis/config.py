@@ -1,4 +1,7 @@
 """Plain configuration dictionaries shared by Python and CLI callers."""
+
+from __future__ import annotations
+
 from copy import deepcopy
 from pathlib import Path
 from dataclasses import asdict
@@ -7,7 +10,12 @@ import json
 import yaml
 
 
-def load_config(path):
+def load_config(path: str | Path) -> dict:
+    """Load a YAML or JSON configuration dictionary.
+
+    Args:
+        path: Filesystem path.
+    """
     path = Path(path)
     with path.open() as stream:
         value = json.load(stream) if path.suffix == '.json' else yaml.safe_load(stream)
@@ -16,7 +24,13 @@ def load_config(path):
     return value
 
 
-def merge(base, changes):
+def merge(base: dict, changes: dict) -> dict:
+    """Recursively merge configuration dictionaries without changing either input.
+
+    Args:
+        base: Base configuration.
+        changes: Values that override the base configuration.
+    """
     result = deepcopy(base)
     for key, value in changes.items():
         if isinstance(value, dict) and isinstance(result.get(key), dict):
@@ -26,21 +40,17 @@ def merge(base, changes):
     return result
 
 
-def resolve(config):
-    """Fill defaults without changing the caller's dictionary."""
-    repetition = config.get('repetition', {'index': 0, 'seed': 42})
-    seed = repetition['seed']
-    defaults = dict(
-        dataset=dict(name='custom_dsprites_balanced', dimension=4),
-        split=dict(method='random', test_fraction=0.1, train_fraction=1.0,
-                   seed=seed, weighted=True, max_test_size=500),
-        model=dict(name=None, parameters={}),
-        training=dict(enabled=True, seed=seed, trial=repetition['index']),
-        inference=dict(enabled=True, domain='test', representations=['output'],
-                       batch_size=64, seed=seed, decoder_sampling=True,
-                       persist=False, buffer='memory'),
-        analyses=[], repetition=repetition, device='cpu', num_workers=0, output_layout='directories')
-    result = merge(defaults, config)
+def _validate_experiment_options(result: dict, defaults: dict) -> None:
+    """Check recognized sections, split fractions and supported model names.
+
+    Split methods are random, fixed_test, full or provided. Training fractions must be in (0, 1] and test fractions in
+    (0, 1); full splits retain every training point. Models are beta_vae, mmls or None. Only known top-level and
+    split/model/training/inference options are accepted; inference also allows evaluation_size.
+
+    Args:
+        result: Configuration after applying defaults.
+        defaults: Recognized configuration sections and default options.
+    """
     unknown = set(result) - set(defaults)
     if unknown:
         raise ValueError(f'Unknown experiment options: {sorted(unknown)}')
@@ -60,27 +70,18 @@ def resolve(config):
         raise ValueError('A full split must keep the full training domain.')
     if result['model']['name'] not in (None, 'beta_vae', 'mmls'):
         raise ValueError('model.name must be beta_vae, mmls or null.')
-    if result['dataset']['name'] in ('Sphere', 'Torus', 'Circle', 'Moons'):
-        result['dataset'].setdefault('seed', seed)
-        result['dataset'].setdefault('reference_seed', 0)
-        result['dataset'].setdefault('ground_truth_size', 500)
-    from .models.config import BetaVAEConfig, MMLSConfig
-    parameters = result['model']['parameters']
-    if result['model']['name'] == 'beta_vae':
-        if set(parameters).intersection({'ckpt_dir', 'output_dir', 'device', 'num_workers', 'ckpt_name'}):
-            raise ValueError('Set paths, device and workers outside model.parameters.')
-        defaults = dict(model='H', objective='H', lr=1e-4, loss_threshold=10) if result['dataset']['name'] == 'extended_coil20' else {}
-        options = asdict(BetaVAEConfig(ckpt_dir=Path('.'), output_dir=Path('.'), **{**defaults, **parameters}))
-        result['model']['parameters'] = {k: v for k, v in options.items()
-                                          if k not in ('ckpt_dir', 'output_dir', 'device', 'num_workers', 'ckpt_name')}
-    elif result['model']['name'] == 'mmls':
-        if 'number_of_dims' in parameters:
-            raise ValueError('Set the intrinsic dimension in dataset.dimension.')
-        options = asdict(MMLSConfig(**{'number_of_dims': result['dataset']['dimension'],
-                          'number_of_neighbors': 2 * 2 ** result['dataset']['dimension'],
-                          **{k: v for k, v in parameters.items() if k != 'export_points'}}))
-        options.pop('number_of_dims')
-        result['model']['parameters'] = {**options, 'export_points': parameters.get('export_points', False)}
+
+
+def _validate_inference_options(result: dict, split: dict) -> None:
+    """Check positive inference sizes, supported buffers/domains and held-out availability.
+
+    Batch and evaluation sizes must be positive. Buffers are memory or temporary, and domains are train, test or grid. A
+    full split cannot supply test-domain inference when no separate analyses are requested.
+
+    Args:
+        result: Configuration after applying defaults.
+        split: Resolved split configuration.
+    """
     if result['inference']['batch_size'] < 1:
         raise ValueError('inference.batch_size must be positive.')
     if result['inference'].get('evaluation_size', 1) < 1:
@@ -92,34 +93,68 @@ def resolve(config):
     if (not result['analyses'] and result['model']['name'] is not None and result['inference']['enabled']
             and result['inference']['domain'] == 'test' and split['method'] == 'full'):
         raise ValueError('A full split has no held-out test domain; use train/grid or disable inference.')
-    analyses = []
-    for requested in result['analyses']:
-        analysis = {'name': requested} if isinstance(requested, str) else dict(requested)
-        if analysis['name'] not in ('errors', 'geometry'):
-            raise ValueError(f"Unknown analysis: {analysis['name']}")
-        allowed = {'name', 'domain', 'representations'}
-        if analysis['name'] == 'geometry':
-            allowed.update(['normalize_for_volume', 'normalize_curvatures', 'reach_subsample', 'reach_batch_size'])
-        if set(analysis) - allowed:
-            raise ValueError(f'Unknown analysis options: {sorted(set(analysis) - allowed)}')
-        analysis.setdefault('domain', 'grid' if analysis['name'] == 'geometry'
-                            else result['inference']['domain'])
-        analysis.setdefault('representations', ['input'] if result['model']['name'] is None
-                            else result['inference']['representations'])
-        if analysis['domain'] not in ('train', 'test', 'grid'):
-            raise ValueError('Analysis domain must be train, test or grid.')
-        if analysis['name'] == 'geometry' and analysis['domain'] != 'grid':
-            raise ValueError('Geometry requires the full structured grid, not a split.')
-        if analysis['name'] == 'geometry' and split['method'] == 'provided':
-            raise ValueError('Sampled toy points do not form a full parameter grid.')
-        if analysis['name'] == 'errors' and analysis['representations'] != ['output']:
-            raise ValueError('Reconstruction errors require the output representation.')
-        if analysis['domain'] == 'test' and split['method'] == 'full':
-            raise ValueError('A full split has no held-out test domain.')
-        if (result['model']['name'] is None or not result['inference']['enabled']) and analysis['representations'] != ['input']:
-            raise ValueError('Model inference is required for non-input representations.')
-        analyses.append(analysis)
-    result['analyses'] = analyses
+
+
+def _validate_analysis_options(
+    analysis: dict,
+    result: dict,
+    split: dict
+) -> None:
+    """Fill analysis defaults and check domains, representations and geometry requirements.
+
+    Analyses are errors or geometry, with name/domain/representations options. Geometry also allows
+    normalize_for_volume, normalize_curvatures, reach_subsample and reach_batch_size, and requires a full structured
+    grid rather than provided point samples. Errors require the output representation. Domains are train, test or grid;
+    full splits have no test domain, and non-input representations require enabled model inference.
+
+    Args:
+        analysis: Analysis request, updated in place with default domain and representations.
+        result: Configuration after applying defaults.
+        split: Resolved split configuration.
+    """
+    if analysis['name'] not in ('errors', 'geometry'):
+        raise ValueError(f"Unknown analysis: {analysis['name']}")
+    allowed = {'name', 'domain', 'representations'}
+    if analysis['name'] == 'geometry':
+        allowed.update(['normalize_for_volume', 'normalize_curvatures', 'reach_subsample', 'reach_batch_size'])
+    if set(analysis) - allowed:
+        raise ValueError(f'Unknown analysis options: {sorted(set(analysis) - allowed)}')
+    analysis.setdefault('domain', 'grid' if analysis['name'] == 'geometry'
+                        else result['inference']['domain'])
+    analysis.setdefault('representations', ['input'] if result['model']['name'] is None
+                        else result['inference']['representations'])
+    if analysis['domain'] not in ('train', 'test', 'grid'):
+        raise ValueError('Analysis domain must be train, test or grid.')
+    if analysis['name'] == 'geometry' and analysis['domain'] != 'grid':
+        raise ValueError('Geometry requires the full structured grid, not a split.')
+    if analysis['name'] == 'geometry' and split['method'] == 'provided':
+        raise ValueError('Sampled toy points do not form a full parameter grid.')
+    if analysis['name'] == 'errors' and analysis['representations'] != ['output']:
+        raise ValueError('Reconstruction errors require the output representation.')
+    if analysis['domain'] == 'test' and split['method'] == 'full':
+        raise ValueError('A full split has no held-out test domain.')
+    if (
+        (result['model']['name'] is None or not result['inference']['enabled'])
+        and analysis['representations'] != ['input']
+    ):
+        raise ValueError('Model inference is required for non-input representations.')
+
+
+def _validate_output_options(
+    result: dict,
+    split: dict,
+    analyses: list[dict]
+) -> None:
+    """Check directory or bundled output compatibility with the requested experiment.
+
+    Layouts are directories or bundled. Bundling requires a Sphere, Torus, Circle or Moons dataset, an MMLS model,
+    provided splits and at least one analysis, with every analysis computing errors.
+
+    Args:
+        result: Configuration after applying defaults.
+        split: Resolved split configuration.
+        analyses: Resolved analysis requests.
+    """
     if result['output_layout'] not in ('directories', 'bundled'):
         raise ValueError('output_layout must be directories or bundled.')
     if result['output_layout'] == 'bundled' and not (
@@ -127,4 +162,79 @@ def resolve(config):
             and result['model']['name'] == 'mmls' and split['method'] == 'provided'
             and analyses and all(a['name'] == 'errors' for a in analyses)):
         raise ValueError('Bundled outputs require a toy MMLS experiment with provided splits and error analyses.')
+
+
+def resolve(config: dict) -> dict:
+    """Fill defaults without changing the caller's dictionary.
+
+    Args:
+        config: Configuration with supported dataset, split, model, inference and analysis options.
+    """
+    repetition = config.get('repetition', {'index': 0, 'seed': 42})
+    seed = repetition['seed']
+    defaults = dict(
+        dataset=dict(name='custom_dsprites_balanced', dimension=4),
+        split=dict(
+            method='random',
+            test_fraction=0.1,
+            train_fraction=1.0,
+            seed=seed,
+            weighted=True,
+            max_test_size=500
+        ),
+        model=dict(name=None, parameters={}),
+        training=dict(enabled=True, seed=seed, trial=repetition['index']),
+        inference=dict(
+            enabled=True,
+            domain='test',
+            representations=['output'],
+            batch_size=64,
+            seed=seed,
+            decoder_sampling=True,
+            persist=False,
+            buffer='memory'
+        ),
+        analyses=[],
+        repetition=repetition,
+        device='cpu',
+        num_workers=0,
+        output_layout='directories'
+    )
+    result = merge(defaults, config)
+    _validate_experiment_options(result, defaults)
+    split = result['split']
+    if result['dataset']['name'] in ('Sphere', 'Torus', 'Circle', 'Moons'):
+        result['dataset'].setdefault('seed', seed)
+        result['dataset'].setdefault('reference_seed', 0)
+        result['dataset'].setdefault('ground_truth_size', 500)
+    from .models.config import BetaVAEConfig, MMLSConfig
+    parameters = result['model']['parameters']
+    if result['model']['name'] == 'beta_vae':
+        if set(parameters).intersection({'ckpt_dir', 'output_dir', 'device', 'num_workers', 'ckpt_name'}):
+            raise ValueError('Set paths, device and workers outside model.parameters.')
+        defaults = dict(
+            model='H',
+            objective='H',
+            lr=1e-4,
+            loss_threshold=10
+        ) if result['dataset']['name'] == 'extended_coil20' else {}
+        options = asdict(BetaVAEConfig(ckpt_dir=Path('.'), output_dir=Path('.'), **{**defaults, **parameters}))
+        result['model']['parameters'] = {k: v for k, v in options.items()
+                                          if k not in ('ckpt_dir', 'output_dir', 'device', 'num_workers', 'ckpt_name')}
+    elif result['model']['name'] == 'mmls':
+        if 'number_of_dims' in parameters:
+            raise ValueError('Set the intrinsic dimension in dataset.dimension.')
+        options = asdict(MMLSConfig(**{'number_of_dims': result['dataset']['dimension'],
+                          'number_of_neighbors': 2 * 2 ** result['dataset']['dimension'],
+                          **{k: v for k, v in parameters.items() if k != 'export_points'}}))
+        options.pop('number_of_dims')
+        result['model']['parameters'] = {**options, 'export_points': parameters.get('export_points', False)}
+    _validate_inference_options(result, split)
+    analyses = []
+    for requested in result['analyses']:
+        analysis = {'name': requested} if isinstance(requested, str) else dict(requested)
+        _validate_analysis_options(analysis, result, split)
+        analyses.append(analysis)
+    result['analyses'] = analyses
+    _validate_output_options(result, split, analyses)
     return result

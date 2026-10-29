@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pickle
 from pathlib import Path
 
@@ -17,11 +19,21 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 def merge_layer_evolution(
-    plots_intermediate_outputs_dir: Path, steps: list[str],
+    plots_intermediate_outputs_dir: Path,
+    steps: list[str],
     merge_output_dir: Path,
     dpi: int,
     figsize: tuple[int, int] = (40, 20)
 ) -> None:
+    """Stack training-step layer plots into one figure.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        steps: Training-step labels in plotted order.
+        merge_output_dir: Directory for merged figures.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+    """
     for scale in ["linear", "symlog"]:
         image_paths = list((plots_intermediate_outputs_dir / f"layer_evolution/{scale}").glob("*.png"))
         step_to_image_paths = {"_".join(p.stem.split("_")[1:]): p for p in image_paths}
@@ -51,6 +63,21 @@ def merge_distributions(
         ["b", "r"]
     )
 ) -> None:
+    """Merge per-layer geometry distributions across training steps.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        merge_output_dir: Directory for merged figures.
+        steps: Training-step labels in plotted order.
+        encoder_layers: Encoder layers included in distribution plots.
+        sprites: Class labels to include.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+        n_measures: Number of geometry measures to plot.
+        alpha: Scatter-point opacity.
+        quantile_margin: Tail fraction trimmed from plot ranges.
+        cmap: Colormap used for the measure values.
+    """
     measures_paths = list((plots_intermediate_outputs_dir / "measures").glob("*.pkl"))
 
     paths_per_step_layer = dict(
@@ -127,6 +154,16 @@ def merge_projection_classes(
     dpi: int,
     figsize: tuple[int, int] = (45, 20)
 ) -> None:
+    """Merge class-colored projections across layers and training steps.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        merge_output_dir: Directory for merged figures.
+        steps: Training-step labels in plotted order.
+        layers: Layer names in plotted order.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+    """
     projection_class_paths = list((plots_intermediate_outputs_dir / "projection_classes").glob("*.png"))
 
     paths_per_step_layer_proj_class = dict(
@@ -169,6 +206,17 @@ def merge_projection_measures(
     dpi: int,
     figsize: tuple[int, int] = (80, 40)
 ) -> None:
+    """Merge measure-colored projections across layers and training steps.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        merge_output_dir: Directory for merged figures.
+        steps: Training-step labels in plotted order.
+        layers: Layer names in plotted order.
+        sprites: Class labels to include.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+    """
     projection_measure_paths = list((plots_intermediate_outputs_dir / "projection_measures").glob("*.png"))
 
     paths_per_step_layer_proj_measure = dict(
@@ -216,7 +264,14 @@ def main(
     data_dir: Path = typer.Option(...),
     dpi: int = 150,
     model: str = "beta-vae"
-):
+) -> None:
+    """Merge previously saved experiment plots.
+
+    Args:
+        data_dir: Experiment directory containing the saved plots.
+        dpi: Resolution of saved plots in dots per inch.
+        model: Model family whose plots are being merged.
+    """
     # Handle directories.
     plots_intermediate_outputs_dir = data_dir / "plots_intermediate_outputs"
     merge_output_dir = plots_intermediate_outputs_dir / "merged_results"

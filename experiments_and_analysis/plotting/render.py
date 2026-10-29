@@ -1,4 +1,9 @@
 """IO wrappers for plot-ready results and the retained paper styles."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from pathlib import Path
 import pickle
 
@@ -8,8 +13,17 @@ from PIL import Image
 from ..analyses.bounds import _curve
 from ..outputs import artifact_path, begin, finish, identity, read_json, stage_directory, write_json
 
+if TYPE_CHECKING:
+    from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
-def matches(record, selection):
+
+def matches(record: dict, selection: dict) -> bool:
+    """Check dotted-key selection rules against a result record.
+
+    Args:
+        record: Configuration or result dictionary to inspect.
+        selection: Dotted configuration keys and values to match.
+    """
     for path, expected in selection.items():
         value = record
         for key in path.split('.'):
@@ -21,8 +35,13 @@ def matches(record, selection):
     return True
 
 
-def bound_data(records, panels):
-    """Aggregate only the explicitly selected experiment results."""
+def bound_data(records: list[dict], panels: list[dict]) -> tuple[dict, dict]:
+    """Aggregate only the explicitly selected experiment results.
+
+    Args:
+        records: Completed analysis records.
+        panels: Panel labels, dimensions and experiment-selection rules.
+    """
     curves, summaries = {}, {}
     for panel in panels:
         selected = [record for record in records if record['name'] == 'errors'
@@ -34,7 +53,13 @@ def bound_data(records, panels):
     return curves, summaries
 
 
-def layer_data(records, selection):
+def layer_data(records: list[dict], selection: dict) -> dict[str, AnalysisResults]:
+    """Load one matching geometry result for each selected layer.
+
+    Args:
+        records: Completed analysis records.
+        selection: Dotted configuration keys and values to match.
+    """
     selected = [record for record in records if record['name'] == 'geometry'
                 and matches(record, selection)]
     results = {}
@@ -53,8 +78,18 @@ def layer_data(records, selection):
     return results
 
 
-def render(records, request, output_dir):
-    """Named aggregation/rendering selection, with no callback dispatch."""
+def render(
+    records: list[dict],
+    request: dict,
+    output_dir: str | Path
+) -> Path:
+    """Named aggregation/rendering selection, with no callback dispatch.
+
+    Args:
+        records: Completed analysis records.
+        request: Plot type, output filename and selected panels.
+        output_dir: Directory for generated outputs.
+    """
     from .bounds import create_repetitions_shaded_plot
     from .layers import create_layer_plots
     root = Path(output_dir)
@@ -72,8 +107,12 @@ def render(records, request, output_dir):
                 np.savez(aggregate_dir / 'curves.npz', **curves)
                 write_json(aggregate_dir / 'regression.json', summaries)
                 finish(aggregate_dir, ['curves.npz', 'regression.json'])
-            create_repetitions_shaded_plot(curves, directory, name=request['filename'],
-                                            log_scale=request.get('log_scale', False))
+            create_repetitions_shaded_plot(
+                curves,
+                directory,
+                name=request['filename'],
+                log_scale=request.get('log_scale', False)
+            )
             suffix = 'log' if request.get('log_scale', False) else 'absolute'
             for extension in ('png', 'pdf'):
                 (directory / f"{request['filename']}_shaded_{suffix}.{extension}").rename(
@@ -83,9 +122,13 @@ def render(records, request, output_dir):
             for panel in request['panels']:
                 measures = layer_data(records, panel['where'])
                 label = panel['label']
-                create_layer_plots(measures, dataset_type=label, output_dir=directory,
-                                   aggregate=panel.get('aggregate', False),
-                                   legend_title=panel.get('legend_title'))
+                create_layer_plots(
+                    measures,
+                    dataset_type=label,
+                    output_dir=directory,
+                    aggregate=panel.get('aggregate', False),
+                    legend_title=panel.get('legend_title')
+                )
                 rows.append(directory / f'layers_{label}.png')
             images = []
             for path in rows:

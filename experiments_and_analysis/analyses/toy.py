@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -22,7 +24,20 @@ def compute_distances(
     error_weight: float = 1.0,
     device: str = "cuda:0",
     projection_method: str = "thin_svd"
-):
+) -> tuple[np.ndarray, float]:
+    """Fit a sampled manifold and return reference-point errors and their maximum.
+
+    Args:
+        manifold: Analytic manifold used to generate samples and reference geometry.
+        ground_truth: Reference points of shape (n f).
+        N: Number of sampled training points.
+        sigma: Gaussian kernel width.
+        fitting_method: Manifold approximation method.
+        normalized: Use the manifold's normalized coordinates.
+        error_weight: Scale applied to the denoising training stop threshold.
+        device: Device used for tensor computations.
+        projection_method: MMLS projection implementation.
+    """
     if fitting_method.startswith("denoising_autoencoder_"):
         from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
     match fitting_method:
@@ -31,8 +46,13 @@ def compute_distances(
 
             d = manifold.dimension
             k = 5
-            projector = ANNMMLSProjector(samples, d=d, k=k, device=device,
-                                        projection_method=projection_method)
+            projector = ANNMMLSProjector(
+                samples,
+                d=d,
+                k=k,
+                device=device,
+                projection_method=projection_method
+            )
             prediction = projector.project(ground_truth)
         case "denoising_autoencoder_normal_noise":
             samples, unitary_normals = manifold.sample(
@@ -117,16 +137,32 @@ def run_size_ablation(
     manifold: toy_manifolds.Manifold,
     ground_truth: np.ndarray,
     N_range: np.ndarray = np.arange(10, 200),
-    n_examples_per_size=20,
+    n_examples_per_size: int = 20,
     sigma: float = 0.0001,
     fitting_method: str = "MMLS",
     normalized: bool = True,
     error_weight: float = 1.0,
-    parallel=True,
-    max_workers=None,
+    parallel: bool = True,
+    max_workers: int | None = None,
     device: str = "cuda:0",
     projection_method: str = "thin_svd"
-):
+) -> tuple[dict, dict]:
+    """Compare pointwise and maximum errors over training sizes and repeated fits.
+
+    Args:
+        manifold: Analytic manifold used to generate samples and reference geometry.
+        ground_truth: Reference points of shape (n f).
+        N_range: Training sample counts of shape (s).
+        n_examples_per_size: Number of independent fits per training size.
+        sigma: Gaussian kernel width.
+        fitting_method: Manifold approximation method.
+        normalized: Use the manifold's normalized coordinates.
+        error_weight: Scale applied to the denoising training stop threshold.
+        parallel: Run repeated fits concurrently.
+        max_workers: Maximum concurrent fits; None uses the executor default.
+        device: Device used for tensor computations.
+        projection_method: MMLS projection implementation.
+    """
     avg_all, haus_all = {}, {}
 
     for N in tqdm(N_range):
@@ -184,7 +220,21 @@ def fit_and_get_measures(
     error_weight: float = 1.0,
     device: str = "cuda:0",
     projection_method: str = "thin_svd"
-):
+) -> None:
+    """Save toy-manifold approximation errors and analytic reference measures.
+
+    Args:
+        output_path: Directory for the saved toy-manifold results.
+        N_range: Start, stop and step for training sample counts.
+        n_examples_per_size: Number of independent fits per training size.
+        N_ground_truth: Target number of reference tessellation points.
+        max_workers: Maximum concurrent fits; None uses the executor default.
+        fitting_method: Manifold approximation method.
+        normalized: Use the manifold's normalized coordinates.
+        error_weight: Scale applied to the denoising training stop threshold.
+        device: Device used for tensor computations.
+        projection_method: MMLS projection implementation.
+    """
     output_path.mkdir(exist_ok=True, parents=True)
 
     results = {}

@@ -1,4 +1,7 @@
 """The shared --quick-run profile; edit its budgets here."""
+
+from __future__ import annotations
+
 from copy import deepcopy
 
 from .config import resolve
@@ -16,8 +19,12 @@ QUICK_RUN = dict(
 )
 
 
-def quick_grid(grid):
-    """Reduce size/repetition axes, retaining model/dataset/layer choices."""
+def quick_grid(grid: dict) -> dict:
+    """Reduce size/repetition axes, retaining model/dataset/layer choices.
+
+    Args:
+        grid: Sweep axes mapped to choices or integer ranges.
+    """
     grid = deepcopy(grid)
     for path, sizes in [('split.train_fraction', QUICK_RUN['train_fractions']),
                         ('dataset.sample_size', QUICK_RUN['toy_sample_sizes'])]:
@@ -30,8 +37,12 @@ def quick_grid(grid):
     return grid
 
 
-def apply_quick_run(config):
-    """Return a resolved experiment with capped budgets and unchanged grids/layers."""
+def apply_quick_run(config: dict) -> dict:
+    """Return a resolved experiment with capped budgets and unchanged grids/layers.
+
+    Args:
+        config: Experiment or sweep configuration.
+    """
     result = resolve(config)
     if result['model']['name'] == 'beta_vae':
         parameters = result['model']['parameters']
