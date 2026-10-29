@@ -6,16 +6,29 @@ from mpl_toolkits import mplot3d
 
 
 def plot_points(
-        pts: np.ndarray,
-        curvature: Optional[np.ndarray] = None,
-        volume_element: Optional[np.ndarray] = None,
-        limit: float = 1,
-        s: float = 1,
-        cmap: str = "coolwarm",
-        alpha: float = 0.5,
-        size_mult: float = 4,
-        subsample_ratio: Optional[float] = None
+    pts: np.ndarray,
+    curvature: Optional[np.ndarray] = None,
+    volume_element: Optional[np.ndarray] = None,
+    limit: float = 1,
+    s: float = 1,
+    cmap: str = "coolwarm",
+    alpha: float = 0.5,
+    size_mult: float = 4,
+    subsample_ratio: Optional[float] = None
 ) -> None:
+    """Plot a three-dimensional point grid and optional scalar fields.
+
+    Args:
+        pts: Point grid, shape (s1 ... sd 3).
+        curvature: Optional scalar-curvature grid, shape (s1 ... sd).
+        volume_element: Optional volume-element grid, shape (s1 ... sd).
+        limit: Symmetric coordinate limit on all plot axes.
+        s: Scatter marker size.
+        cmap: Matplotlib color-map name.
+        alpha: Opacity of plotted points or densities.
+        size_mult: Size of each plot panel in inches.
+        subsample_ratio: Optional fraction of grid points to plot.
+    """
     n_plots = 1
     if curvature is not None:
         n_plots += 1
@@ -46,7 +59,13 @@ def plot_points(
     limits = (-limit, limit)
 
     ax = axes[0]
-    ax.scatter(xs, ys, zs, s=s, alpha=alpha)
+    ax.scatter(
+        xs,
+        ys,
+        zs,
+        s=s,
+        alpha=alpha
+    )
     ax.set_xlim(limits)
     ax.set_ylim(limits)
     ax.set_zlim(limits)
@@ -54,7 +73,16 @@ def plot_points(
     if curvature is not None:
         curvature = curvature.flatten()[idx]
         ax = axes[1]
-        plot = ax.scatter(xs, ys, zs, s=s, c=curvature, cmap=cmap, label="curvature", alpha=alpha)
+        plot = ax.scatter(
+            xs,
+            ys,
+            zs,
+            s=s,
+            c=curvature,
+            cmap=cmap,
+            label="curvature",
+            alpha=alpha
+        )
         ax.set_xlim(limits)
         ax.set_ylim(limits)
         ax.set_zlim(limits)
@@ -64,7 +92,16 @@ def plot_points(
     if volume_element is not None:
         volume_element = volume_element.flatten()[idx]
         ax = axes[2]
-        plot = ax.scatter(xs, ys, zs, s=s, c=volume_element, cmap=cmap, label="volume element", alpha=alpha)
+        plot = ax.scatter(
+            xs,
+            ys,
+            zs,
+            s=s,
+            c=volume_element,
+            cmap=cmap,
+            label="volume element",
+            alpha=alpha
+        )
         ax.set_xlim(limits)
         ax.set_ylim(limits)
         ax.set_zlim(limits)

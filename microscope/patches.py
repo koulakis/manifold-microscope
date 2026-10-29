@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Optional
 
 import numpy as np
@@ -7,14 +8,24 @@ from microscope.cyclic_dimensions import pad_cyclic_dimensions
 from microscope._grid_validation import cyclic_axes, integer_list
 
 
-def _iter_patches_with_halo(array, patch_sizes, halo, cyclic_dimensions):
+def _iter_patches_with_halo(
+    array: np.ndarray,
+    patch_sizes: list[int],
+    halo: int,
+    cyclic_dimensions: list[int]
+) -> Iterator[tuple[tuple[slice, ...], np.ndarray]]:
     """Yield (output slices, input tile) without padding the whole array.
 
-    Leading grid axes use the given patch sizes. Each output tile is disjoint;
-    its input includes ``halo`` samples on each side. Nonperiodic outputs lose
-    that border, while periodic outputs retain every sample. Interior tiles
-    are views; only tiles crossing periodic boundaries need wrapped copies.
-    Trailing feature axes are untouched. Callers validate sizes and axes.
+    Leading grid axes use the given patch sizes. Each output tile is disjoint; its input includes ``halo`` samples on
+    each side. Nonperiodic outputs lose that border, while periodic outputs retain every sample. Interior tiles are
+    views; only tiles crossing periodic boundaries need wrapped copies. Trailing feature axes are untouched. Callers
+    validate sizes and axes.
+
+    Args:
+        array: Input array, shape (s1 ... sd f1 ... fk).
+        patch_sizes: Patch size along each of the d grid axes.
+        halo: Number of extra samples on each side of an output tile.
+        cyclic_dimensions: Zero-based periodic grid axes.
     """
     dims = len(patch_sizes)
     shape = array.shape[:dims]
@@ -49,29 +60,23 @@ def _iter_patches_with_halo(array, patch_sizes, halo, cyclic_dimensions):
         yield destination, patch
 
 
-def extract_patches(
-        array: np.ndarray,
-        patch_sizes: list[int],
-        overlaps: list[int],
-        cyclic_dimensions: Optional[list[int]] = None,
-        verbose: bool = False
-) -> np.ndarray:
-    """
-    Generalized function to extract overlapping patches from the first n - d dimensions of a multidimensional array,
-    leaving the last d dimensions untouched. If size of the array is not divisible by the resulting step size
-    along all spatial dimensions, it will be wrap-padded to a compatible size. This means that the caller
-    is responsible to truncate outputs on a later stage to compensate for those artificial padded values.
+def _validate_patch_inputs(
+    array: np.ndarray,
+    patch_sizes: list[int],
+    overlaps: list[int],
+    cyclic_dimensions: list[int] | None
+) -> tuple[list[int], list[int], list[int]]:
+    """Validate patch geometry and return normalized size and axis lists.
+
+    Patch sizes must cover between one and all leading array axes. Sizes and overlaps must be integer sequences of equal
+    length, with sizes > overlaps >= 0. Periodic axes must be unique valid indices. Every grid axis must be nonempty,
+    and nonperiodic axes must exceed their overlap.
 
     Args:
-        array: The input array to split.
-        patch_sizes: The size of each patch along the first n - d dimensions.
-        overlaps: The overlap along each of the first n - d dimensions.
-        cyclic_dimensions: A set of dimensions where the grid is cyclic.
-        verbose: If true it prints info and warning messages.
-
-
-    Returns:
-        A view of the overlapping patches, preserving their structure.
+        array: Input array, shape (s1 ... sd f1 ... fk).
+        patch_sizes: Patch size along each of the d grid axes.
+        overlaps: Overlap along each patched grid axis.
+        cyclic_dimensions: Zero-based periodic grid axes; None uses no periodic axes.
     """
     if cyclic_dimensions is None:
         cyclic_dimensions = []
@@ -82,8 +87,6 @@ def extract_patches(
     if not 1 <= n_dim <= array.ndim:
         raise ValueError("patch sizes must cover between one and all array axes.")
     cyclic_dimensions = cyclic_axes(cyclic_dimensions, n_dim)
-    n_features = len(array.shape) - n_dim
-
     if len(overlaps) != n_dim:
         raise ValueError(
             f"The shape dimensions of the patch sizes ({n_dim}) differ from the "
@@ -94,6 +97,42 @@ def extract_patches(
     if any(n == 0 or (axis not in cyclic_dimensions and n <= overlaps[axis])
            for axis, n in enumerate(array.shape[:n_dim])):
         raise ValueError("Grid axes must have a nonempty patch interior.")
+    return patch_sizes, overlaps, cyclic_dimensions
+
+
+def extract_patches(
+    array: np.ndarray,
+    patch_sizes: list[int],
+    overlaps: list[int],
+    cyclic_dimensions: Optional[list[int]] = None,
+    verbose: bool = False
+) -> np.ndarray:
+    """Generalized function to extract overlapping patches from the first n - d dimensions of a multidimensional array,
+    leaving the last d dimensions untouched. If size of the array is not divisible by the resulting step size along all
+    spatial dimensions, it will be wrap-padded to a compatible size. This means that the caller is responsible to
+    truncate outputs on a later stage to compensate for those artificial padded values.
+
+    Requires compatible patch geometry; see _validate_patch_inputs.
+
+    Args:
+        array: Input array, shape (s1 ... sd f1 ... fk).
+        patch_sizes: The size of each patch along the first n - d dimensions.
+        overlaps: The overlap along each of the first n - d dimensions.
+        cyclic_dimensions: A set of dimensions where the grid is cyclic.
+        verbose: If true it prints info and warning messages.
+
+    Returns:
+        A view of the overlapping patches, preserving their structure.
+    """
+    patch_sizes, overlaps, cyclic_dimensions = _validate_patch_inputs(
+        array,
+        patch_sizes,
+        overlaps,
+        cyclic_dimensions
+    )
+    n_dim = len(patch_sizes)
+    n_features = len(array.shape) - n_dim
+
     # Handle cyclic dimensions by padding the array
     array = pad_cyclic_dimensions(
         array,
@@ -148,11 +187,10 @@ def extract_patches(
 
 
 def stack_patches(patches: np.ndarray, n_features: int) -> np.ndarray:
-    """
-    Reconstructs an array from non-overlapping patches using einops.
+    """Reconstructs an array from non-overlapping patches using einops.
 
     Args:
-        patches: The patches arranged in a grid, with shape (g1, g2, ... p1, p2 ... n_features).
+        patches: Patch grid, shape (g1 ... gd p1 ... pd f1 ... fk).
         n_features: The number of features which are not patched.
 
     Returns:

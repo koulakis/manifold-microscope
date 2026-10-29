@@ -1,8 +1,11 @@
 import multiprocessing
 import time
 import signal
+from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import partial
+from types import FrameType, TracebackType
+from typing import Any
 
 import sympy as sp
 from sympy import sin, cos, sinh, cosh, Matrix
@@ -15,15 +18,32 @@ from microscope.manifold_examples.utils import parallel_apply
 
 class TimeIt:
     """Wrapper which can be used to measure python code blocks runtime."""
-    def __init__(self, process_name):
+    def __init__(self, process_name: str) -> None:
+        """Initialize the object parameters.
+
+        Args:
+            process_name: Name printed when the timed block starts and finishes.
+        """
         self.process_name = process_name
 
-    def __enter__(self):
+    def __enter__(self) -> "TimeIt":
         print(f"Computing the {self.process_name}.")
         self.start = time.time()
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(
+        self,
+        type: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None
+    ) -> None:
+        """Print elapsed time when the timed block finishes.
+
+        Args:
+            type: Exception class, or None after normal completion.
+            value: Exception instance, or None after normal completion.
+            traceback: Exception traceback, or None after normal completion.
+        """
         time_elapsed = time.time() - self.start
         print(f"{self.process_name} done, time elapsed: {time_elapsed:.3f} seconds.\n")
 
@@ -32,8 +52,20 @@ class TimeoutException(Exception): pass
 
 
 @contextmanager
-def time_limit(seconds, message=None):
-    def signal_handler(signum, frame):
+def time_limit(seconds: int, message: str | None = None) -> Iterator[None]:
+    """Limit the duration of a code block with a signal alarm.
+
+    Args:
+        seconds: Maximum elapsed time before SIGALRM is raised.
+        message: Optional message printed on timeout.
+    """
+    def signal_handler(signum: int, frame: FrameType | None) -> None:
+        """Raise the timeout exception for an alarm signal.
+
+        Args:
+            signum: Received signal number.
+            frame: Interrupted Python stack frame, if available.
+        """
         if message is not None:
             print(message)
         raise TimeoutException("Timed out!")
@@ -45,17 +77,24 @@ def time_limit(seconds, message=None):
         signal.alarm(0)
 
 
-def _time_limited_simplify(formula, limit_seconds: float = 10 * 60, *args, **kwargs):
-    """A time limited version of the sympy simplify function. If it does not succeed, it will return
-    the original, unsimplified formula.
+def _time_limited_simplify(
+    formula: sp.Expr,
+    limit_seconds: float = 10 * 60,
+    *args: Any,
+    **kwargs: Any
+) -> sp.Expr:
+    """A time limited version of the sympy simplify function. If it does not succeed, it will return the original,
+    unsimplified formula.
 
     Args:
         formula: The formula to simplify.
         limit_seconds: The maximum time for the simplification attempt.
+        *args: Additional positional arguments forwarded to sympy.simplify.
+        **kwargs: Additional keyword arguments forwarded to sympy.simplify.
 
     Returns:
-        If the simplification succeeds inside the time limit, then the simplified formula, else
-        the original input formula.
+        If the simplification succeeds inside the time limit, then the simplified formula, else the original input
+        formula.
     """
     try:
         message = f"Simplification time of {limit_seconds} seconds exceeded. Returning original formula."
@@ -65,12 +104,12 @@ def _time_limited_simplify(formula, limit_seconds: float = 10 * 60, *args, **kwa
         return formula
 
 
-def _matrix_fast_inverse(matrix):
-    """Symbolically computes the inverse of a matrix using Cramer's rule. This proved to be faster in some cases,
-    mainly because of ordering of the sympy simplification functions which are slow.
+def _matrix_fast_inverse(matrix: sp.Matrix) -> np.ndarray:
+    """Symbolically computes the inverse of a matrix using Cramer's rule. This proved to be faster in some cases, mainly
+    because of ordering of the sympy simplification functions which are slow.
 
     Args:
-        matrix: A sympy matrix.
+        matrix: Symbolic square matrix, shape (d d).
 
     Returns:
         A sympy matrix which is the inverse of the input matrix.
@@ -90,17 +129,21 @@ def _matrix_fast_inverse(matrix):
     return cofactors_matrix / determinant
 
 
-def scalar_curvature_formula(u, coordinate_variables: sp.Matrix, normalize: bool = False):
+def scalar_curvature_formula(
+    u: sp.Matrix,
+    coordinate_variables: sp.Matrix,
+    normalize: bool = False
+) -> tuple[sp.Expr, np.ndarray, np.ndarray]:
     """Compute a formula for the scalar curvature of a manifold on a patch parametrized by u.
 
-        Args:
-            u: A formula with the patch parametrization.
-            coordinate_variables: The variables of the parametrization in a sympy array matrix.
-            normalize: If true, it computes a normalized version of the scalar curvature, like in the definition
-                in Do Carmo.
+    Args:
+        u: A formula with the patch parametrization.
+        coordinate_variables: The variables of the parametrization in a sympy array matrix.
+        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition in Do
+            Carmo.
 
-        Returns:
-            A sympy formula for the scalar curvature.
+    Returns:
+        A sympy formula for the scalar curvature.
     """
     dim = len(coordinate_variables)
 
@@ -161,15 +204,15 @@ def scalar_curvature_formula(u, coordinate_variables: sp.Matrix, normalize: bool
     return scalar_curvature, ricci, r_first_kind
 
 
-def volume_element_formula(u, coordinate_variables: sp.Matrix):
+def volume_element_formula(u: sp.Matrix, coordinate_variables: sp.Matrix) -> sp.Expr:
     """Compute a formula for the volume element of a manifold on a patch parametrized by u.
 
-        Args:
-            u: A formula with the patch parametrization.
-            coordinate_variables: The variables of the parametrization in a sympy array matrix.
+    Args:
+        u: A formula with the patch parametrization.
+        coordinate_variables: The variables of the parametrization in a sympy array matrix.
 
-        Returns:
-            A sympy formula for the volume element.
+    Returns:
+        A sympy formula for the volume element.
     """
     with TimeIt("Riemannian metric"):
         u_jacobian = u.jacobian(coordinate_variables)
@@ -182,7 +225,7 @@ def volume_element_formula(u, coordinate_variables: sp.Matrix):
     return volume_element
 
 
-def ellipsoid_parametrization(dim: int):
+def ellipsoid_parametrization(dim: int) -> tuple[sp.Matrix, sp.Matrix]:
     """Define a spherical coordinates parametrization of an n-ellipsoid.
 
     Args:
@@ -208,16 +251,16 @@ def ellipsoid_parametrization(dim: int):
     return u, coordinates
 
 
-def hyperboloid_parametrization(dim: int):
+def hyperboloid_parametrization(dim: int) -> tuple[sp.Matrix, sp.Matrix]:
     """Define a spherical coordinates parametrization of an n-ellipsoid.
 
-        Args:
-            dim: The dimension of the ellipsoid.
+    Args:
+        dim: The dimension of the ellipsoid.
 
-        Returns:
-            u: The patch parametrization of the ellipsoid.
-            coordinates: A sympy array Matrix with the variables of the parametrization.
-        """
+    Returns:
+        u: The patch parametrization of the ellipsoid.
+        coordinates: A sympy array Matrix with the variables of the parametrization.
+    """
     # Define the variables.
     semi_axes = sp.symbols(" ".join([f"a_{i}" for i in range(1, dim + 2)]))
     phis = sp.symbols(" ".join([f"phi_{i}" for i in range(1, dim + 1)]))
@@ -243,16 +286,19 @@ def hyperboloid_parametrization(dim: int):
     return u, coordinates
 
 
-def ellipsoid_scalar_curvature_formula(dim: int, normalize: bool = False):
+def ellipsoid_scalar_curvature_formula(
+    dim: int,
+    normalize: bool = False
+) -> tuple[sp.Expr, np.ndarray, np.ndarray]:
     """Compute a formula for the scalar curvature of an n-ellipsoid. In practice this function works up to a
-    3-ellipsoid. Above this it becomes too slow and the formula too large. This function is intended to run once
-    to generate formulas which will be integrated in the code and used to test scalar curvature approximation algorithms
-    on the 2 and 3-ellipsoids.
+    3-ellipsoid. Above this it becomes too slow and the formula too large. This function is intended to run once to
+    generate formulas which will be integrated in the code and used to test scalar curvature approximation algorithms on
+    the 2 and 3-ellipsoids.
 
     Args:
         dim: The dimension of the ellipsoid.
-        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition
-            in Do Carmo.
+        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition in Do
+            Carmo.
 
     Returns:
         A sympy formula for the scalar curvature of the n-ellipsoid.
@@ -261,16 +307,19 @@ def ellipsoid_scalar_curvature_formula(dim: int, normalize: bool = False):
     return scalar_curvature_formula(u, coordinates, normalize=normalize)
 
 
-def hyperboloid_scalar_curvature_formula(dim: int, normalize: bool = False):
+def hyperboloid_scalar_curvature_formula(
+    dim: int,
+    normalize: bool = False
+) -> tuple[sp.Expr, np.ndarray, np.ndarray]:
     """Compute a formula for the scalar curvature of an n-hyperboloid. In practice this function works up to a
-    3-hyperboloid. Above this it becomes too slow and the formula too large. This function is intended to run once
-    to generate formulas which will be integrated in the code and used to test scalar curvature approximation algorithms
-    on the 2 and 3-hyperboloids.
+    3-hyperboloid. Above this it becomes too slow and the formula too large. This function is intended to run once to
+    generate formulas which will be integrated in the code and used to test scalar curvature approximation algorithms on
+    the 2 and 3-hyperboloids.
 
     Args:
         dim: The dimension of the hyperboloid.
-        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition
-            in Do Carmo.
+        normalize: If true, it computes a normalized version of the scalar curvature, like in the definition in Do
+            Carmo.
 
     Returns:
         A sympy formula for the scalar curvature of the n-hyperboloid.
@@ -279,40 +328,50 @@ def hyperboloid_scalar_curvature_formula(dim: int, normalize: bool = False):
     return scalar_curvature_formula(u, coordinates, normalize=normalize)
 
 
-def ellipsoid_volume_element_formula(dim: int):
+def ellipsoid_volume_element_formula(dim: int) -> sp.Expr:
     """Compute a formula for the volume element of an n-ellipsoid.
 
-        Args:
-            dim: The dimension of the ellipsoid.
+    Args:
+        dim: The dimension of the ellipsoid.
 
-        Returns:
-            A sympy formula for the scalar curvature of the n-ellipsoid.
-        """
+    Returns:
+        A sympy formula for the scalar curvature of the n-ellipsoid.
+    """
     u, coordinates = ellipsoid_parametrization(dim)
     return volume_element_formula(u, coordinates)
 
 
-def hyperboloid_volume_element_formula(dim: int):
+def hyperboloid_volume_element_formula(dim: int) -> sp.Expr:
     """Compute a formula for the volume element of an n-hyperboloid_volume_element_formula.
 
-        Args:
-            dim: The dimension of the hyperboloid_volume_element_formula.
+    Args:
+        dim: The dimension of the hyperboloid_volume_element_formula.
 
-        Returns:
-            A sympy formula for the scalar curvature of the n-hyperboloid_volume_element_formula.
-        """
+    Returns:
+        A sympy formula for the scalar curvature of the n-hyperboloid_volume_element_formula.
+    """
     u, coordinates = hyperboloid_parametrization(dim)
     return volume_element_formula(u, coordinates)
 
 
 def _prepend_np_to_functions(formula: str, function_names: list[str]) -> str:
+    """Qualify named functions in an expression string.
+
+    Args:
+        formula: Symbolic expression to transform.
+        function_names: Function names to qualify with the np namespace.
+    """
     for name in function_names:
         formula = formula.replace(name, f"np.{name}")
 
     return formula
 
 
-def formula_to_code(formula, args: list[sp.core.symbol.Symbol], fn_name: str) -> str:
+def formula_to_code(
+    formula: sp.Expr,
+    args: list[sp.core.symbol.Symbol],
+    fn_name: str
+) -> str:
     """Convert a computed formula to a python function to be added to the codebase.
 
     Args:

@@ -11,14 +11,13 @@ from microscope._grid_validation import cyclic_axes, integer_list, spacings
 from microscope.cyclic_dimensions import get_difference_intervals
 
 
-def _distances_to_tangent_space(tangent_vectors: torch.Tensor, points: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-    _, frame, _ = tangent_geometry(tangent_vectors)
-    distance, normal_fraction = _pair_geometry(frame, points, x)
-    return distance*normal_fraction
+def _chord_geometry(points: torch.Tensor, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return stable chord lengths and unit chords for pair-search methods.
 
-
-def _chord_geometry(points, x):
-    """Return stable chord lengths and unit chords for pair-search methods."""
+    Args:
+        points: Candidate points, shape (c f).
+        x: Query points, shape (b f).
+    """
     differences = points[None] - x[:, None]
     scale = differences.abs().amax(dim=-1)
     differences = differences / torch.where(scale > 0, scale, 1.)[..., None]
@@ -27,12 +26,20 @@ def _chord_geometry(points, x):
     return scale*length, unit
 
 
-def _pair_geometry(frame, points, x):
+def _pair_geometry(
+    frame: torch.Tensor,
+    points: torch.Tensor,
+    x: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Return chord lengths and normal fractions without an ambient projector.
 
-    Normalize chords before projection, avoiding squared-distance overflow and
-    norm underflow. Residuals at the QR projection's roundoff scale are zero.
-    Nonfinite intermediate values are checked by the caller, never filled in.
+    Normalize chords before projection, avoiding squared-distance overflow and norm underflow. Residuals at the QR
+    projection's roundoff scale are zero. Nonfinite intermediate values are checked by the caller, never filled in.
+
+    Args:
+        frame: Orthonormal query tangent frames, shape (b f d).
+        points: Candidate points, shape (c f).
+        x: Query points, shape (b f).
     """
     distance, unit = _chord_geometry(points, x)
     normal = unit - (unit @ frame) @ frame.transpose(-1, -2)
@@ -42,89 +49,67 @@ def _pair_geometry(frame, points, x):
     return distance, fraction
 
 
-def _subsample_dims(tensor: torch.Tensor, take_every_k: int, dim_idxs: set[int]) -> torch.Tensor:
+def _distances_to_tangent_space(
+    tangent_vectors: torch.Tensor,
+    points: torch.Tensor,
+    x: torch.Tensor
+) -> torch.Tensor:
+    """Compute candidate distances to each query tangent space.
+
+    Args:
+        tangent_vectors: Query tangent matrices, shape (b f d).
+        points: Candidate points, shape (c f).
+        x: Query points, shape (b f).
+    """
+    _, frame, _ = tangent_geometry(tangent_vectors)
+    distance, normal_fraction = _pair_geometry(frame, points, x)
+    return distance*normal_fraction
+
+
+def _subsample_dims(
+    tensor: torch.Tensor,
+    take_every_k: int,
+    dim_idxs: set[int]
+) -> torch.Tensor:
+    """Select every kth value along the chosen tensor axes.
+
+    Args:
+        tensor: Input tensor, shape (s1 ... sn).
+        take_every_k: Sample stride along the selected axes.
+        dim_idxs: Zero-based axes to subsample.
+    """
     for dim in dim_idxs:
         tensor = torch.index_select(
             tensor,
             dim=dim,
-            index=torch.arange(0, tensor.shape[dim], step=take_every_k, device=tensor.device)
+            index=torch.arange(
+                0,
+                tensor.shape[dim],
+                step=take_every_k,
+                device=tensor.device
+            )
         )
 
     return tensor
 
 
-def reach_per_point(
+def _validate_reach_grid(
     features_on_grid: np.ndarray,
     range_sizes: list[float],
     patch_sizes: list[int],
-    cyclic_dimensions: Optional[list[int]] = None,
-    subsample_points: Optional[int] = None,
-    batch_size: int = 10,
-    return_witnesses: bool = False,
-    device: str | torch.device | None = None,
-    *,
-    candidate_batch_size: int = 1024,
-    min_pair_distance: Optional[float] = None,
-) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
-    """Estimate local reach from sampled pairs and finite-difference tangents.
+    cyclic_dimensions: list[int] | None
+) -> tuple[list[int], list[float], list[int]]:
+    """Validate grid geometry and return normalized ranges, sizes and axes.
 
-    Uses min_{y != x} ||y - x||^2 / (2 d(y - x, T_x M)); see
-    https://arxiv.org/abs/1705.04565. The minimum over x estimates global reach.
+    Require a NumPy float32/float64 array with ambient dimension f >= d >= 1. Provide one integer patch size >= 3 and
+    one finite nonzero real range per grid axis. Periodic axes must be unique valid indices; None becomes [].
 
     Args:
-        features_on_grid: Floating array of shape (s1, ..., sk, features).
-        range_sizes: Full parameter-range length along each grid axis.
-        patch_sizes: Derivative patch sizes, one per axis, each greater than two.
-        cyclic_dimensions: Zero-based periodic grid-axis indices; None means none.
-        subsample_points: Optional positive stride along every axis for both
-            queries and candidates. Tangents are computed from the full grid.
-        batch_size: Number of query points per pair-search batch.
-        return_witnesses: Also return minimizing candidate indices.
-        device: Torch device; None selects CUDA when available, otherwise CPU.
-        candidate_batch_size: Maximum candidates per pair-search chunk. Only
-            query/candidate chunks move to the selected device.
-        min_pair_distance: Explicit nonnegative distance cutoff; pairs at or
-            below it are excluded. Zero includes all distinct coordinates.
-            None excludes exact duplicates and raises on positive separations
-            <= 8 * dtype epsilon * norm(max(abs(sampled coordinates), axis=0)).
-            This default diagnoses unresolved pairs rather than silently
-            discarding a possible bottleneck. A positive cutoff is an explicit
-            approximation and may omit a real bottleneck.
-
-    Returns:
-        A NumPy array of local estimates of shape (s1_out, ..., sk_out), where
-        s_i_out = s_i for periodic axes and s_i - 2 otherwise. Subsampled
-        estimates are repeated and truncated back to this shape.
-
-        If return_witnesses is true, return (estimates, witnesses). The integer
-        witnesses array has shape (N,), with N = prod(ceil(s_i_out / stride))
-        and stride = subsample_points or 1. Each entry is a flat index into the
-        cropped, subsampled point array. Witnesses are not repeated or reshaped.
-        Infinite estimates keep a distinct eligible witness.
-
-    Raises:
-        ValueError: For invalid arguments/nonfinite inputs, no distinct eligible
-            candidate, or unresolved near-coincident pairs with the default
-            distance policy. Exact duplicate coordinates are always excluded.
-        torch.linalg.LinAlgError: For numerical tangent rank loss, with the
-            original input-grid location of the query.
-        FloatingPointError: For nonfinite geometry or finite-ratio overflow;
-            rescale the embedding or use float64.
-
-    The formula estimates an underlying smooth embedded manifold without
-    boundary. It does not compute boundary normal-cone contributions for a
-    bounded parameter image (for example, the inner boundary of an annulus).
-    Finite-difference tangents and input roundoff can cause underestimation;
-    the result is not an unconditional upper bound on true reach. Normal
-    fractions <= 8 * dtype epsilon * intrinsic dimension are treated as zero,
-    giving infinity for numerically flat chords. Generic parameterizations
-    need a resolution/convergence check; exact duplicate removal alone does
-    not resolve near-duplicate instability. Candidate search is exhaustive
-    over eligible sampled pairs; no nearest-neighbor approximation is used.
+        features_on_grid: Embedding array, shape (s1 ... sd f).
+        range_sizes: Parameter-range length along each of the d grid axes.
+        patch_sizes: Patch size along each of the d grid axes.
+        cyclic_dimensions: Zero-based periodic grid axes; None uses no periodic axes.
     """
-    if device is None:
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
     if cyclic_dimensions is None:
         cyclic_dimensions = []
     if not isinstance(features_on_grid, np.ndarray):
@@ -141,6 +126,26 @@ def reach_per_point(
     if len(patch_sizes) != n_dims:
         raise ValueError("One patch size and range size is required per grid axis.")
     cyclic_dimensions = cyclic_axes(cyclic_dimensions, n_dims)
+    return patch_sizes, range_sizes, cyclic_dimensions
+
+
+def _validate_reach_options(
+    batch_size: int,
+    candidate_batch_size: int,
+    subsample_points: int | None,
+    min_pair_distance: float | None
+) -> tuple[int, int, int | None, float | None]:
+    """Validate and normalize reach search controls.
+
+    Batch sizes and an explicit subsampling stride must be positive integers. An explicit pair cutoff must be a finite
+    nonnegative real scalar. Normalize accepted counts to Python ints and the cutoff to a float.
+
+    Args:
+        batch_size: Number of query points processed together.
+        candidate_batch_size: Number of candidate points processed together.
+        subsample_points: Optional stride along each grid axis; None uses every point.
+        min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
+    """
     batch_size = integer_list([batch_size], "batch size", minimum=1)[0]
     candidate_batch_size = integer_list([candidate_batch_size], "candidate batch size", minimum=1)[0]
     if subsample_points is not None:
@@ -151,11 +156,104 @@ def reach_per_point(
                 or not np.isfinite(cutoff) or cutoff < 0):
             raise ValueError("Minimum pair distance must be a finite nonnegative real scalar.")
         min_pair_distance = float(cutoff)
+    return batch_size, candidate_batch_size, subsample_points, min_pair_distance
+
+
+def _validate_reach_samples(features_on_grid: np.ndarray) -> None:
+    """Validate reach sample extents and finiteness.
+
+    Each grid axis needs at least three samples and all coordinates must be finite. Pair-dependent separation and
+    numerical checks stay in the caller.
+
+    Args:
+        features_on_grid: Embedding array, shape (s1 ... sd f).
+    """
     dims_shape = features_on_grid.shape[:-1]
     if any(n < 3 for n in dims_shape):
         raise ValueError("Each grid axis needs at least three samples.")
     if not np.isfinite(features_on_grid).all():
         raise ValueError("Reach inputs must contain only finite values.")
+    return None
+
+
+def reach_per_point(
+    features_on_grid: np.ndarray,
+    range_sizes: list[float],
+    patch_sizes: list[int],
+    cyclic_dimensions: Optional[list[int]] = None,
+    subsample_points: Optional[int] = None,
+    batch_size: int = 10,
+    return_witnesses: bool = False,
+    device: str | torch.device | None = None,
+    candidate_batch_size: int = 1024,
+    min_pair_distance: Optional[float] = None
+) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    """Estimate local reach from sampled pairs and finite-difference tangents.
+
+    Uses min_{y != x} ||y - x||^2 / (2 d(y - x, T_x M)); see https://arxiv.org/abs/1705.04565. The minimum over x
+    estimates global reach.
+
+    Requires a regular floating grid and valid search controls; see the local _validate_reach_grid,
+    _validate_reach_options and _validate_reach_samples helpers for detailed input requirements.
+
+    Args:
+        features_on_grid: Floating array of shape (s1, ..., sk, features).
+        range_sizes: Full parameter-range length along each grid axis.
+        patch_sizes: Derivative patch size along each grid axis.
+        cyclic_dimensions: Zero-based periodic grid-axis indices; None means none.
+        subsample_points: Optional query/candidate grid stride; tangents use the full grid.
+        batch_size: Number of query points per pair-search batch.
+        return_witnesses: Also return minimizing candidate indices.
+        device: Torch device; None selects CUDA when available, otherwise CPU.
+        candidate_batch_size: Maximum candidates per pair-search chunk. Only query/candidate chunks move to the selected
+            device.
+        min_pair_distance: Separation cutoff; None diagnoses unresolved near pairs.
+
+    Returns:
+        A NumPy array of local estimates of shape (s1_out, ..., sk_out), where s_i_out = s_i for periodic axes and s_i -
+        2 otherwise. Subsampled estimates are repeated and truncated back to this shape.
+
+        If return_witnesses is true, return (estimates, witnesses). The integer witnesses array has shape (N,), with N =
+        prod(ceil(s_i_out / stride)) and stride = subsample_points or 1. Each entry is a flat index into the cropped,
+        subsampled point array. Witnesses are not repeated or reshaped. Infinite estimates keep a distinct eligible
+        witness.
+
+    Raises:
+        ValueError: For invalid arguments/nonfinite inputs, no distinct eligible candidate, or unresolved
+            near-coincident pairs with the default distance policy. Exact duplicate coordinates are always excluded.
+        torch.linalg.LinAlgError: For numerical tangent rank loss, with the
+            original input-grid location of the query.
+        FloatingPointError: For nonfinite geometry or finite-ratio overflow; rescale the embedding or use float64.
+
+    The formula estimates an underlying smooth embedded manifold without boundary. It does not compute boundary
+    normal-cone contributions for a bounded parameter image (for example, the inner boundary of an annulus).
+    Finite-difference tangents and input roundoff can cause underestimation; the result is not an unconditional upper
+    bound on true reach. Normal fractions <= 8 * dtype epsilon * intrinsic dimension are treated as zero, giving
+    infinity for numerically flat chords. Generic parameterizations need a resolution/convergence check; exact duplicate
+    removal alone does not resolve near-duplicate instability. Candidate search is exhaustive over eligible sampled
+    pairs; no nearest-neighbor approximation is used.
+
+    With the default cutoff, positive sampled separations <= 8 * dtype epsilon * norm(max(abs(sampled coordinates),
+    axis=0)) raise. Exact duplicates are excluded. A positive cutoff can omit a real bottleneck.
+    """
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    patch_sizes, range_sizes, cyclic_dimensions = _validate_reach_grid(
+        features_on_grid,
+        range_sizes,
+        patch_sizes,
+        cyclic_dimensions
+    )
+    n_dims = features_on_grid.ndim - 1
+    batch_size, candidate_batch_size, subsample_points, min_pair_distance = _validate_reach_options(
+        batch_size,
+        candidate_batch_size,
+        subsample_points,
+        min_pair_distance
+    )
+    dims_shape = features_on_grid.shape[:-1]
+    _validate_reach_samples(features_on_grid)
     difference_intervals = get_difference_intervals(list(dims_shape), range_sizes, cyclic_dimensions)
     if any(stride < 0 for stride in features_on_grid.strides):
         features_on_grid = np.ascontiguousarray(features_on_grid)
@@ -204,8 +302,18 @@ def reach_per_point(
         grid_indices += [0 if a in cyclic_dimensions else 1 for a in range(n_dims)]
         with torch.no_grad():
             _, frame, _ = tangent_geometry(T_x, grid_indices=torch.from_numpy(grid_indices))
-            best = torch.full((e-s,), torch.inf, dtype=x.dtype, device=device)
-            witnesses = torch.full((e-s,), -1, dtype=torch.long, device=device)
+            best = torch.full(
+                (e-s,),
+                torch.inf,
+                dtype=x.dtype,
+                device=device
+            )
+            witnesses = torch.full(
+                (e-s,),
+                -1,
+                dtype=torch.long,
+                device=device
+            )
             geometry_ok = torch.ones((), dtype=torch.bool, device=device)
             near_separation = torch.full_like(best, torch.inf)
             for c in range(0, count, candidate_batch_size):

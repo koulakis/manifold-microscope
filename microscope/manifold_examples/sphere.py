@@ -8,7 +8,7 @@ def sphere_volume_element(radius: float, coordinates: np.ndarray) -> float:
 
     Args:
         radius: The radius of the n-sphere.
-        coordinates: The (phi_1, phi_2, ..., phi_n) coordinates of the point to compute the element on.
+        coordinates: Parameter coordinates, shape (... d).
 
     Returns:
         The volume element value of the point at the given coordinates.
@@ -19,16 +19,20 @@ def sphere_volume_element(radius: float, coordinates: np.ndarray) -> float:
     return radius**n * np.prod(components**np.arange(n-1, 0, -1), axis=-1)
 
 
-def sphere_scalar_curvature(radius: float, coordinates: np.ndarray, normalized: bool = False) -> np.ndarray:
+def sphere_scalar_curvature(
+    radius: float,
+    coordinates: np.ndarray,
+    normalized: bool = False
+) -> np.ndarray:
     """Compute the scalar curvature of an n-sphere. It depends only on the radius and the dimension as seen in:
 
     R = n (n - 1) / R^2
 
     Args:
         radius: The radius of the n-sphere.
-        coordinates: The (phi_1, phi_2, ..., phi_n n) coordinates of the point to compute the element on.
-        normalized: If true, it computes a normalized version of the scalar curvature, like in the definition
-            in Do Carmo.
+        coordinates: Parameter coordinates, shape (... d).
+        normalized: If true, it computes a normalized version of the scalar curvature, like in the definition in Do
+            Carmo.
 
     Returns:
         A tensor with the scalar curvature of the sphere of the given radius repeated to match the input shape.

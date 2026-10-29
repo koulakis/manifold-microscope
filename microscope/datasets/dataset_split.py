@@ -10,7 +10,14 @@ def interpolation_splitting(
     subsample_dims: list[int]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Stride over the transformation dimensions to select data on a thinner grid. This can be used to measure the
-    interpolation performance of a supervised model."""
+    interpolation performance of a supervised model.
+
+    Args:
+        data: Image grid, shape (s1 ... sd h w).
+        target: Labels, shape (s1 ... sd).
+        stride: Grid stride for selecting training samples.
+        subsample_dims: Zero-based transformation axes to subsample.
+    """
     grid_shape = data.shape[:-2]
     subsample_slices = [slice(None)] * len(grid_shape)
     for d in subsample_dims:
@@ -78,15 +85,20 @@ def weighted_uniform_splitting(
     return array_train, target_train, array_test, target_test, train_mask
 
 
-def maximal_distance_selection_torch(data: np.ndarray, size: int, device=None, verbose: bool = False):
-    """
-    Farthest point sampling (a.k.a. maximal distance selection).
+def maximal_distance_selection_torch(
+    data: np.ndarray,
+    size: int,
+    device: str | torch.device | None = None,
+    verbose: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
+    """Farthest point sampling (a.k.a. maximal distance selection).
 
     Args:
-        data: Tensor of shape (N, D), must fit in memory.
+        data: Input point array, shape (n f), fitting in device memory.
         size: Number of points to select.
         device: Optional "cuda" or "cpu". If None, will try GPU first, fallback to CPU.
         verbose: If true, show progress bar.
+
     Returns:
         selected_data: (size, D) NumPy array
         selected_idxs: (size, ) NumPy array of distinct indices

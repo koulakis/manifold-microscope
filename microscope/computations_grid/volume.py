@@ -6,8 +6,8 @@ from microscope.patches import extract_patches, stack_patches
 
 
 def volume_element_batch(
-        features_on_grid: torch.Tensor,
-        difference_intervals: list[float]
+    features_on_grid: torch.Tensor,
+    difference_intervals: list[float]
 ) -> torch.Tensor:
     """Estimate sqrt(det(g)) from central finite differences.
 
@@ -16,8 +16,8 @@ def volume_element_batch(
         difference_intervals: One coordinate spacing per grid axis.
 
     Returns:
-        A tensor of shape (s1 - 2, ..., sk - 2) on the input device.
-        All grid axes are cropped; pad periodic axes first."""
+        A tensor of shape (s1 - 2, ..., sk - 2) on the input device. All grid axes are cropped; pad periodic axes first.
+    """
     metric = riemannian_metric(features_on_grid, difference_intervals)
 
     return torch.sqrt(torch.linalg.det(metric))
@@ -40,8 +40,8 @@ def volume_element(
         device: Torch device; None selects CUDA when available, otherwise CPU.
 
     Returns:
-        A NumPy array of shape (s1_out, ..., sk_out), where s_i_out = s_i
-        for periodic axes and s_i - 2 otherwise: one volume element per point.
+        A NumPy array of shape (s1_out, ..., sk_out), where s_i_out = s_i for periodic axes and s_i - 2 otherwise: one
+        volume element per point.
     """
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -89,6 +89,12 @@ def volume_element(
 
 
 def compute_total_volume(element: np.ndarray, range_sizes: list[float]) -> float:
+    """Integrate a volume-element grid over its parameter domain.
+
+    Args:
+        element: Volume-element grid, shape (s1 ... sd).
+        range_sizes: Parameter-range length along each of the d grid axes.
+    """
     grid_volume = np.prod(range_sizes)
 
     # Note that the total area = sum(element) * (grid_vol / N^2) = sum(element) / N^2 * grid_vol

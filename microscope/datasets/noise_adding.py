@@ -6,15 +6,15 @@ from microscope.cyclic_dimensions import get_difference_intervals
 
 
 def null_space(A: np.ndarray) -> np.ndarray:
-    """Compute the null space of a matrix. The function decomposes the matrice with SVD to U, S, V and
-    then keeps the last n - m vectors of V which span the orthogonal space.
+    """Compute the null space of a matrix. The function decomposes the matrice with SVD to U, S, V and then keeps the
+    last n - m vectors of V which span the orthogonal space.
 
     Args:
         A: A (d1 ... dk m n) array of matrices describing linear transformations whose null spaces will be computed.
 
     Returns:
-        A (d1 ... dk n - m n) array with k orthogonal vectors spanning the null space. Note those are parts of the
-        n x n matrices V of the SVD decompositions U S V.
+        A (d1 ... dk n - m n) array with k orthogonal vectors spanning the null space. Note those are parts of the n x n
+        matrices V of the SVD decompositions U S V.
     """
     m, n = A.shape[-2:]
 
@@ -36,6 +36,18 @@ def cotangent_gaussian_noise(
     orthogonality_check_sample_size: int = 1000
 ) -> np.ndarray:
     # Estimate the tangent vectors of the data.
+    """Generate Gaussian noise in the estimated normal spaces of a grid.
+
+    Args:
+        data: Embedding grid, shape (s1 ... sd f).
+        sigma: Standard deviation of the Gaussian noise.
+        range_sizes: Parameter-range length along each of the d grid axes.
+        patch_sizes: Patch size along each of the d grid axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
+        batch_size: Number of tangent matrices processed together.
+        check_orthogonality: Check sampled tangent/normal products after constructing the bases.
+        orthogonality_check_sample_size: Number of bases sampled for the optional numerical check.
+    """
     dims_shape = data.shape[:-1]
 
     difference_intervals = get_difference_intervals(
@@ -99,5 +111,11 @@ def cotangent_gaussian_noise(
     return cotangent_noise[..., 0, :]
 
 
-def compute_gaussian_noise(shape: tuple[int, ...], sigma: float):
+def compute_gaussian_noise(shape: tuple[int, ...], sigma: float) -> np.ndarray:
+    """Generate independent zero-mean Gaussian values.
+
+    Args:
+        shape: Shape (s1 ... sn) of the generated noise array.
+        sigma: Standard deviation of the Gaussian noise.
+    """
     return np.random.normal(size=shape, loc=0, scale=sigma)

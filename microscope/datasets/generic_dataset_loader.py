@@ -26,13 +26,13 @@ def load_dataset_no_split(
     number_of_dims: int,
     return_data_slice_info: bool = True,
     scale_to_0_1: bool = True
-):
+) -> tuple:
     """Load one of the datasets applying different transforms and splits.
 
     Args:
         dataset_name: The name of the base dataset.
-        number_of_dims: The number of grid dimensions to keep in the dataset. On each dataset there is an explicit
-            way to remove dimensions, preferring to keep cyclic vs non-cyclic.
+        number_of_dims: The number of grid dimensions to keep in the dataset. On each dataset there is an explicit way
+            to remove dimensions, preferring to keep cyclic vs non-cyclic.
         return_data_slice_info: If true, it returns information needed to handle cyclic dimensions of the data.
         scale_to_0_1: If true scale to [0, 1].
 
@@ -170,8 +170,8 @@ def load_dataset(
 
     Args:
         dataset_name: The name of the base dataset.
-        number_of_dims: The number of grid dimensions to keep in the dataset. On each dataset there is an explicit
-            way to remove dimensions, preferring to keep cyclic vs non-cyclic.
+        number_of_dims: The number of grid dimensions to keep in the dataset. On each dataset there is an explicit way
+            to remove dimensions, preferring to keep cyclic vs non-cyclic.
         ratio_per_dim: If true, then the training ratio is applied per dimension, i.e. the dataset is subsampled so that
             each dimension keep this point ratio. This can be useful in generating ratios which are comparable between
             datasets of different dimensions. It did not prove to be very successful in practice as the number of
@@ -179,8 +179,8 @@ def load_dataset(
         training_ratio: A training sampling ratio which is applied directly or per dimension.
         noise_sigma: The standard deviation of an ambient Gaussian noise added to the data.
         save_train_idx: If true, then a mask which selects the training data is saved to recover train or test datasets.
-        weight_subsampling_by_manifold_volume: If true, then the subsampling is weighted based on the volume in order
-            to simulate a uniform sampling on the volume measure.
+        weight_subsampling_by_manifold_volume: If true, then the subsampling is weighted based on the volume in order to
+            simulate a uniform sampling on the volume measure.
         output_dir: The output directory for the train index.
         return_full_datasets: If true, no data split happens and the full data and targets are returned.
         return_dataset_unflat_with_metadata: If ture, return dataset metadata such as cyclic dimensions and ranges.
@@ -190,10 +190,7 @@ def load_dataset(
 
     Returns:
         The following arrays with the corresponding splits. Note that the grid dimensions are flattened.
-            data_train
-            data_test
-            target_train
-            target_test
+            data_train data_test target_train target_test
     """
     (
         data,
@@ -296,11 +293,17 @@ def export_fixed_grid_test_set_and_rest_for_train(
     output_dir: Path,
     max_test_size: int = 1_000,
     device: str = "cuda:0"
-):
+) -> None:
     """Export a fixed split, reusing a cache only when its effective test size matches.
 
-    A conflicting cache is preserved and raises ValueError. Use a new output
-    directory to request another split.
+    A conflicting cache is preserved and raises ValueError. Use a new output directory to request another split.
+
+    Args:
+        dataset_name: Dataset variant to load.
+        number_of_dims: Number of transformation axes retained in the dataset.
+        output_dir: Directory for the cached fixed test split.
+        max_test_size: Maximum number of fixed test samples.
+        device: Torch device used for tensor computation.
     """
     if max_test_size < 1:
         raise ValueError("max_test_size must be positive.")
@@ -437,23 +440,20 @@ def load_dataset_fixed_test_split(
     Args:
         datasets_dir: The directory with the exported datasets.
         dataset_name: The name of the base dataset.
-        number_of_dims: The number of grid dimensions to keep in the dataset. On each dataset there is an explicit
-            way to remove dimensions, preferring to keep cyclic vs non-cyclic.
+        number_of_dims: The number of grid dimensions to keep in the dataset. On each dataset there is an explicit way
+            to remove dimensions, preferring to keep cyclic vs non-cyclic.
         ratio_per_dim: If true, then the training ratio is applied per dimension, i.e. the dataset is subsampled so that
             each dimension keep this point ratio. This can be useful in generating ratios which are comparable between
             datasets of different dimensions. It did not prove to be very successful in practice as the number of
             samples grows exponentially with the dimension.
         training_ratio: A training sampling ratio which is applied directly or per dimension.
         noise_sigma: The standard deviation of an ambient Gaussian noise added to the data.
-        weight_subsampling_by_manifold_volume: If true, then the subsampling is weighted based on the volume in order
-            to simulate a uniform sampling on the volume measure.
+        weight_subsampling_by_manifold_volume: If true, then the subsampling is weighted based on the volume in order to
+            simulate a uniform sampling on the volume measure.
 
     Returns:
         The following arrays with the corresponding splits. Note that the grid dimensions are flattened.
-            data_train
-            data_test
-            target_train
-            target_test
+            data_train data_test target_train target_test
     """
     # Load the dataset info.
     if isinstance(dataset_name, Enum):

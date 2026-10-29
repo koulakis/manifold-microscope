@@ -22,7 +22,11 @@ LABEL_MAPPING = {
 DEFAULT_BLUR_SIGMA = 0.8
 
 
-def create_square_sprite(image_size: int, square_size: int, dtype: np.dtype = np.float32) -> np.ndarray:
+def create_square_sprite(
+    image_size: int,
+    square_size: int,
+    dtype: np.dtype = np.float32
+) -> np.ndarray:
     """Create a square sprite of a given size in the center of a black image.
 
     Args:
@@ -39,7 +43,11 @@ def create_square_sprite(image_size: int, square_size: int, dtype: np.dtype = np
     return place_in_middle_of_background(background, square)
 
 
-def create_heart_sprite(image_size: int, heart_size: int, dtype: np.dtype = np.float32) -> np.ndarray:
+def create_heart_sprite(
+    image_size: int,
+    heart_size: int,
+    dtype: np.dtype = np.float32
+) -> np.ndarray:
     """Create a heart sprite of a given size in the center of a black image. Using the third equation of this blog:
     https://blogs.lcps.org/academiesonline/2021/02/13/the-equation-of-the-heart
 
@@ -72,7 +80,11 @@ def create_heart_sprite(image_size: int, heart_size: int, dtype: np.dtype = np.f
     return image
 
 
-def create_ellipse_sprite(image_size: int, ellipse_size: int, dtype: np.dtype = np.float32) -> np.ndarray:
+def create_ellipse_sprite(
+    image_size: int,
+    ellipse_size: int,
+    dtype: np.dtype = np.float32
+) -> np.ndarray:
     """Create an ellipse sprite of a given size in the center of a black image.
 
     Args:
@@ -107,6 +119,21 @@ def create_ellipse_sprite(image_size: int, ellipse_size: int, dtype: np.dtype = 
     return image
 
 
+def _validate_sprite_sizes(image_size: int, sprite_initial_size: int) -> None:
+    # Image and sprite sizes should be even to simplify splitting them.
+    """Validate the even image and sprite side lengths.
+
+    Both side lengths must be even. Preserve the original AssertionError checks used to simplify centering and resizing.
+
+    Args:
+        image_size: Side length of the output image in pixels.
+        sprite_initial_size: Side length of the sprite before transformations.
+    """
+    assert image_size % 2 == 0
+    assert sprite_initial_size % 2 == 0
+    return None
+
+
 def dsprites(
     image_size: int = 64,
     sprite_initial_size: int = 20,
@@ -136,22 +163,24 @@ def dsprites(
     Any possible combination of the above is included in the dataset in order to obtain a full (up to discretization)
     data manifold. The data then has a shape of (sprites sizes orientations y_values x_values image_height image_width).
 
+    Requires compatible image and sprite sizes; see _validate_sprite_sizes.
+
     Args:
-        image_size: The size of the image in pixels. Should be an even number.
-        sprite_initial_size: The sprite size before resizing. Should be an even number.
+        image_size: Side length of the output image in pixels.
+        sprite_initial_size: Side length of the sprite before transformations.
         deformation_transforms_initial_size_factor: A factor to scale up the image and sprite size before applying the
             deformation transforms in order to minimize information loss.
-        sprites: A set of sprites to use, could be any sublist of ["square", "ellipse", "heart"]. If not set, then
-            it defaults to the whole list.
+        sprites: A set of sprites to use, could be any sublist of ["square", "ellipse", "heart"]. If not set, then it
+            defaults to the whole list.
         n_sizes: The number of different sprite sizes to use.
         n_angles: The number of rotation angles to use.
         min_size_ratio: The minimum size ratio to downscale the sprite.
         max_size_ratio: The maximum size ratio to downscale the sprite.
         max_translation: The maximum translation of the sprite from the center of the image in pixels. This will be
             applied both to the left and the right.
-        blur_sigma: An optional standard deviation of a Gaussian to be used for smoothening the images.
         translation_stride: The stride of the translation. If larger than 1, it will reduce the resolution of the
             manifold, but will reduce the data size. Applied to both the x and y directions.
+        blur_sigma: An optional standard deviation of a Gaussian to be used for smoothening the images.
         flat: If true, the dataset is flattened along on the variation dimensions.
         scale: If true, it centers the data around the mean and divides by the standard deviation.
         dtype: The type of the data.
@@ -160,12 +189,10 @@ def dsprites(
 
     Returns:
         - data: The given version of the dSprites dataset of shape (n_shapes n_sizes n_angles n_dy n_dx height width).
-            The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
+          The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
         - target: Labels with the class of each example.
     """
-    # Image and sprite sizes should be even to simplify splitting them.
-    assert image_size % 2 == 0
-    assert sprite_initial_size % 2 == 0
+    _validate_sprite_sizes(image_size, sprite_initial_size)
 
     p1, p2, p3, p4 = processes
 
@@ -198,7 +225,13 @@ def dsprites(
         transform=rotate_image,
         transform_range=(
             "angle",
-            np.linspace(0, 360, n_angles, endpoint=False, dtype=dtype)
+            np.linspace(
+                0,
+                360,
+                n_angles,
+                endpoint=False,
+                dtype=dtype
+            )
         ),
         axis=-3,
         processes=p1,
@@ -274,10 +307,10 @@ def dsprites(
 def dsprites_original_remake(
     flat: bool = False,
     scale: bool = False,
-    blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA,
+    blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Reproduces a smoothed version of the original dSprites dataset. The sprite sizes,
-    might not be the same, but the sizes of the different dimensions match.
+    """Reproduces a smoothed version of the original dSprites dataset. The sprite sizes, might not be the same, but the
+    sizes of the different dimensions match.
 
     Args:
         flat: If true, the dataset is flattened along on the variation dimensions.
@@ -286,7 +319,7 @@ def dsprites_original_remake(
 
     Returns:
         - data: The given version of the dSprites dataset of shape (n_shapes n_sizes n_angles n_dy n_dx height width).
-            The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
+          The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
         - target: Labels with the class of each example.
     """
     return dsprites(
@@ -313,8 +346,8 @@ def dsprites_original_remake_single_size(
     scale: bool = False,
     blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Again a smoothed version of the original dataset, this time selecting only the
-    largest sprite size in order to remove one dimension.
+    """Again a smoothed version of the original dataset, this time selecting only the largest sprite size in order to
+    remove one dimension.
 
     Args:
         flat: If true, the dataset is flattened along on the variation dimensions.
@@ -323,7 +356,7 @@ def dsprites_original_remake_single_size(
 
     Returns:
         - data: The given version of the dSprites dataset of shape (n_shapes n_sizes n_angles n_dy n_dx height width).
-            The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
+          The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
         - target: Labels with the class of each example.
     """
     data, target = dsprites(
@@ -365,12 +398,12 @@ def dsprites_balanced(
         flat: If true, the dataset is flattened along on the variation dimensions.
         scale: If true, it centers the data around the mean and divides by the standard deviation.
         blur_sigma: An optional standard deviation of a Gaussian to be used for smoothening the images.
-        buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions
-            in order to be able to estimate geometric measures which require surrounding points.
+        buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions in order to be able
+            to estimate geometric measures which require surrounding points.
 
     Returns:
         - data: The given version of the dSprites dataset of shape (n_shapes n_sizes n_angles n_dy n_dx height width).
-            The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
+          The last two dimensions correspond to the image shape and the rest to the transforms of the sprite.
         - target: Labels with the class of each example.
     """
 
