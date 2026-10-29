@@ -1,8 +1,24 @@
 """Validation shared by regular-grid sampling and computations."""
+from collections.abc import Iterable
+
 import numpy as np
 
 
-def integer_list(values, name, *, minimum=0):
+def integer_list(
+    values: Iterable[int],
+    name: str,
+    minimum: int = 0
+) -> list[int]:
+    """Validate an integer sequence and return Python integer values.
+
+    Accept integer iterables with values >= minimum; booleans are rejected. Return a list of Python ints, raising
+    ValueError for invalid sequences.
+
+    Args:
+        values: Integer sequence of shape (d).
+        name: Parameter name used in errors.
+        minimum: Smallest accepted integer.
+    """
     try:
         values = list(values)
     except TypeError as error:
@@ -13,15 +29,31 @@ def integer_list(values, name, *, minimum=0):
     return [int(v) for v in values]
 
 
-def cyclic_axes(values, dims):
+def cyclic_axes(values: Iterable[int], dims: int) -> list[int]:
+    """Validate and normalize periodic-axis indices.
+
+    Indices must be unique integers in [0, dims); booleans are rejected.
+
+    Args:
+        values: Periodic-axis indices, shape (k).
+        dims: Number of available array axes.
+    """
     axes = integer_list(values, "cyclic dimensions")
     if len(set(axes)) != len(axes) or any(axis >= dims for axis in axes):
         raise ValueError(f"cyclic dimensions must be unique axes in [0, {dims}).")
     return axes
 
 
-def spacings(values, dims):
-    """Validate real finite nonzero spacings, preserving each scalar's type."""
+def spacings(values: Iterable[float], dims: int) -> list[float]:
+    """Validate real finite nonzero spacings, preserving each scalar's type.
+
+    Require exactly dims finite, nonzero real scalars in one dimension. Reject booleans and complex values; preserve
+    each accepted scalar type.
+
+    Args:
+        values: Coordinate spacings, shape (d).
+        dims: Expected number of spacings.
+    """
     try:
         values = list(values)
         array = np.asarray(values)

@@ -11,15 +11,18 @@ from microscope.computations_grid.curvature import _scalar_curvature_in_patches
 from microscope.computations_grid._curvature_geometry import tangent_geometry, validate_tensor
 
 
-def _second_fundamental_form_and_metric(
+def _normal_geometry(
     tensor: torch.Tensor,
     difference_intervals: list[float],
-) -> tuple[torch.Tensor, torch.Tensor]:
-    form, metric, _ = _normal_geometry(tensor, difference_intervals)
-    return form, metric
+    return_frame: bool = False
+) -> tuple[torch.Tensor, ...]:
+    """Compute the normal-valued form, metric and inverse QR factor.
 
-
-def _normal_geometry(tensor, difference_intervals, *, return_frame=False):
+    Args:
+        tensor: Embedding tensor, shape (s1 ... sd f).
+        difference_intervals: Coordinate spacing along each of the d grid axes.
+        return_frame: Also return the orthonormal tangent frame.
+    """
     difference_intervals = validate_tensor(tensor, difference_intervals, border=2)
     intrinsic_dim = tensor.ndim - 1
     grid_axes = set(range(intrinsic_dim))
@@ -45,9 +48,23 @@ def _normal_geometry(tensor, difference_intervals, *, return_frame=False):
     return form, metric, inverse_factor
 
 
+def _second_fundamental_form_and_metric(
+    tensor: torch.Tensor,
+    difference_intervals: list[float]
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Compute the normal-valued form and its induced metric.
+
+    Args:
+        tensor: Embedding tensor, shape (s1 ... sd f).
+        difference_intervals: Coordinate spacing along each of the d grid axes.
+    """
+    form, metric, _ = _normal_geometry(tensor, difference_intervals)
+    return form, metric
+
+
 def second_fundamental_form(
     tensor: torch.Tensor,
-    difference_intervals: list[float],
+    difference_intervals: list[float]
 ) -> torch.Tensor:
     """Estimate the normal-valued second fundamental form of a grid embedding.
 
@@ -56,13 +73,12 @@ def second_fundamental_form(
         difference_intervals: One coordinate spacing per grid axis.
 
     Returns:
-        A tensor of shape (s1 - 4, ..., sd - 4, ambient_features, d, d)
-        on the input device. ``form[..., a, i, j]`` is the ambient component
-        of B(∂i, ∂j). All grid axes are cropped by two at each end; pad
-        periodic axes first. Full tangent rank is required.
+        A tensor of shape (s1 - 4, ..., sd - 4, ambient_features, d, d) on the input device. ``form[..., a, i, j]`` is
+        the ambient component of B(∂i, ∂j). All grid axes are cropped by two at each end; pad periodic axes first. Full
+        tangent rank is required.
 
-    The projection uses a reduced QR tangent frame with d columns. No full
-    ambient normal basis or ambient-by-ambient projector is constructed.
+    The projection uses a reduced QR tangent frame with d columns. No full ambient normal basis or ambient-by-ambient
+    projector is constructed.
     """
     form, _ = _second_fundamental_form_and_metric(tensor, difference_intervals)
     return form
@@ -71,25 +87,26 @@ def second_fundamental_form(
 def scalar_curvature_batch(
     tensor: torch.Tensor,
     difference_intervals: list[float],
-    normalize: bool = False,
+    normalize: bool = False
 ) -> torch.Tensor:
     """Estimate extrinsic scalar curvature via the Euclidean Gauss identity.
 
     The sign convention matches intrinsic ``curvature.scalar_curvature_batch``:
-    a radius-r sphere has positive scalar curvature d(d-1)/r². ``normalize``
-    divides by d(d-1), and requires d >= 2. The output has shape
-    (s1 - 6, ..., sd - 6), matching the intrinsic batch function.
+    a radius-r sphere has positive scalar curvature d(d-1)/r². ``normalize`` divides by d(d-1), and requires d >= 2. The
+    output has shape (s1 - 6, ..., sd - 6), matching the intrinsic batch function.
 
-    For the separable sin/cos and sinh/cosh parameterizations used by the
-    analytic manifold examples, matched central-difference factors cancel
-    in the Gauss contraction. Their errors can therefore be dominated by
-    roundoff even on coarse grids and grow as spacing decreases. Generic
-    smooth embeddings retain finite-difference truncation error.
+    For the separable sin/cos and sinh/cosh parameterizations used by the analytic manifold examples, matched
+    central-difference factors cancel in the Gauss contraction. Their errors can therefore be dominated by roundoff even
+    on coarse grids and grow as spacing decreases. Generic smooth embeddings retain finite-difference truncation error.
 
-    A reduced QR tangent frame avoids normal equations for projection.
-    Sectional Gauss terms avoid subtracting large diagonal self-contributions.
-    Numerical rank loss raises a LinAlgError with a batch-grid location;
-    near-singular charts can still amplify input and differentiation errors.
+    A reduced QR tangent frame avoids normal equations for projection. Sectional Gauss terms avoid subtracting large
+    diagonal self-contributions. Numerical rank loss raises a LinAlgError with a batch-grid location; near-singular
+    charts can still amplify input and differentiation errors.
+
+    Args:
+        tensor: Embedding tensor, shape (s1 ... sd f).
+        difference_intervals: Coordinate spacing along each of the d grid axes.
+        normalize: Divide scalar curvature by d * (d - 1).
     """
     difference_intervals = validate_tensor(tensor, difference_intervals, border=3)
     intrinsic_dim = tensor.ndim - 1
@@ -98,7 +115,10 @@ def scalar_curvature_batch(
 
     form, metric, inverse_factor = _normal_geometry(tensor, difference_intervals)
     orthonormal_form = torch.einsum(
-        "...pi,...apq,...qj->...aij", inverse_factor, form, inverse_factor
+        "...pi,...apq,...qj->...aij",
+        inverse_factor,
+        form,
+        inverse_factor
     )
     # R = 2 sum_{i<j} (<B_ii,B_jj> - <B_ij,B_ji>) in an orthonormal frame.
     # Cancelling the diagonal self-contributions algebraically avoids the
@@ -124,15 +144,27 @@ def scalar_curvature(
     cyclic_dimensions: list[int],
     patch_sizes: list[int],
     normalize: bool = False,
-    device: str | torch.device | None = None,
+    device: str | torch.device | None = None
 ) -> np.ndarray:
     """Estimate extrinsic scalar curvature with the intrinsic NumPy grid API.
 
-    For periodic axes, the output retains the input length; other axes lose
-    three points at each end. ``device=None`` selects CUDA if available, else
-    CPU. Patches bound the memory used by the ambient-vector-valued form.
+    For periodic axes, the output retains the input length; other axes lose three points at each end. ``device=None``
+    selects CUDA if available, else CPU. Patches bound the memory used by the ambient-vector-valued form.
+
+    Args:
+        features_on_grid: Embedding array, shape (s1 ... sd f).
+        difference_intervals: Coordinate spacing along each of the d grid axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
+        patch_sizes: Patch size along each of the d grid axes.
+        normalize: Divide scalar curvature by d * (d - 1).
+        device: Torch device; None selects CUDA when available, otherwise CPU.
     """
     return _scalar_curvature_in_patches(
-        features_on_grid, difference_intervals, cyclic_dimensions, patch_sizes,
-        normalize, device, scalar_curvature_batch
+        features_on_grid,
+        difference_intervals,
+        cyclic_dimensions,
+        patch_sizes,
+        normalize,
+        device,
+        scalar_curvature_batch
     )

@@ -77,3 +77,13 @@ exclude = ["*.tests", "*.tests.*"]
 
 [tool.setuptools.package-data]
 experiments_and_analysis = ["scripts/configs/*.yaml", "scripts/configs/paper/*.yaml"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.black]
+line-length = 120
+
+[tool.docformatter]
+wrap-summaries = 120
+wrap-descriptions = 120

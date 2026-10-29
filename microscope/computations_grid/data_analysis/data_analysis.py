@@ -46,13 +46,19 @@ class AnalysisResults:
     trim_slices_data: tuple[slice, ...]
 
 
-def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[float]):
+def compute_measure_aggregates_multiclass(
+    measures: Measures,
+    range_sizes: list[float]
+) -> MeasureAggregates:
     """Aggregate measures using the paper's historical sign-subset averages.
 
-    Positive/negative curvature averages use only points with curvature >= 0
-    or < 0, respectively, then multiply by the full parameter-domain volume.
-    They are not additive contributions to total curvature. Empty subsets
-    yield NaN and NumPy warnings, as in the original paper implementation.
+    Positive/negative curvature averages use only points with curvature >= 0 or < 0, respectively, then multiply by the
+    full parameter-domain volume. They are not additive contributions to total curvature. Empty subsets yield NaN and
+    NumPy warnings, as in the original paper implementation.
+
+    Args:
+        measures: Per-class measure grids, shape (s1 ... sd), and volume metadata.
+        range_sizes: Parameter-range length along each of the d grid axes.
     """
     class_names = list(measures.normalized_volume_elements.keys())
     grid_volume = np.prod(range_sizes)
@@ -135,6 +141,216 @@ def compute_measure_aggregates_multiclass(measures: Measures, range_sizes: list[
     )
 
 
+def clip_measure_multiclass(
+    measure: dict[Union[str, tuple[str, str]], np.ndarray],
+    quantile_margin: float = 0.05
+) -> dict[Union[str, tuple[str, str]], np.ndarray]:
+    """Clip each named measure to its central quantile interval.
+
+    Args:
+        measure: Named measure grids, each of shape (s1 ... sd).
+        quantile_margin: Fraction clipped from each tail of each measure.
+    """
+    clipped_measure = {}
+
+    for k, v in measure.items():
+        q_left, q_right = np.quantile(v, [quantile_margin, 1 - quantile_margin])
+        clipped_measure[k] = np.clip(v, q_left, q_right)
+
+    return clipped_measure
+
+
+def _validate_class_names(data: np.ndarray, class_names: list[str]) -> None:
+    # Check the number of classes agrees with the data array.
+    """Validate class-name count and uniqueness.
+
+    The number of names must match data.shape[0], and names must be unique.
+
+    Args:
+        data: Class embedding grids, shape (n_classes s1 ... sd f).
+        class_names: One name per leading class axis entry.
+    """
+    if len(class_names) != data.shape[0]:
+        raise ValueError(
+            f"The number of class names ({len(class_names)} is different than the "
+            f"first data dimension ({data.shape[0]})."
+        )
+    if len(set(class_names)) != len(class_names):
+        raise ValueError("The class names must be unique.")
+    return None
+
+
+def _plot_measure_pairs(
+    title: str,
+    volumes: np.ndarray,
+    curvatures: np.ndarray,
+    reaches: np.ndarray,
+    classes: np.ndarray | None = None,
+    height: float = 2.5,
+    alpha: float = 0.5
+) -> None:
+    """Plot pairwise distributions of the three geometry measures.
+
+    Args:
+        title: Title displayed above the plot.
+        volumes: Volume-element values, shape (n).
+        curvatures: Scalar-curvature values, shape (n).
+        reaches: Local-reach values, shape (n).
+        classes: Optional class labels, shape (n), aligned with plotted values.
+        height: Height of each pair-plot panel in inches.
+        alpha: Opacity of plotted points or densities.
+    """
+    if classes is None:
+        df = pd.DataFrame(dict(
+            volume=volumes,
+            curvature=curvatures,
+            reach=reaches
+        ))
+    else:
+        df = pd.DataFrame(dict(
+            volume=volumes,
+            curvature=curvatures,
+            reach=reaches,
+            classes=classes
+        ))
+
+    g = sns.pairplot(
+        df,
+        kind="kde",
+        diag_kind="kde",
+        plot_kws=dict(fill=True, alpha=alpha),
+        height=height,
+        corner=True,
+        hue=None if classes is None else "classes"
+    )
+    g.fig.suptitle(title, y=1.02)
+
+
+def _plot_feature_measure_pairs(
+    title: str,
+    data: np.ndarray,
+    volumes: np.ndarray,
+    curvatures: np.ndarray,
+    reaches: np.ndarray,
+    classes: np.ndarray | None = None,
+    height: float = 2.5,
+    alpha: float = 0.5
+) -> None:
+    """Plot geometry measures against transformation coordinates.
+
+    Args:
+        title: Title displayed above the plot.
+        data: Class embedding grids, shape (n_classes s1 ... sd f).
+        volumes: Volume-element values, shape (n).
+        curvatures: Scalar-curvature values, shape (n).
+        reaches: Local-reach values, shape (n).
+        classes: Optional class labels, shape (n), aligned with plotted values.
+        height: Height of each pair-plot panel in inches.
+        alpha: Opacity of plotted points or densities.
+    """
+    n_classes = len(np.unique(classes))
+    rotations, x_translations, y_translations = np.meshgrid(*[np.arange(n) for n in data.shape[1:-1]])
+    rotations = 360 * rotations / rotations.max()
+    rotations = rotations.flatten()
+    rotations = np.tile(rotations, n_classes)
+    x_translations = x_translations.flatten()
+    x_translations = np.tile(x_translations, n_classes)
+    y_translations = y_translations.flatten()
+    y_translations = np.tile(y_translations, n_classes)
+
+    if classes is None:
+        df = pd.DataFrame(dict(
+            volume=volumes,
+            curvature=curvatures,
+            reach=reaches,
+            rotation=rotations,
+            x_translation=x_translations,
+            y_translation=y_translations,
+        ))
+    else:
+        df = pd.DataFrame(dict(
+            volume=volumes,
+            curvature=curvatures,
+            reach=reaches,
+            rotation=rotations,
+            x_translation=x_translations,
+            y_translation=y_translations,
+            classes=classes
+        ))
+
+    g = sns.pairplot(
+        df,
+        kind="kde",
+        diag_kind="kde",
+        plot_kws=dict(fill=True, alpha=alpha),
+        height=height,
+        corner=False,
+        hue=None if classes is None else "classes",
+        y_vars=["volume", "curvature", "reach"],
+        x_vars=["rotation", "x_translation", "y_translation"]
+    )
+    g.fig.suptitle(title, y=1.02)
+
+
+def _plot_with_scalar_values(
+    title: str,
+    data: np.ndarray,
+    scalar_values: dict[str, np.ndarray],
+    size_mult: float = 5,
+    alpha: float = 0.6,
+    s: float = 1,
+    cmap: str = "coolwarm",
+    colorbar_fraction: float = 0.03,
+    dpi: int = 300,
+    output_path: Optional[Path] = None,
+    show: bool = True
+) -> None:
+    """Plot three-dimensional coordinates colored by scalar fields.
+
+    Args:
+        title: Title displayed above the plot.
+        data: Projected coordinates, shape (n 3).
+        scalar_values: Named scalar fields, each of shape (n).
+        size_mult: Size of each plot panel in inches.
+        alpha: Opacity of plotted points or densities.
+        s: Scatter marker size.
+        cmap: Matplotlib color-map name.
+        colorbar_fraction: Fraction of panel width used for the color bar.
+        dpi: Resolution of exported images in dots per inch.
+        output_path: Optional output image path.
+        show: Display the plot after rendering.
+    """
+    n_plots = len(scalar_values)
+
+    fig, axes = plt.subplots(
+        1,
+        n_plots,
+        figsize=(size_mult * n_plots, size_mult),
+        subplot_kw=dict(projection='3d'),
+        squeeze=False
+    )
+    fig.suptitle(title)
+    axes = axes[0]
+
+    for i, [name, value] in enumerate(scalar_values.items()):
+        ax = axes[i]
+        ax.set_title(name)
+        plot = ax.scatter(
+            *data.T,
+            c=value,
+            s=s,
+            alpha=alpha,
+            cmap=cmap
+        )
+        plt.colorbar(plot, ax=ax, fraction=colorbar_fraction)
+
+    plt.tight_layout()
+    if output_path is not None:
+        plt.savefig(output_path, dpi=dpi)
+    if show:
+        plt.show()
+
+
 def compute_measures_multiclass(
     data: np.ndarray,
     class_names: list[str],
@@ -155,36 +371,25 @@ def compute_measures_multiclass(
         range_sizes: Full parameter-range length along each grid axis.
         cyclic_dimensions: Zero-based periodic grid-axis indices within a class.
         patch_sizes: One patch size per grid axis, each greater than six.
-        normalize_for_volume: Rescale all classes together to combined volume 1
-            before computing the remaining measures.
-        normalize_curvatures: Divide scalar curvature by d * (d - 1); requires
-            d >= 2. Independent of volume normalization.
-        reach_subsample: Optional reach query/candidate stride along every axis;
-            derivatives still use the full grid.
+        normalize_for_volume: Rescale all classes together to combined volume 1 before computing the remaining measures.
+        normalize_curvatures: Divide scalar curvature by d * (d - 1); requires d >= 2. Independent of volume
+            normalization.
+        reach_subsample: Optional reach query/candidate stride along every axis; derivatives still use the full grid.
         reach_batch_size: Number of query points per reach batch.
         device: Torch device; None selects CUDA when available, otherwise CPU.
 
     Returns:
-        An AnalysisResults dataclass with measures, measure_aggregates,
-        range_sizes and trim_slices_data. Per-class volume_elements arrays have
-        shape (v1, ..., vd), with v_i = s_i for periodic axes and s_i - 2
-        otherwise. Arrays in normalized_volume_elements, normalized_curvatures,
-        normalized_reaches and the class-pair normalized_distances have shape
-        (c1, ..., cd), with c_i = s_i for periodic axes and s_i - 6 otherwise.
-        Applying trim_slices_data to data yields shape
-        (n_classes, c1, ..., cd, features). Fields retain their normalized_ names
-        even when volume normalization is disabled. No plots are generated.
+        An AnalysisResults dataclass with measures, measure_aggregates, range_sizes and trim_slices_data. Per-class
+        volume_elements arrays have shape (v1, ..., vd), with v_i = s_i for periodic axes and s_i - 2 otherwise. Arrays
+        in normalized_volume_elements, normalized_curvatures, normalized_reaches and the class-pair normalized_distances
+        have shape (c1, ..., cd), with c_i = s_i for periodic axes and s_i - 6 otherwise. Applying trim_slices_data to
+        data yields shape (n_classes, c1, ..., cd, features). Fields retain their normalized_ names even when volume
+        normalization is disabled. No plots are generated.
 
     Raises:
-        ValueError: If class names are duplicated or their count is incorrect."""
-    # Check the number of classes agrees with the data array.
-    if len(class_names) != data.shape[0]:
-        raise ValueError(
-            f"The number of class names ({len(class_names)} is different than the "
-            f"first data dimension ({data.shape[0]})."
-        )
-    if len(set(class_names)) != len(class_names):
-        raise ValueError("The class names must be unique.")
+        ValueError: For invalid class metadata; see _validate_class_names.
+    """
+    _validate_class_names(data, class_names)
     dim_shapes = list(data.shape[1:-1])
     n_dims = len(dim_shapes)
 
@@ -298,20 +503,16 @@ def compute_measures_multiclass(
     )
 
 
-def clip_measure_multiclass(
-        measure: dict[Union[str, tuple[str, str]], np.ndarray],
-        quantile_margin: float = 0.05
-) -> dict[Union[str, tuple[str, str]], np.ndarray]:
-    clipped_measure = {}
+def clip_results_multiclass(
+    results: AnalysisResults,
+    quantile_margin: float = 0.01
+) -> AnalysisResults:
+    """Copy analysis results with clipped fields and recomputed aggregates.
 
-    for k, v in measure.items():
-        q_left, q_right = np.quantile(v, [quantile_margin, 1 - quantile_margin])
-        clipped_measure[k] = np.clip(v, q_left, q_right)
-
-    return clipped_measure
-
-
-def clip_results_multiclass(results: AnalysisResults, quantile_margin: float = 0.01) -> AnalysisResults:
+    Args:
+        results: Measure grids, aggregates and metadata to copy with clipped fields.
+        quantile_margin: Fraction clipped from each tail of each measure.
+    """
     clipped_measures = Measures(
         volume_elements=clip_measure_multiclass(results.measures.volume_elements, quantile_margin),
         total_volumes=results.measures.total_volumes,
@@ -332,41 +533,6 @@ def clip_results_multiclass(results: AnalysisResults, quantile_margin: float = 0
     )
 
 
-def _plot_measure_pairs(
-    title: str,
-    volumes: np.ndarray,
-    curvatures: np.ndarray,
-    reaches: np.ndarray,
-    classes=None,
-    height: float = 2.5,
-    alpha=0.5
-):
-    if classes is None:
-        df = pd.DataFrame(dict(
-            volume=volumes,
-            curvature=curvatures,
-            reach=reaches
-        ))
-    else:
-        df = pd.DataFrame(dict(
-            volume=volumes,
-            curvature=curvatures,
-            reach=reaches,
-            classes=classes
-        ))
-
-    g = sns.pairplot(
-        df,
-        kind="kde",
-        diag_kind="kde",
-        plot_kws=dict(fill=True, alpha=alpha),
-        height=height,
-        corner=True,
-        hue=None if classes is None else "classes"
-    )
-    g.fig.suptitle(title, y=1.02)
-
-
 def plot_pairs_multiclass(
     data: np.ndarray,
     analysis_results: AnalysisResults,
@@ -377,7 +543,20 @@ def plot_pairs_multiclass(
     alpha: float = 0.5,
     dpi: int = 300,
     n_samples_for_plots: int = 50_000
-):
+) -> None:
+    """Plot measure distributions across classes.
+
+    Args:
+        data: Class embedding grids, shape (n_classes s1 ... sd f).
+        analysis_results: Per-class geometry fields and their grid metadata.
+        distributions_dir: Optional output directory for pair plots.
+        name: Optional output filename prefix.
+        plot_per_class: Also render a separate plot for each class.
+        height: Height of each pair-plot panel in inches.
+        alpha: Opacity of plotted points or densities.
+        dpi: Resolution of exported images in dots per inch.
+        n_samples_for_plots: Maximum number of points included in each plot.
+    """
     class_names = list(analysis_results.measures.normalized_volume_elements.keys())
     if len(class_names) != data.shape[0]:
         raise ValueError(
@@ -431,67 +610,22 @@ def plot_pairs_multiclass(
             )
 
 
-def _plot_feature_measure_pairs(
-    title: str,
-    data: np.ndarray,
-    volumes: np.ndarray,
-    curvatures: np.ndarray,
-    reaches: np.ndarray,
-    classes=None,
-    height: float = 2.5,
-    alpha=0.5
-):
-    n_classes = len(np.unique(classes))
-    rotations, x_translations, y_translations = np.meshgrid(*[np.arange(n) for n in data.shape[1:-1]])
-    rotations = 360 * rotations / rotations.max()
-    rotations = rotations.flatten()
-    rotations = np.tile(rotations, n_classes)
-    x_translations = x_translations.flatten()
-    x_translations = np.tile(x_translations, n_classes)
-    y_translations = y_translations.flatten()
-    y_translations = np.tile(y_translations, n_classes)
-
-    if classes is None:
-        df = pd.DataFrame(dict(
-            volume=volumes,
-            curvature=curvatures,
-            reach=reaches,
-            rotation=rotations,
-            x_translation=x_translations,
-            y_translation=y_translations,
-        ))
-    else:
-        df = pd.DataFrame(dict(
-            volume=volumes,
-            curvature=curvatures,
-            reach=reaches,
-            rotation=rotations,
-            x_translation=x_translations,
-            y_translation=y_translations,
-            classes=classes
-        ))
-
-    g = sns.pairplot(
-        df,
-        kind="kde",
-        diag_kind="kde",
-        plot_kws=dict(fill=True, alpha=alpha),
-        height=height,
-        corner=False,
-        hue=None if classes is None else "classes",
-        y_vars=["volume", "curvature", "reach"],
-        x_vars=["rotation", "x_translation", "y_translation"]
-    )
-    g.fig.suptitle(title, y=1.02)
-
-
 def plot_features_vs_measures_multiclass(
     data: np.ndarray,
     analysis_results: AnalysisResults,
     plot_per_class: bool = False,
     height: float = 2.5,
-    alpha=0.5
-):
+    alpha: float = 0.5
+) -> None:
+    """Plot transformation-coordinate and geometry distributions by class.
+
+    Args:
+        data: Class embedding grids, shape (n_classes s1 ... sd f).
+        analysis_results: Per-class geometry fields and their grid metadata.
+        plot_per_class: Also render a separate plot for each class.
+        height: Height of each pair-plot panel in inches.
+        alpha: Opacity of plotted points or densities.
+    """
     class_names = list(analysis_results.measures.normalized_volume_elements.keys())
     if len(class_names) != data.shape[0]:
         raise ValueError(
@@ -541,56 +675,32 @@ def plot_features_vs_measures_multiclass(
             )
 
 
-def _plot_with_scalar_values(
-    title,
-    data,
-    scalar_values,
-    size_mult=5,
-    alpha=0.6,
-    s=1,
-    cmap="coolwarm",
-    colorbar_fraction=0.03,
-    dpi: int = 300,
-    output_path: Optional[Path] = None,
-    show: bool = True
-):
-    n_plots = len(scalar_values)
-
-    fig, axes = plt.subplots(
-        1,
-        n_plots,
-        figsize=(size_mult * n_plots, size_mult),
-        subplot_kw=dict(projection='3d'),
-        squeeze=False
-    )
-    fig.suptitle(title)
-    axes = axes[0]
-
-    for i, [name, value] in enumerate(scalar_values.items()):
-        ax = axes[i]
-        ax.set_title(name)
-        plot = ax.scatter(*data.T, c=value, s=s, alpha=alpha, cmap=cmap)
-        plt.colorbar(plot, ax=ax, fraction=colorbar_fraction)
-
-    plt.tight_layout()
-    if output_path is not None:
-        plt.savefig(output_path, dpi=dpi)
-    if show:
-        plt.show()
-
-
 def plot_3d_pca_projections_multiclass(
     data: np.ndarray,
     analysis_results: AnalysisResults,
     projection_measures_dir: Optional[Path] = None,
     projection_classes_dir: Optional[Path] = None,
     case_name: Optional[str] = None,
-    alpha=0.3,
-    s=0.2,
+    alpha: float = 0.3,
+    s: float = 0.2,
     dpi: int = 300,
     show: bool = True,
     n_samples_for_plots: int = 50_000
-):
+) -> None:
+    """Plot PCA projections colored by measures and class labels.
+
+    Args:
+        data: Class embedding grids, shape (n_classes s1 ... sd f).
+        analysis_results: Per-class geometry fields and their grid metadata.
+        projection_measures_dir: Optional output directory for measure-colored projections.
+        projection_classes_dir: Optional output directory for class-colored projections.
+        case_name: Optional output filename prefix.
+        alpha: Opacity of plotted points or densities.
+        s: Scatter marker size.
+        dpi: Resolution of exported images in dots per inch.
+        show: Display the plot after rendering.
+        n_samples_for_plots: Maximum number of points included in each plot.
+    """
     class_names = list(analysis_results.measures.normalized_volume_elements.keys())
     if len(class_names) != data.shape[0]:
         raise ValueError(
@@ -639,7 +749,12 @@ def plot_3d_pca_projections_multiclass(
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
     fig.suptitle("Classes")
     for name, proj in zip(class_names, proj_per_class):
-        ax.scatter(*proj.T, s=s, alpha=alpha, label=name)
+        ax.scatter(
+            *proj.T,
+            s=s,
+            alpha=alpha,
+            label=name
+        )
 
     plt.legend()
     plt.tight_layout()

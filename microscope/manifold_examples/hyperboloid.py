@@ -1,13 +1,13 @@
 import numpy as np
 
 
-def hyperboloid_volume_element(principal_radii: np.ndarray, coordinates: np.ndarray):
+def hyperboloid_volume_element(principal_radii: np.ndarray, coordinates: np.ndarray) -> np.ndarray:
     """Formula to compute the volume element of a 2 or 3-hyperboloid on a point. The formula has been computed
     programmatically using the tools in 'symbolic_computations.py'.
 
     Args:
-        principal_radii: The principal semi-axes of the hyperboloid.
-        coordinates: The polar coordinates of the point to compute the volume element on.
+        principal_radii: Principal semi-axes, shape (d + 1) or (... d + 1).
+        coordinates: Parameter coordinates, shape (... d).
 
     Returns:
         A single number which is the value of the volume element.
@@ -28,7 +28,16 @@ def hyperboloid_volume_element(principal_radii: np.ndarray, coordinates: np.ndar
 
     return np.array(element, dtype=np.float64)
 
-def hyperboloid_scalar_curvature(principal_radii: np.ndarray, coordinates: np.ndarray):
+def hyperboloid_scalar_curvature(
+    principal_radii: np.ndarray,
+    coordinates: np.ndarray
+) -> np.ndarray:
+    """Evaluate the analytic scalar curvature of a hyperboloid.
+
+    Args:
+        principal_radii: Principal semi-axes, shape (d + 1) or (... d + 1).
+        coordinates: Parameter coordinates, shape (... d).
+    """
     n = coordinates.shape[-1]
 
     if n == 2:

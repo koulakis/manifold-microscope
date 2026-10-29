@@ -4,7 +4,21 @@ import torch
 from microscope._grid_validation import spacings
 
 
-def validate_tensor(tensor, intervals, border):
+def validate_tensor(
+    tensor: torch.Tensor,
+    intervals: list[float],
+    border: int
+) -> list[float]:
+    """Validate a tensor embedding and return its coordinate spacings.
+
+    Require finite float32/float64 values with ambient dimension f >= d >= 1. Each grid axis must have more than 2 *
+    border points. Intervals must be finite nonzero real spacings, one per grid axis.
+
+    Args:
+        tensor: Embedding tensor, shape (s1 ... sd f).
+        intervals: Coordinate spacing along each of the d axes.
+        border: Number of samples discarded at each end of a grid axis.
+    """
     if tensor.dtype not in (torch.float32, torch.float64):
         raise TypeError("Curvature requires float32 or float64 inputs.")
     dims = tensor.ndim - 1
@@ -18,12 +32,18 @@ def validate_tensor(tensor, intervals, border):
     return intervals
 
 
-def tangent_geometry(tangent, *, grid_indices=None):
+def tangent_geometry(
+    tangent: torch.Tensor,
+    grid_indices: torch.Tensor | None = None
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Return g, an orthonormal tangent frame and the inverse QR factor.
 
-    QR preserves full-rank tangents whose tiny components disappear in J.T J.
-    A small intrinsic-size SVD diagnoses numerical rank before any solve.
-    No ambient-by-ambient projector is formed and no regularization is added.
+    QR preserves full-rank tangents whose tiny components disappear in J.T J. A small intrinsic-size SVD diagnoses
+    numerical rank before any solve. No ambient-by-ambient projector is formed and no regularization is added.
+
+    Args:
+        tangent: Tangent matrices, shape (... f d).
+        grid_indices: Optional original grid indices, shape (n d), for flattened batches.
     """
     if not torch.isfinite(tangent).all():
         raise FloatingPointError("Nonfinite finite-difference tangent vectors.")
@@ -55,14 +75,16 @@ def tangent_geometry(tangent, *, grid_indices=None):
     return metric, frame, inverse_factor
 
 
-def metric_and_inverse(tangent):
+def metric_and_inverse(tangent: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """Use the small Gram metric directly when its spectrum is well-conditioned.
 
-    Accept lambda_min(g) > sqrt(eps)*lambda_max(g), bounding the estimated
-    condition number by 1/sqrt(eps). This is a roundoff safeguard, not an error
-    bound for the subsequent curvature calculation. Eigenvalues are used only
-    to choose the branch, outside autograd. Only rejected points go through QR;
-    this recovers tangent information that a rounded Gram matrix can lose.
+    Accept lambda_min(g) > sqrt(eps)*lambda_max(g), bounding the estimated condition number by 1/sqrt(eps). This is a
+    roundoff safeguard, not an error bound for the subsequent curvature calculation. Eigenvalues are used only to choose
+    the branch, outside autograd. Only rejected points go through QR; this recovers tangent information that a rounded
+    Gram matrix can lose.
+
+    Args:
+        tangent: Tangent matrices, shape (... f d).
     """
     metric = tangent.transpose(-1, -2) @ tangent
     # Any nonfinite tangent component makes its Gram diagonal nonfinite too.

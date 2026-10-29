@@ -12,8 +12,7 @@ from tqdm import tqdm
 
 @dataclass
 class MeasuresGlobal:
-    """
-    The measures below are different global values computed on the manifold. The volume captures the scale of the
+    """The measures below are different global values computed on the manifold. The volume captures the scale of the
     manifold, while all other measures attempt to capture the complexity of the manifold. The toy manifolds all have
     simple definitions, thus all the measures are directly computed with their closed form formulas or with simple
     numerical approximations.
@@ -47,8 +46,7 @@ class MeasuresGlobal:
 
 @dataclass
 class MeasuresLocal:
-    """
-    Those measures also attempt to capture the complexity of the manifold and are point-wise versions of the global
+    """Those measures also attempt to capture the complexity of the manifold and are point-wise versions of the global
     measures.
     Attributes:
         volume_element: The volume element of the manifold on each point.
@@ -67,13 +65,13 @@ class MeasuresLocal:
 class Manifold(ABC):
     @staticmethod
     @abstractmethod
-    def normalize_parameters(*args, **kwargs):
-        """Given the parameters defining the manifold, it updates them so that they correspond to a manifold of
-        d-volume 1.
+    def normalize_parameters(*args: float, **kwargs: float) -> float | tuple[float, ...]:
+        """Given the parameters defining the manifold, it updates them so that they correspond to a manifold of d-volume
+        1.
 
-        *Args: A list of N parameters to be updated.
-
-        *Returns: A list of the N updated parameters.
+        Args:
+            *args: Radius parameters to normalize.
+            **kwargs: Named radius parameters to normalize.
         """
         pass
 
@@ -94,9 +92,14 @@ class Manifold(ABC):
         """
 
     @abstractmethod
-    def tesselation(self, N: int, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
-        """Get samples of the manifold which have local density close to the d-volume element of the manifold,
-        i.e. they are as spread as possible.
+    def tesselation(
+        self,
+        N: int,
+        normalized: bool = False,
+        device: str = "cuda:0"
+    ) -> np.ndarray:
+        """Get samples of the manifold which have local density close to the d-volume element of the manifold, i.e. they
+        are as spread as possible.
 
         Args:
             N: The number of points to sample.
@@ -117,23 +120,27 @@ class Manifold(ABC):
         pass
 
     @abstractmethod
-    def measures_pointwise(self, points: np.ndarray, normalized: bool = False) -> MeasuresLocal:
+    def measures_pointwise(
+        self,
+        points: np.ndarray,
+        normalized: bool = False
+    ) -> MeasuresLocal:
         """It computes the local measures of the manifold. For details, look at the 'MeasuresGlobal' class.
 
         Args:
-            points: An array with the points to compute the measures on.
+            points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
             normalized: If true, it scales the manifold to have d-volume 1 before computing the measures.
 
         Returns: An instance of 'MeasuresLocal' which contains all the measures as attributes.
         """
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__class__.__name__
 
     @property
     @abstractmethod
-    def dimension(self):
+    def dimension(self) -> int:
         """Returns the intrinsic dimension of the manifold."""
         pass
 
@@ -143,13 +150,29 @@ def cvt_surface(
     manifold: Manifold,
     N: int,
     iterations: int = 20,
-    n_samples=10_000,
+    n_samples: int = 10_000,
     normalized: bool = False,
-    dtype=torch.float32,
-    device="cuda:0"
+    dtype: torch.dtype = torch.float32,
+    device: str | torch.device = "cuda:0"
 ) -> np.ndarray:
+    """Relax sampled surface points using a Sinkhorn transport loss.
+
+    Args:
+        manifold: Manifold supplying uniform reference samples.
+        N: Number of points to sample.
+        iterations: Number of refinement iterations.
+        n_samples: Number of reference samples for the relaxation loss.
+        normalized: Rescale the manifold to unit volume before computing.
+        dtype: Data type of generated values.
+        device: Torch device used for relaxation.
+    """
     x = torch.tensor(manifold.sample(n_samples, normalized=normalized), dtype=dtype, device=device)
-    c = torch.tensor(manifold.sample(N, normalized=normalized), dtype=dtype, requires_grad=True, device=device)
+    c = torch.tensor(
+        manifold.sample(N, normalized=normalized),
+        dtype=dtype,
+        requires_grad=True,
+        device=device
+    )
 
     loss_fn = SamplesLoss(loss="sinkhorn", p=2, blur=0.1)
 
@@ -169,16 +192,31 @@ def cvt_surface(
 
 class Circle(Manifold):
     @property
-    def dimension(self):
+    def dimension(self) -> int:
         return 1
-
-    def __init__(self, R=None, dtype=np.float32):
-        self.R = self.normalize_parameters() if R is None else R
-        self.dtype = dtype
 
     @staticmethod
     def normalize_parameters(R: Optional[float] = None) -> float:
+        """Compute radius parameters giving unit manifold volume.
+
+        Args:
+            R: Optional input radius; ignored for fixed unit-volume normalization.
+        """
         return 1 / (2 * np.pi)
+
+    def __init__(
+        self,
+        R: float | None = None,
+        dtype: np.dtype | type = np.float32
+    ) -> None:
+        """Initialize the object parameters.
+
+        Args:
+            R: Radius; None selects the unit-volume radius where supported.
+            dtype: Data type of generated values.
+        """
+        self.R = self.normalize_parameters() if R is None else R
+        self.dtype = dtype
 
     def sample(
         self,
@@ -186,6 +224,13 @@ class Circle(Manifold):
         normalized: bool = False,
         return_unitary_normal: bool = False
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """Sample points uniformly with respect to manifold volume.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            return_unitary_normal: Also return one unit normal per sample.
+        """
         R = self.normalize_parameters(self.R) if normalized else self.R
         theta = np.random.uniform(low=0, high=2 * np.pi, size=N).astype(self.dtype)
         samples = R * np.stack([np.cos(theta), np.sin(theta)], axis=1)
@@ -197,6 +242,11 @@ class Circle(Manifold):
             return samples
 
     def measures(self, normalized: bool = False) -> MeasuresGlobal:
+        """Compute global analytic manifold measures.
+
+        Args:
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R = self.normalize_parameters() if normalized else self.R
         length = 2 * np.pi * R
         curvature = 1 / R
@@ -212,7 +262,17 @@ class Circle(Manifold):
             average_reach=R
         )
 
-    def measures_pointwise(self,  points: np.ndarray, normalized: bool = False) -> MeasuresLocal:
+    def measures_pointwise(
+        self,
+        points: np.ndarray,
+        normalized: bool = False
+    ) -> MeasuresLocal:
+        """Compute local analytic measures at sample points.
+
+        Args:
+            points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R = self.normalize_parameters() if normalized else self.R
 
         N = len(points)
@@ -224,24 +284,57 @@ class Circle(Manifold):
             reach=np.full(N, R)
         )
 
-    def tesselation(self, N, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
+    def tesselation(
+        self,
+        N: int,
+        normalized: bool = False,
+        device: str = "cuda:0"
+    ) -> np.ndarray:
+        """Generate spread-out manifold sample points.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            device: Torch device used for tensor computation.
+        """
         R = self.normalize_parameters() if normalized else self.R
-        theta = np.linspace(0, 2 * np.pi, N, endpoint=False, dtype=self.dtype)
+        theta = np.linspace(
+            0,
+            2 * np.pi,
+            N,
+            endpoint=False,
+            dtype=self.dtype
+        )
         return R * np.stack([np.cos(theta), np.sin(theta)], axis=1)
 
 
 class Moons(Manifold):
     @property
-    def dimension(self):
+    def dimension(self) -> int:
         return 1
-
-    def __init__(self, R=None, dtype=np.float32):
-        self.R = self.normalize_parameters() if R is None else R
-        self.dtype = dtype
 
     @staticmethod
     def normalize_parameters(R: Optional[float] = None) -> float:
+        """Compute radius parameters giving unit manifold volume.
+
+        Args:
+            R: Optional input radius; ignored for fixed unit-volume normalization.
+        """
         return 1 / (2 * np.pi)
+
+    def __init__(
+        self,
+        R: float | None = None,
+        dtype: np.dtype | type = np.float32
+    ) -> None:
+        """Initialize the object parameters.
+
+        Args:
+            R: Radius; None selects the unit-volume radius where supported.
+            dtype: Data type of generated values.
+        """
+        self.R = self.normalize_parameters() if R is None else R
+        self.dtype = dtype
 
     def sample(
         self,
@@ -249,6 +342,13 @@ class Moons(Manifold):
         normalized: bool = False,
         return_unitary_normal: bool = False
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """Sample points uniformly with respect to manifold volume.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            return_unitary_normal: Also return one unit normal per sample.
+        """
         R = self.normalize_parameters() if normalized else self.R
         theta = 2 * np.pi * np.random.rand(N).astype(self.dtype)
         points = R * np.stack([np.cos(theta), np.sin(theta)], axis=1)
@@ -330,12 +430,13 @@ class Moons(Manifold):
         return reach_vals
 
     @staticmethod
-    def average_reach(R, n=10_000):
+    def average_reach(R: float, n: int = 10_000) -> float:
         """The integral to compute the average reach is a bit challenging, so approximate it.
 
         Args:
             R: The radius of the semicircles.
-            n: Number of theta samples for the integral.
+            n: Number of angular quadrature samples.
+
         Returns: The average reach.
         """
         theta = np.linspace(0.0, np.pi, n, endpoint=False) + 0.5 * np.pi / n
@@ -349,6 +450,11 @@ class Moons(Manifold):
         return (1.0 / (2.0 * np.pi)) * np.trapz(minimal_distance_from_B, theta)
 
     def measures(self, normalized: bool = False) -> MeasuresGlobal:
+        """Compute global analytic manifold measures.
+
+        Args:
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R = self.normalize_parameters() if normalized else self.R
         arc_len = np.pi * R
         total_length = 2 * arc_len
@@ -368,7 +474,17 @@ class Moons(Manifold):
             average_reach=reach
         )
 
-    def measures_pointwise(self, points: np.ndarray, normalized: bool = False) -> MeasuresLocal:
+    def measures_pointwise(
+        self,
+        points: np.ndarray,
+        normalized: bool = False
+    ) -> MeasuresLocal:
+        """Compute local analytic measures at sample points.
+
+        Args:
+            points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R = self.normalize_parameters(self.R) if normalized else self.R
         reach = self.reach(points, R=R)
         N = len(points)
@@ -380,14 +496,38 @@ class Moons(Manifold):
             reach=reach
         )
 
-    def tesselation(self, N, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
+    def tesselation(
+        self,
+        N: int,
+        normalized: bool = False,
+        device: str = "cuda:0"
+    ) -> np.ndarray:
+        """Generate spread-out manifold sample points.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            device: Torch device used for tensor computation.
+        """
         R = self.normalize_parameters(self.R) if normalized else self.R
 
         # Half points for each moon
         N1 = N // 2
         N2 = N - N1
-        theta1 = np.linspace(0, np.pi, N1, endpoint=False, dtype=self.dtype)
-        theta2 = np.linspace(np.pi, 2 * np.pi, N2, endpoint=False, dtype=self.dtype)
+        theta1 = np.linspace(
+            0,
+            np.pi,
+            N1,
+            endpoint=False,
+            dtype=self.dtype
+        )
+        theta2 = np.linspace(
+            np.pi,
+            2 * np.pi,
+            N2,
+            endpoint=False,
+            dtype=self.dtype
+        )
         upper = R * np.stack([np.cos(theta1), np.sin(theta1)], axis=1)
         lower = R * np.stack([np.cos(theta2), np.sin(theta2)], axis=1)
         lower = np.stack([R - lower[:, 0], lower[:, 1] + 0.5 * R], axis=1)
@@ -396,23 +536,45 @@ class Moons(Manifold):
 
 class Sphere(Manifold):
     @property
-    def dimension(self):
+    def dimension(self) -> int:
         return 2
 
-    def __init__(self, R=None, dtype=np.float32):
+    @staticmethod
+    def normalize_parameters(R: Optional[float] = None) -> float:
+        """Compute radius parameters giving unit manifold volume.
+
+        Args:
+            R: Optional input radius; ignored for fixed unit-volume normalization.
+        """
+        return 1 / np.sqrt(4 * np.pi)
+
+    def __init__(
+        self,
+        R: float | None = None,
+        dtype: np.dtype | type = np.float32
+    ) -> None:
+        """Initialize the object parameters.
+
+        Args:
+            R: Radius; None selects the unit-volume radius where supported.
+            dtype: Data type of generated values.
+        """
         self.R = self.normalize_parameters() if R is None else R
         self.dtype = dtype
 
-    @staticmethod
-    def normalize_parameters(R: Optional[float] = None):
-        return 1 / np.sqrt(4 * np.pi)
-
     def sample(
         self,
-        N,
+        N: int,
         normalized: bool = False,
         return_unitary_normal: bool = False
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """Sample points uniformly with respect to manifold volume.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            return_unitary_normal: Also return one unit normal per sample.
+        """
         R = self.normalize_parameters() if normalized else self.R
 
         vec = np.random.randn(N, 3).astype(self.dtype)
@@ -426,6 +588,11 @@ class Sphere(Manifold):
             return samples
 
     def measures(self, normalized: bool = False) -> MeasuresGlobal:
+        """Compute global analytic manifold measures.
+
+        Args:
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R = self.normalize_parameters() if normalized else self.R
         area = 4 * np.pi * R**2
         principal = 1 / R
@@ -443,7 +610,17 @@ class Sphere(Manifold):
             average_reach=R
         )
 
-    def measures_pointwise(self, points: np.ndarray, normalized: bool = False) -> MeasuresLocal:
+    def measures_pointwise(
+        self,
+        points: np.ndarray,
+        normalized: bool = False
+    ) -> MeasuresLocal:
+        """Compute local analytic measures at sample points.
+
+        Args:
+            points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R = self.normalize_parameters() if normalized else self.R
         gaussian = 1 / R**2
         mean = 1 / R
@@ -456,8 +633,28 @@ class Sphere(Manifold):
             reach=np.full(N, R)
         )
 
-    def tesselation(self, N, normalized: bool = False, iterations: int = 50, device: str = "cuda:0") -> np.ndarray:
-        approx_points = cvt_surface(self, N, iterations=iterations, normalized=normalized, device=device)
+    def tesselation(
+        self,
+        N: int,
+        normalized: bool = False,
+        iterations: int = 50,
+        device: str = "cuda:0"
+    ) -> np.ndarray:
+        """Generate spread-out manifold sample points.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            iterations: Number of refinement iterations.
+            device: Torch device used for tensor computation.
+        """
+        approx_points = cvt_surface(
+            self,
+            N,
+            iterations=iterations,
+            normalized=normalized,
+            device=device
+        )
         R = self.normalize_parameters() if normalized else self.R
         projected_points_on_sphere = R * approx_points / np.linalg.norm(approx_points, axis=-1, keepdims=True)
 
@@ -466,16 +663,34 @@ class Sphere(Manifold):
 
 class Torus(Manifold):
     @property
-    def dimension(self):
+    def dimension(self) -> int:
         return 2
 
-    def __init__(self, R=1 / np.sqrt(4*np.pi**2*1*0.6), r=0.6 / np.sqrt(4*np.pi**2*1*0.6), dtype=np.float32):
+    def __init__(
+        self,
+        R: float = 1 / np.sqrt(4*np.pi**2*1*0.6),
+        r: float = 0.6 / np.sqrt(4*np.pi**2*1*0.6),
+        dtype: np.dtype | type = np.float32
+    ) -> None:
+        """Initialize the object parameters.
+
+        Args:
+            R: Major radius of the torus.
+            r: Minor radius of the torus.
+            dtype: Data type of generated values.
+        """
         self.R = R
         self.r = r
         self.dtype = dtype
 
     @staticmethod
     def normalize_parameters(R: float, r: float) -> tuple[float, float]:
+        """Compute radius parameters giving unit manifold volume.
+
+        Args:
+            R: Major radius of the torus.
+            r: Minor radius of the torus.
+        """
         sqrt_area = np.sqrt(4 * np.pi ** 2 * R * r)
 
         R = 1 / sqrt_area * R
@@ -483,12 +698,46 @@ class Torus(Manifold):
 
         return R, r
 
+    @staticmethod
+    def inverse_cdf(
+        y_vals: np.ndarray,
+        R: float,
+        r: float
+    ) -> np.ndarray:
+        """Invert the torus angular cumulative distribution.
+
+        Args:
+            y_vals: Uniform cumulative probabilities, shape (n).
+            R: Radius parameter of the manifold.
+            r: Minor radius of the torus.
+        """
+        def F(v: float) -> float:
+            """Evaluate the torus angular cumulative distribution.
+
+            Args:
+                v: Toroidal angle whose cumulative probability is evaluated.
+            """
+            return (R * v + r * np.sin(v)) / (2 * np.pi * R)
+
+        v_vals = np.zeros_like(y_vals)
+        for i, yi in enumerate(y_vals):
+            sol = root_scalar(lambda v: F(v) - yi, bracket=[0, 2 * np.pi], method='brentq')
+            v_vals[i] = sol.root
+        return v_vals
+
     def sample(
         self,
-        N,
+        N: int,
         normalized: bool = False,
         return_unitary_normal: bool = False
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """Sample points uniformly with respect to manifold volume.
+
+        Args:
+            N: Number of points to sample.
+            normalized: Rescale the manifold to unit volume before computing.
+            return_unitary_normal: Also return one unit normal per sample.
+        """
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
         u = 2 * np.pi * np.random.rand(N).astype(self.dtype)
@@ -507,21 +756,13 @@ class Torus(Manifold):
             return samples
 
     @staticmethod
-    def inverse_cdf(y_vals, R, r):
-        def F(v):
-            return (R * v + r * np.sin(v)) / (2 * np.pi * R)
-
-        v_vals = np.zeros_like(y_vals)
-        for i, yi in enumerate(y_vals):
-            sol = root_scalar(lambda v: F(v) - yi, bracket=[0, 2 * np.pi], method='brentq')
-            v_vals[i] = sol.root
-        return v_vals
-
-    @staticmethod
-    def reach(points: np.ndarray, R: float, r: float) -> np.ndarray:
-        """The local reach of the torus is the minimum of the two radii of the principal curvatures
-        k1 = 1 / r, k2 = (R + r cos(theta)) / |cos(theta)|. Substituting cos(theta) = (R - d) / r, we get
-        the formula used below.
+    def reach(
+        points: np.ndarray,
+        R: float,
+        r: float
+    ) -> np.ndarray:
+        """The local reach of the torus is the minimum of the two radii of the principal curvatures k1 = 1 / r, k2 = (R
+        + r cos(theta)) / |cos(theta)|. Substituting cos(theta) = (R - d) / r, we get the formula used below.
 
         Args:
             points: An array of points of the torus on which the local reach will be defined.
@@ -536,6 +777,12 @@ class Torus(Manifold):
     @staticmethod
     def average_reach(R: float, r: float) -> float:
 
+        """Compute the average local reach of the manifold.
+
+        Args:
+            R: Radius parameter of the manifold.
+            r: Minor radius of the torus.
+        """
         radii_ratio = R / (2 * r)
 
         if radii_ratio >= 1:
@@ -551,6 +798,11 @@ class Torus(Manifold):
             )
 
     def measures(self, normalized: bool = False) -> MeasuresGlobal:
+        """Compute global analytic manifold measures.
+
+        Args:
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
         area = 4 * np.pi**2 * R * r
@@ -603,7 +855,17 @@ class Torus(Manifold):
             average_reach=average_reach
         )
 
-    def measures_pointwise(self, points: np.ndarray, normalized: bool = False) -> MeasuresLocal:
+    def measures_pointwise(
+        self,
+        points: np.ndarray,
+        normalized: bool = False
+    ) -> MeasuresLocal:
+        """Compute local analytic measures at sample points.
+
+        Args:
+            points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
+            normalized: Rescale the manifold to unit volume before computing.
+        """
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
         v = np.arccos((np.linalg.norm(points[:, :2], axis=-1) - R) / r)
@@ -623,8 +885,28 @@ class Torus(Manifold):
             reach=reach
         )
 
-    def tesselation(self, N, iterations: int = 50, normalized: bool = False, device: str = "cuda:0") -> np.ndarray:
-        approx_points = cvt_surface(self, N, iterations=iterations, normalized=normalized, device=device)
+    def tesselation(
+        self,
+        N: int,
+        iterations: int = 50,
+        normalized: bool = False,
+        device: str = "cuda:0"
+    ) -> np.ndarray:
+        """Generate spread-out manifold sample points.
+
+        Args:
+            N: Number of points to sample.
+            iterations: Number of refinement iterations.
+            normalized: Rescale the manifold to unit volume before computing.
+            device: Torch device used for tensor computation.
+        """
+        approx_points = cvt_surface(
+            self,
+            N,
+            iterations=iterations,
+            normalized=normalized,
+            device=device
+        )
         # return approx_points
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
@@ -648,12 +930,23 @@ class Torus(Manifold):
 def plot_manifold(
     measured_manifold: Manifold,
     sampling_type: str = "tesselation",
-    N=100,
-    normalized=False,
-    s=1,
-    shrink=0.7,
-    figsize=(20, 4)
+    N: int = 100,
+    normalized: bool = False,
+    s: float = 1,
+    shrink: float = 0.7,
+    figsize: tuple[float, float] = (20, 4)
 ) -> None:
+    """Plot manifold samples colored by their local measures.
+
+    Args:
+        measured_manifold: Manifold whose samples and local measures are plotted.
+        sampling_type: Sampling method: tesselation or uniform.
+        N: Number of points to sample.
+        normalized: Rescale the manifold to unit volume before computing.
+        s: Scatter marker size.
+        shrink: Relative color-bar length.
+        figsize: Figure size (width height) in inches.
+    """
     import matplotlib.pyplot as plt
 
     match sampling_type:
@@ -670,9 +963,25 @@ def plot_manifold(
     is_3d = points.shape[1] == 3
     fig = plt.figure(figsize=figsize)
 
-    def add_subplot(pos, title, values):
+    def add_subplot(
+        pos: int,
+        title: str,
+        values: np.ndarray
+    ) -> None:
+        """Add one measure-colored scatter panel.
+
+        Args:
+            pos: One-based panel position.
+            title: Title displayed above the plot.
+            values: Per-point scalar values, shape (n).
+        """
         ax = fig.add_subplot(1, 5, pos, projection='3d' if is_3d else None)
-        sc = ax.scatter(*points.T, c=values, cmap='viridis', s=s)
+        sc = ax.scatter(
+            *points.T,
+            c=values,
+            cmap='viridis',
+            s=s
+        )
         fig.colorbar(sc, ax=ax, shrink=shrink)
         ax.set_title(title)
         ax.set_aspect('equal')

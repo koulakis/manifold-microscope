@@ -33,6 +33,11 @@ LABEL_MAPPING = {
 
 
 def load_coil20(views_stride: int = 4) -> tuple[np.ndarray, np.ndarray]:
+    """Load COIL-20 images and object labels at a view stride.
+
+    Args:
+        views_stride: Stride through the available object viewing angles.
+    """
     path_by_env_var = os.environ.get("COIL20_PATH")
     if path_by_env_var is not None:
         coil_data_path = Path(path_by_env_var)
@@ -78,8 +83,8 @@ def extended_coil20(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Augment COIL-20 object views with scaling and in-plane rotation.
 
-    Loads the processed images via COIL20_PATH. Grid axes are object, original
-    view, size and in-plane angle, followed by image height and width.
+    Loads the processed images via COIL20_PATH. Grid axes are object, original view, size and in-plane angle, followed
+    by image height and width.
 
     Args:
         image_size: The size of the image in pixels. Should be an even number.
@@ -90,16 +95,15 @@ def extended_coil20(
         max_size_ratio: The maximum object scale ratio.
         flat: If true, the dataset is flattened along on the variation dimensions.
         scale: If true, it centers the data around the mean and divides by the standard deviation.
-        buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions
-            in order to be able to estimate geometric measures which require surrounding points.
+        buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions in order to be able
+            to estimate geometric measures which require surrounding points.
         dtype: The type of the data.
         verbose: If true, progress bars will be printed during data generation.
 
     Returns:
         (images, labels). Unless flat=True, images have shape
-        (20, 18, n_sizes + 2 * buffer_for_measure_estimation, n_angles, height, width)
-        and labels have the same leading grid shape. Image intensities are
-        mapped to [-1, 1] before optional statistical scaling.
+        (20, 18, n_sizes + 2 * buffer_for_measure_estimation, n_angles, height, width) and labels have the same leading
+        grid shape. Image intensities are mapped to [-1, 1] before optional statistical scaling.
     """
     # Add a buffer for the sizes.
     n_sizes = n_sizes + 2 * buffer_for_measure_estimation
@@ -129,7 +133,13 @@ def extended_coil20(
         transform=rotate_image,
         transform_range=(
             "angle",
-            np.linspace(0, 360, n_angles, endpoint=False, dtype=dtype)
+            np.linspace(
+                0,
+                360,
+                n_angles,
+                endpoint=False,
+                dtype=dtype
+            )
         ),
         axis=-3,
         verbose=verbose

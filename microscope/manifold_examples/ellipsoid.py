@@ -3,14 +3,13 @@ from typing import Union
 import numpy as np
 
 
-def ellipsoid_volume_element(principal_radii: np.ndarray, coordinates: np.ndarray):
+def ellipsoid_volume_element(principal_radii: np.ndarray, coordinates: np.ndarray) -> np.ndarray:
     """Formula to compute the volume element of a 2 or 3-ellipsoid on a point. The formula has been computed
     programmatically using the tools in 'symbolic_computations.py'.
 
     Args:
-        principal_radii: The principal semi-axes of one or more ellipsoids in an array of shape (n_points dim + 1).
-        coordinates: The polar coordinates of the points to compute the volume element on in array of
-            shape (n_points dim).
+        principal_radii: Principal semi-axes, shape (d + 1) or (... d + 1).
+        coordinates: Parameter coordinates, shape (... d).
 
     Returns:
         A vector of shape (n_points) with the volume element per point.
@@ -49,13 +48,13 @@ def ellipsoid_volume_element(principal_radii: np.ndarray, coordinates: np.ndarra
     return np.array(element).astype(np.float64)
 
 
-def ellipsoid_scalar_curvature(principal_radii: np.ndarray, coordinates: np.ndarray):
+def ellipsoid_scalar_curvature(principal_radii: np.ndarray, coordinates: np.ndarray) -> np.ndarray:
     """Formula to compute the scalar curvature of a 2 or 3-ellipsoid on a point. The formula has been computed
     programmatically using the tools in 'symbolic_computations.py'.
 
     Args:
-        principal_radii: The principal semi-axes of the ellipsoid.
-        coordinates: The polar coordinates of the point to compute the volume element on.
+        principal_radii: Principal semi-axes, shape (d + 1) or (... d + 1).
+        coordinates: Parameter coordinates, shape (... d).
 
     Returns:
         The scalar curvature as a float.

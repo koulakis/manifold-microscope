@@ -7,7 +7,12 @@ import numpy as np
 from tqdm import tqdm
 
 
-def statistical_scaling(data: np.ndarray):
+def statistical_scaling(data: np.ndarray) -> np.ndarray:
+    """Center an array and scale it by its standard deviation.
+
+    Args:
+        data: Input array of arbitrary shape (s1 ... sn).
+    """
     data_mean = data.mean()
     data_std = data.std()
 
@@ -15,13 +20,13 @@ def statistical_scaling(data: np.ndarray):
 
 
 def rotate_image(
-        image: np.ndarray,
-        angle: float
+    image: np.ndarray,
+    angle: float
 ) -> np.ndarray:
     """Rotate a 2D image given in a numpy array.
 
     Args:
-        image: The image in a numpy array.
+        image: Input image, shape (h w).
         angle: The angle in degrees.
 
     Returns:
@@ -39,8 +44,8 @@ def place_in_middle_of_background(background: np.ndarray, image: np.ndarray) -> 
     pixels of the area where it is pasted.
 
     Args:
-        background: The background image.
-        image: The foreground image, should be smaller than the background one.
+        background: Destination image, shape (h w).
+        image: Smaller foreground image, shape (hi wi).
 
     Returns:
         A copy of the background image with the foreground image pasted in the middle.
@@ -58,7 +63,12 @@ def place_in_middle_of_background(background: np.ndarray, image: np.ndarray) -> 
     return background
 
 
-def shrink_image(image: np.ndarray, size: int, output_size: int, interpolation: int = cv2.INTER_AREA) -> np.ndarray:
+def shrink_image(
+    image: np.ndarray,
+    size: int,
+    output_size: int,
+    interpolation: int = cv2.INTER_AREA
+) -> np.ndarray:
     """Shrink a given image to a selected size. The new image will have the same size as before and the old shrunk one
     will be placed in the center and padded with zeroes.
 
@@ -81,14 +91,14 @@ def shrink_image(image: np.ndarray, size: int, output_size: int, interpolation: 
 
 
 def translate_image(
-        image: np.ndarray,
-        dx: int,
-        dy: int
+    image: np.ndarray,
+    dx: int,
+    dy: int
 ) -> np.ndarray:
     """Translate a 2D image given in a numpy array.
 
     Args:
-        image: The image in a numpy array.
+        image: Input image, shape (h w).
         dx: The translation on the x-axis in pixels.
         dy: The translation on the y-axis in pixels.
 
@@ -118,8 +128,7 @@ def apply_transform(
         transform_name: The name of the transform.
         image_grid: A grid of shape (... height width) which contains images.
         transform: A function which transforms a single image.
-        transform_range: A tuple with the name of a kwarg of the transform function and a range of values it should
-            be computed on.
+        transform_range: Transform parameter name and its sampled values, shape (n).
         axis: The axis along which the transformed versions of the images will be stacked.
         processes: An optional number of processes to parallelize each single transform of the image grid.
         verbose: If true, a progress bar on the number of transforms will be shown.

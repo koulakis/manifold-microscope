@@ -8,7 +8,13 @@ def dsprites_original(
     scale: bool = False,
     dtype: np.dtype = np.float32
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Load the original dsprites dataset."""
+    """Load the original dsprites dataset.
+
+    Args:
+        flat: Flatten transformation axes into one sample axis.
+        scale: Center the images and divide by their standard deviation.
+        dtype: Data type of generated values.
+    """
     data_path = (
         "<path to dataset>/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz"
     )
@@ -37,7 +43,13 @@ def dsprites_original_single_size(
     scale: bool = False,
     dtype: np.dtype = np.float32
 ) -> tuple[np.ndarray, np.ndarray]:
-    """The original dsprites selecting only the largest sprite size in order to remove one dimension"""
+    """The original dsprites selecting only the largest sprite size in order to remove one dimension
+
+    Args:
+        flat: Flatten transformation axes into one sample axis.
+        scale: Center the images and divide by their standard deviation.
+        dtype: Data type of generated values.
+    """
     dsprites = dsprites_original(dtype=dtype)
     dsprites, target = dsprites
 

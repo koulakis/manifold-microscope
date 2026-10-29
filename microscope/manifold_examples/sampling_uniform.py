@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import numpy as np
 import sympy as sp
 from scipy.integrate import quad
@@ -19,18 +21,34 @@ DEFAULT_NEWTON_RAPHSON_KWARGS = {
 
 
 def invert_integral(
-        f,
-        y,
-        lower_limit,
-        t0=None,
-        tol=1e-10,
-        max_iter=1_000,
-        quad_kwargs=None
-):
+    f: Callable[[float], float],
+    y: float,
+    lower_limit: float,
+    t0: float | None = None,
+    tol: float = 1e-10,
+    max_iter: int = 1_000,
+    quad_kwargs: dict | None = None
+) -> float:
+    """Find an upper bound whose integral matches the target value.
+
+    Args:
+        f: Scalar integrand as a function of one coordinate.
+        y: Target value of the integral.
+        lower_limit: Lower integration bound.
+        t0: Optional initial estimate of the upper integration bound.
+        tol: Absolute stopping tolerance on the integral residual.
+        max_iter: Maximum number of Newton iterations.
+        quad_kwargs: Options forwarded to scipy.integrate.quad.
+    """
     quad_args = DEFAULT_QUAD_KWARGS if quad_kwargs is None else quad_kwargs
 
     # noinspection PyShadowingNames
-    def f_int(t):
+    def f_int(t: float) -> float:
+        """Integrate the density up to the given coordinate.
+
+        Args:
+            t: Upper integration bound.
+        """
         return quad(f, lower_limit, t, **quad_args)[0]
 
     if t0 is None:
@@ -47,22 +65,41 @@ def invert_integral(
 
 
 def uniform_to_parameter_space_dim_2(
-        sample,
-        measure_f,
-        limits,
-        quad_kwargs,
-        invert_integral_kwargs
-):
+    sample: np.ndarray,
+    measure_f: Callable,
+    limits: np.ndarray,
+    quad_kwargs: dict,
+    invert_integral_kwargs: dict
+) -> tuple[float, float]:
+    """Map a uniform square sample to surface coordinates.
+
+    Args:
+        sample: Uniform parameter sample, shape (2).
+        measure_f: Volume-density function of two coordinates.
+        limits: Coordinate integration bounds, shape (2 2).
+        quad_kwargs: Options forwarded to scipy.integrate.quad.
+        invert_integral_kwargs: Options forwarded to invert_integral.
+    """
     s1, s2 = sample
     [l1_l, l1_u], [l2_l, l2_u] = limits
 
     # Invert the second coordinate.
-    def inner_int(s):
+    def inner_int(s: float) -> float:
+        """Integrate out the first coordinate at a fixed second coordinate.
+
+        Args:
+            s: Coordinate held fixed during the inner integration.
+        """
         return quad(lambda t: measure_f(t, s), l1_l, l1_u, **quad_kwargs)[0]
 
     inner_int_full = quad(lambda s: inner_int(s), l2_l, l2_u, **quad_kwargs)[0]
 
-    inv2 = invert_integral(f=inner_int, y=inner_int_full * s2, lower_limit=l2_l, **invert_integral_kwargs)
+    inv2 = invert_integral(
+        f=inner_int,
+        y=inner_int_full * s2,
+        lower_limit=l2_l,
+        **invert_integral_kwargs
+    )
 
     # Invert the first coordinate.
     inv1 = invert_integral(
@@ -76,17 +113,31 @@ def uniform_to_parameter_space_dim_2(
 
 
 def uniform_to_parameter_space_dim_3(
-        sample,
-        measure_f,
-        limits,
-        quad_kwargs,
-        invert_integral_kwargs
-):
+    sample: np.ndarray,
+    measure_f: Callable,
+    limits: np.ndarray,
+    quad_kwargs: dict,
+    invert_integral_kwargs: dict
+) -> tuple[float, float, float]:
+    """Map a uniform cube sample to manifold coordinates.
+
+    Args:
+        sample: Uniform parameter sample, shape (3).
+        measure_f: Volume-density function of three coordinates.
+        limits: Coordinate integration bounds, shape (3 2).
+        quad_kwargs: Options forwarded to scipy.integrate.quad.
+        invert_integral_kwargs: Options forwarded to invert_integral.
+    """
     s1, s2, s3 = sample
     [l1_l, l1_u], [l2_l, l2_u], [l3_l, l3_u] = limits
 
     # Invert the third coordinate.
-    def inner_int_2(r):
+    def inner_int_2(r: float) -> float:
+        """Integrate out the first two coordinates.
+
+        Args:
+            r: Third coordinate held fixed during integration.
+        """
         return quad(
             lambda s: quad(lambda t: measure_f(t, s, r), l1_l, l1_u, **quad_kwargs)[0],
             l2_l,
@@ -96,15 +147,30 @@ def uniform_to_parameter_space_dim_3(
 
     inner_int_2_full = quad(lambda r: inner_int_2(r), l3_l, l3_u, **quad_kwargs)[0]
 
-    inv3 = invert_integral(inner_int_2, inner_int_2_full * s3, lower_limit=l3_l, **invert_integral_kwargs)
+    inv3 = invert_integral(
+        inner_int_2,
+        inner_int_2_full * s3,
+        lower_limit=l3_l,
+        **invert_integral_kwargs
+    )
 
     # Invert the second coordinate.
-    def inner_int(s):
+    def inner_int(s: float) -> float:
+        """Integrate out the first coordinate at a fixed second coordinate.
+
+        Args:
+            s: Coordinate held fixed during the inner integration.
+        """
         return quad(lambda t: measure_f(t, s, inv3), l1_l, l1_u, **quad_kwargs)[0]
 
     inner_int_full = quad(lambda s: inner_int(s), l2_l, l2_u, **quad_kwargs)[0]
 
-    inv2 = invert_integral(inner_int, inner_int_full * s2, lower_limit=l2_l, **invert_integral_kwargs)
+    inv2 = invert_integral(
+        inner_int,
+        inner_int_full * s2,
+        lower_limit=l2_l,
+        **invert_integral_kwargs
+    )
 
     # Invert the first coordinate.
     inv1 = invert_integral(
@@ -118,18 +184,32 @@ def uniform_to_parameter_space_dim_3(
 
 
 def sample_manifold_uniformly(
-    n_samples,
-    measure_f,
-    limits,
-    parameter_to_ambient_coords_map,
-    ambient_space_dim=None,
-    apply_random_isometry=True,
-    processes=None,
-    quad_kwargs=None,
-    invert_integral_kwargs=None,
-    seed=None
-):
+    n_samples: int,
+    measure_f: Callable,
+    limits: np.ndarray,
+    parameter_to_ambient_coords_map: Callable,
+    ambient_space_dim: int | None = None,
+    apply_random_isometry: bool = True,
+    processes: int | None = None,
+    quad_kwargs: dict | None = None,
+    invert_integral_kwargs: dict | None = None,
+    seed: int | None = None
+) -> tuple[np.ndarray | tuple, np.ndarray]:
     # Get optimization configuration.
+    """Sample a manifold using inverse volume-weighted coordinate integrals.
+
+    Args:
+        n_samples: Number of samples.
+        measure_f: Volume-density function of d coordinates.
+        limits: Coordinate integration bounds, shape (d 2).
+        parameter_to_ambient_coords_map: Map from d coordinate arrays of shape (n) to points of shape (n f).
+        ambient_space_dim: Number of embedding coordinates.
+        apply_random_isometry: Apply a random rotation and translation.
+        processes: Number of worker processes; None uses the available CPU count.
+        quad_kwargs: Options forwarded to scipy.integrate.quad.
+        invert_integral_kwargs: Options forwarded to invert_integral.
+        seed: Optional random seed for the isometry.
+    """
     if quad_kwargs is None:
         quad_kwargs = DEFAULT_QUAD_KWARGS
     if invert_integral_kwargs is None:
@@ -173,16 +253,28 @@ def sample_manifold_uniformly(
 
 
 def sample_ellipsoid_uniformly(
-    n_samples,
-    semi_axes,
-    ambient_space_dim=None,
-    apply_random_isometry=True,
-    processes=None,
-    quad_kwargs=None,
-    invert_integral_kwargs=None,
-    seed=None
-):
+    n_samples: int,
+    semi_axes: list[float],
+    ambient_space_dim: int | None = None,
+    apply_random_isometry: bool = True,
+    processes: int | None = None,
+    quad_kwargs: dict | None = None,
+    invert_integral_kwargs: dict | None = None,
+    seed: int | None = None
+) -> tuple[np.ndarray | tuple, np.ndarray, np.ndarray]:
     # Get the dims and symbols.
+    """Sample an ellipsoid uniformly with respect to its volume.
+
+    Args:
+        n_samples: Number of samples.
+        semi_axes: Principal semi-axis lengths, one per intrinsic dimension plus one.
+        ambient_space_dim: Number of embedding coordinates.
+        apply_random_isometry: Apply a random rotation and translation.
+        processes: Number of worker processes; None uses the available CPU count.
+        quad_kwargs: Options forwarded to scipy.integrate.quad.
+        invert_integral_kwargs: Options forwarded to invert_integral.
+        seed: Optional random seed for the isometry.
+    """
     semi_axes = np.array(semi_axes)
     dim = len(semi_axes) - 1
     axes_symbols = sp.symbols("a_1 a_2 a_3 a_4")[:dim+1]
@@ -203,7 +295,12 @@ def sample_ellipsoid_uniformly(
     # Define the parameter mapping.
     parameter_lambd = sp.lambdify(phi_symbols, ellipsoid_parametrization(dim=dim)[0].subs(subs))
 
-    def parameter_map(*phis):
+    def parameter_map(*phis: np.ndarray) -> np.ndarray:
+        """Map parameter arrays to embedding coordinates.
+
+        Args:
+            *phis: Coordinate arrays, each of shape (n).
+        """
         return parameter_lambd(*phis).squeeze().T
 
     points, parameters = sample_manifold_uniformly(
@@ -223,16 +320,28 @@ def sample_ellipsoid_uniformly(
 
 
 def sample_hyperboloid_uniformly(
-    n_samples,
-    semi_axes,
-    ambient_space_dim=None,
-    apply_random_isometry=True,
-    processes=None,
-    quad_kwargs=None,
-    invert_integral_kwargs=None,
-    seed=None
-):
+    n_samples: int,
+    semi_axes: list[float],
+    ambient_space_dim: int | None = None,
+    apply_random_isometry: bool = True,
+    processes: int | None = None,
+    quad_kwargs: dict | None = None,
+    invert_integral_kwargs: dict | None = None,
+    seed: int | None = None
+) -> tuple[np.ndarray | tuple, np.ndarray, np.ndarray]:
     # Get the dims and symbols.
+    """Sample a bounded hyperboloid patch uniformly in volume.
+
+    Args:
+        n_samples: Number of samples.
+        semi_axes: Principal semi-axis lengths, one per intrinsic dimension plus one.
+        ambient_space_dim: Number of embedding coordinates.
+        apply_random_isometry: Apply a random rotation and translation.
+        processes: Number of worker processes; None uses the available CPU count.
+        quad_kwargs: Options forwarded to scipy.integrate.quad.
+        invert_integral_kwargs: Options forwarded to invert_integral.
+        seed: Optional random seed for the isometry.
+    """
     semi_axes = np.array(semi_axes)
     dim = len(semi_axes) - 1
     axes_symbols = sp.symbols("a_1 a_2 a_3 a_4")[:dim + 1]
@@ -253,7 +362,12 @@ def sample_hyperboloid_uniformly(
     # Define the parameter mapping.
     parameter_lambd = sp.lambdify(phi_symbols, hyperboloid_parametrization(dim=dim)[0].subs(subs))
 
-    def parameter_map(*phis):
+    def parameter_map(*phis: np.ndarray) -> np.ndarray:
+        """Map parameter arrays to embedding coordinates.
+
+        Args:
+            *phis: Coordinate arrays, each of shape (n).
+        """
         return parameter_lambd(*phis).squeeze().T
 
     points, parameters = sample_manifold_uniformly(

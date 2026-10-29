@@ -1,5 +1,7 @@
 import multiprocessing
+from collections.abc import Callable
 from functools import partial
+from typing import Any
 
 import scipy
 from joblib import Parallel, delayed
@@ -8,8 +10,22 @@ import numpy as np
 from tqdm import tqdm
 
 
-def parallel_apply(array, f, processes=None, element_wise=False, **kwargs):
-    """Apply a function on an array in multiple threads. Just a convenience function."""
+def parallel_apply(
+    array: np.ndarray,
+    f: Callable,
+    processes: int | None = None,
+    element_wise: bool = False,
+    **kwargs: Any
+) -> np.ndarray:
+    """Apply a function on an array in multiple threads. Just a convenience function.
+
+    Args:
+        array: Input array, shape (n ...).
+        f: Function to apply to each value or leading-axis item.
+        processes: Number of worker processes; None uses the available CPU count.
+        element_wise: Apply f to scalars instead of leading-axis items.
+        **kwargs: Additional keyword arguments forwarded to f.
+    """
     if processes is None:
         processes = multiprocessing.cpu_count()
 
@@ -36,7 +52,13 @@ def parallel_apply(array, f, processes=None, element_wise=False, **kwargs):
     return results
 
 
-def embed_to_ambient_space(grid, ambient_space_dim):
+def embed_to_ambient_space(grid: np.ndarray, ambient_space_dim: int) -> np.ndarray:
+    """Append zero coordinates to a point grid.
+
+    Args:
+        grid: Embedded point grid, shape (s1 ... sd f).
+        ambient_space_dim: Number of embedding coordinates.
+    """
     return np.concatenate(
         [
             grid,
@@ -46,7 +68,18 @@ def embed_to_ambient_space(grid, ambient_space_dim):
     )
 
 
-def random_isometry_transform(grid, limit, seed=None) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+def random_isometry_transform(
+    grid: np.ndarray,
+    limit: float,
+    seed: int | None = None
+) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    """Rotate and translate a point grid.
+
+    Args:
+        grid: Embedded point grid, shape (s1 ... sd f).
+        limit: Symmetric bound for the random translation coordinates.
+        seed: Optional random seed for the isometry.
+    """
     ambient_space_dim = grid.shape[-1]
 
     random_orthogonal_matrix = scipy.stats.ortho_group(ambient_space_dim, seed=seed).rvs()
