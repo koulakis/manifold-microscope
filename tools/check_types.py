@@ -12,6 +12,9 @@ def diagnostic_key(diagnostic: dict, root: Path) -> tuple[str, str, str]:
     Args:
         diagnostic: Pyright diagnostic containing a source path, rule and message.
         root: Repository root used to make paths portable.
+
+    Returns:
+        (relative_path, rule, message), identifying a diagnostic independently of its source line number.
     """
     return (
         Path(diagnostic['file']).relative_to(root).as_posix(),
@@ -25,6 +28,10 @@ def main(update_baseline: bool = False) -> int:
 
     Args:
         update_baseline: Explicitly replace the baseline after reviewing the raw Pyright diagnostics.
+
+    Returns:
+        Process exit code: zero on success, otherwise a nonzero code for checker failures or unreviewed baseline
+        changes.
     """
     root = Path(__file__).resolve().parent.parent
     baseline_path = root / 'pyright-baseline.json'

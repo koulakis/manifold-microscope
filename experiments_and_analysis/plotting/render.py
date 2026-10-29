@@ -23,6 +23,9 @@ def matches(record: dict, selection: dict) -> bool:
     Args:
         record: Configuration or result dictionary to inspect.
         selection: Dotted configuration keys and values to match.
+
+    Returns:
+        True if the record satisfies every selection rule; otherwise False.
     """
     for path, expected in selection.items():
         value = record
@@ -41,6 +44,9 @@ def bound_data(records: list[dict], panels: list[dict]) -> tuple[dict, dict]:
     Args:
         records: Completed analysis records.
         panels: Panel labels, dimensions and experiment-selection rules.
+
+    Returns:
+        (curves, summaries), dictionaries of selected curve data and aggregate error summaries.
     """
     curves, summaries = {}, {}
     for panel in panels:
@@ -59,6 +65,9 @@ def layer_data(records: list[dict], selection: dict) -> dict[str, AnalysisResult
     Args:
         records: Completed analysis records.
         selection: Dotted configuration keys and values to match.
+
+    Returns:
+        Dictionary mapping selected layer names to their AnalysisResults.
     """
     selected = [record for record in records if record['name'] == 'geometry'
                 and matches(record, selection)]
@@ -89,6 +98,9 @@ def render(
         records: Completed analysis records.
         request: Plot type, output filename and selected panels.
         output_dir: Directory for generated outputs.
+
+    Returns:
+        Directory containing the generated plot artifacts.
     """
     from .bounds import create_repetitions_shaded_plot
     from .layers import create_layer_plots

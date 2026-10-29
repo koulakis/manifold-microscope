@@ -27,6 +27,9 @@ def canonical(value: object) -> str:
 
     Args:
         value: Value to serialize or assign.
+
+    Returns:
+        Deterministic JSON string representing value.
     """
     return json.dumps(
         value,
@@ -41,6 +44,9 @@ def identity(value: object) -> str:
 
     Args:
         value: Value to serialize or assign.
+
+    Returns:
+        Twenty-character hexadecimal content identifier including the pipeline version.
     """
     return sha256(canonical([PIPELINE_VERSION, value]).encode()).hexdigest()[:20]
 
@@ -51,6 +57,9 @@ def experiment_identity(config: dict, source: dict) -> str:
     Args:
         config: Experiment or sweep configuration.
         source: Dataset identity including source provenance.
+
+    Returns:
+        Experiment identifier based on configuration and source, excluding output layout.
     """
     return identity(dict(config={k: v for k, v in config.items() if k != 'output_layout'}, source=source))
 
@@ -60,6 +69,9 @@ def artifact_path(path: str | Path | BundlePath) -> Path | BundlePath:
 
     Args:
         path: Filesystem or virtual bundle path.
+
+    Returns:
+        Filesystem Path or BundlePath corresponding to the supplied path or locator.
     """
     if isinstance(path, (str, Path)) and '::' in str(path):
         from .bundles import bundled_path
@@ -75,6 +87,9 @@ def save_array(path: str | Path | BundlePath, value: np.ndarray) -> None:
     Args:
         path: Filesystem or virtual bundle path.
         value: Array of shape (...), saved with its dtype and dimensions.
+
+    Returns:
+        None.
     """
     import numpy as np
     with artifact_path(path).open('wb') as stream:
@@ -87,6 +102,9 @@ def load_array(path: str | Path | BundlePath, mmap_mode: str | None = None) -> n
     Args:
         path: Filesystem or virtual bundle path.
         mmap_mode: NumPy memory-map mode for filesystem arrays; None loads into memory.
+
+    Returns:
+        NumPy array with its stored shape and dtype; filesystem arrays may be memory-mapped when requested.
     """
     import numpy as np
     path = artifact_path(path)
@@ -107,6 +125,9 @@ def stage_directory(
         parent: Parent directory or virtual bundle path.
         key: Content identifier appended to the directory label.
         label: Readable directory label, sanitized and bounded to fit a filesystem component.
+
+    Returns:
+        Filesystem or virtual path with the readable label and content identifier appended.
     """
     # ASCII-only and bounded to fit a filesystem component including the hash.
     label = re.sub(r'[^A-Za-z0-9_.-]+', '_', label).strip('._-')[:220].rstrip('._-')
@@ -119,6 +140,9 @@ def write_json(path: str | Path | BundlePath, value: object) -> None:
     Args:
         path: Filesystem or virtual bundle path.
         value: Value to serialize or assign.
+
+    Returns:
+        None.
     """
     artifact_path(path).write_text(json.dumps(value, indent=2, default=str) + '\n')
 
@@ -128,6 +152,9 @@ def read_json(path: str | Path | BundlePath) -> dict:
 
     Args:
         path: Filesystem or virtual bundle path.
+
+    Returns:
+        Dictionary decoded from the JSON artifact.
     """
     return json.loads(artifact_path(path).read_text())
 
@@ -137,6 +164,9 @@ def is_complete(directory: Path | BundlePath) -> bool:
 
     Args:
         directory: Directory or virtual bundle path for this stage.
+
+    Returns:
+        True if the completion marker and all recorded output files are present; otherwise False.
     """
     directory = artifact_path(directory)
     if not (directory / 'COMPLETED').is_file():
@@ -150,6 +180,9 @@ def report_reuse(directory: Path | BundlePath) -> None:
 
     Args:
         directory: Directory or virtual bundle path for this stage.
+
+    Returns:
+        None.
     """
     directory = artifact_path(directory)
     elapsed = read_json(directory / 'manifest.json').get('elapsed_seconds')
@@ -168,6 +201,9 @@ def begin(
         directory: Directory or virtual bundle path for this stage.
         config: Experiment or sweep configuration.
         requires: Input stages that must already be complete.
+
+    Returns:
+        False when compatible completed outputs can be reused; True when a new stage should run.
     """
     directory = artifact_path(directory)
     if is_complete(directory):
@@ -197,6 +233,9 @@ def finish(
         directory: Directory or virtual bundle path for this stage.
         files: Relative names of the files produced by this stage.
         elapsed_seconds: Measured duration, or None to use time since the stage started.
+
+    Returns:
+        None.
     """
     directory = artifact_path(directory)
     if not files or not all((directory / name).is_file() for name in files):
@@ -215,6 +254,9 @@ def stage_ids(config: dict, dataset_identity: dict) -> tuple[str, str]:
     Args:
         config: Experiment or sweep configuration.
         dataset_identity: Dataset identity including source provenance.
+
+    Returns:
+        (split_id, model_id), content identifiers for the split and trained-model stages.
     """
     split = identity(dict(dataset=dataset_identity, split=config['split']))
     model = identity(dict(

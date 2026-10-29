@@ -12,6 +12,9 @@ def _validate_projection_options(projection_method: str, projection_batch_size: 
     Args:
         projection_method: MMLS projection implementation.
         projection_batch_size: Number of queries per thin-SVD batch.
+
+    Returns:
+        None.
     """
     if projection_method not in ("original", "thin_svd"):
         raise ValueError(f"Unknown projection method: {projection_method}.")
@@ -21,7 +24,11 @@ def _validate_projection_options(projection_method: str, projection_batch_size: 
 
 class ANNMMLSProjector:
     def build_index(self) -> None:
-        """Build the approximate nearest-neighbor index."""
+        """Build the approximate nearest-neighbor index.
+
+        Returns:
+            None.
+        """
         # Build ANN index
         self.ann_index = pynndescent.NNDescent(
             self.X.cpu().numpy(),
@@ -54,6 +61,9 @@ class ANNMMLSProjector:
             verbose: Show projection progress.
             projection_method: MMLS projection implementation.
             projection_batch_size: Number of queries per thin-SVD batch.
+
+        Returns:
+            None.
         """
         self.X = torch.from_numpy(X).to(device)
         self.d = d
@@ -81,6 +91,9 @@ class ANNMMLSProjector:
 
         Args:
             p: Query points of shape (b f).
+
+        Returns:
+            (indices, distances), arrays of shape (b k) for the nearest training points.
         """
         # p: [B,D]
         return self.ann_index.query(p, k=self.k)
@@ -101,6 +114,9 @@ class ANNMMLSProjector:
             points: Query points of shape (b f).
             indices: Neighbor indices of shape (b k).
             distances: Neighbor distances of shape (b k).
+
+        Returns:
+            Projected query array of shape (b f), with the query-point dtype.
         """
         if self.d > min(self.k, self.D):
             raise ValueError("thin_svd requires d <= min(k, ambient dimension).")
@@ -126,7 +142,7 @@ class ANNMMLSProjector:
             p: Query points of shape (b f).
 
         Returns:
-            p_proj: [B,D]
+            Projected query array with the same shape (b f) as p.
         """
         if self.exact_nn_threshold is not None and len(p) <= self.exact_nn_threshold:
             p_tensor = torch.from_numpy(p).to(self.device)

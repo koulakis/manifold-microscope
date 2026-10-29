@@ -35,6 +35,9 @@ def format_two_decimals(y: float, _: int | None) -> str:
     Args:
         y: Axis value to format.
         _: Tick position supplied by Matplotlib, unused.
+
+    Returns:
+        Tick-label string with at most two decimal places, using scientific notation for extreme values.
     """
     if y == 0:
         return '0'
@@ -59,6 +62,9 @@ def format_three_decimals(y: float, _: int | None) -> str:
     Args:
         y: Axis value to format.
         _: Tick position supplied by Matplotlib, unused.
+
+    Returns:
+        Tick-label string with at most three decimal places, using scientific notation for extreme values.
     """
     if y == 0:
         return '0'
@@ -88,6 +94,9 @@ class CustomLogFormatter(LogFormatterMathtext):
         Args:
             x: Axis value to format.
             _: Tick position supplied by Matplotlib, unused.
+
+        Returns:
+            Formatted logarithmic-axis tick label.
         """
         # Log scale should only have positive values
         if x <= 0:
@@ -115,6 +124,9 @@ def assign_colors_by_group(measure_names: list[str]) -> dict[str, str]:
 
     Args:
         measure_names: Measure names in plotting order.
+
+    Returns:
+        Dictionary mapping each measure name to its plotting color.
     """
     colors = ['tab:blue', 'tab:green', 'tab:orange', 'tab:red', 'tab:purple',
               'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
@@ -137,6 +149,9 @@ def determine_scale(
         values: Values of shape (n) to inspect for plotting scale.
         threshold_small: Smallest positive value triggering a logarithmic axis.
         threshold_large: Largest value triggering a logarithmic axis.
+
+    Returns:
+        True when the nonzero value range warrants a logarithmic axis; otherwise False.
     """
     if len(values) == 0:
         return False
@@ -176,6 +191,9 @@ def shade_encoder_decoder(
         layer_names: Layer names in plotted order.
         label: Add encoder and decoder text labels.
         fontsize: Global font size; None keeps the default.
+
+    Returns:
+        None.
     """
     boundary = layer_names.index('mu') if 'mu' in layer_names else (len(layer_names) - 1) / 2
     xmin, xmax = ax.get_xlim()
@@ -233,6 +251,9 @@ def prettify_layer_name(name: str) -> str:
 
     Args:
         name: Name used for labels or output files.
+
+    Returns:
+        Short encoder/decoder label, or the original name for other representations.
     """
     if name.startswith('encoder_relu_'):
         return f"enc {name.split('_')[-1]}"
@@ -287,6 +308,9 @@ def create_layer_plots(
         text_fontsize: Axis, tick and legend font size, overriding the global setting.
         plot_height_percentage: Figure height as a positive percentage of the default, or None for the default.
         legend_y: Vertical legend position in figure coordinates; None uses the default.
+
+    Returns:
+        None.
     """
     print(f"Processing {dataset_type} dataset (aggregate={aggregate})...")
 
@@ -350,6 +374,9 @@ def create_layer_plots(
         Args:
             ax: Matplotlib axes to update.
             y_axis_coord: Vertical position in axes coordinates, from zero to one.
+
+        Returns:
+            Vertical coordinate in data units corresponding to y_axis_coord.
         """
         disp = ax.transAxes.transform([(0, y_axis_coord)])
         data = ax.transData.inverted().transform(disp)

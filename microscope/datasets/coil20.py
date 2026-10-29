@@ -37,6 +37,10 @@ def load_coil20(views_stride: int = 4) -> tuple[np.ndarray, np.ndarray]:
 
     Args:
         views_stride: Stride through the available object viewing angles.
+
+    Returns:
+        (images, labels), arrays of shapes (20, n_views, 128, 128) and (20, n_views), where n_views = len(range(0, 72,
+        views_stride)).
     """
     path_by_env_var = os.environ.get("COIL20_PATH")
     if path_by_env_var is not None:

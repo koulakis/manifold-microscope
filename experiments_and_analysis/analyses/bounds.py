@@ -10,6 +10,10 @@ def _curve(rows: list[dict], dimension: int) -> tuple[dict, dict]:
     Args:
         rows: Error summaries containing training counts and maximum reconstruction errors.
         dimension: Intrinsic manifold dimension.
+
+    Returns:
+        (exported_curve, summary), dictionaries containing bound curves and the corresponding reconstruction-error
+        summaries.
     """
     import numpy as np
     from sklearn.linear_model import LinearRegression

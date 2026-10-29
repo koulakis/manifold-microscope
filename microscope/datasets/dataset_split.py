@@ -17,6 +17,10 @@ def interpolation_splitting(
         target: Labels, shape (s1 ... sd).
         stride: Grid stride for selecting training samples.
         subsample_dims: Zero-based transformation axes to subsample.
+
+    Returns:
+        (train_data, train_target, test_data, test_target, train_mask), with shapes (n_train h w), (n_train), (n_test h
+        w), (n_test) and (n_train + n_test). The mask indexes the flattened original grid.
     """
     grid_shape = data.shape[:-2]
     subsample_slices = [slice(None)] * len(grid_shape)
@@ -54,11 +58,8 @@ def weighted_uniform_splitting(
         train_sample_ratio: Ratio of the data kept in the training set.
 
     Returns:
-        array_train: The train data in an array of shape (n_train f).
-        target_train: The train target in an array of shape (n_train).
-        array_test: The test data in an array of shape ((d1*...*dk - n_train) f1 f2).
-        target_test: The test target in an array of shape ((d1*...*dk - n_train)).
-        train_mask: A boolean mask of shape ((d1*...*dk)) which defines which indices will be used for training.
+        (train_data, train_target, test_data, test_target, train_mask), with shapes (n_train f1 f2), (n_train), (n_test
+        f1 f2), (n_test) and (n_train + n_test). The mask indexes the flattened original grid.
     """
     if not 0 <= train_sample_ratio <= 1:
         raise ValueError(f"The train ratio must have a value in [0, 1]. Found value {train_sample_ratio}.")

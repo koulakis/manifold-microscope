@@ -15,6 +15,9 @@ def validate_integer_list(
         values: Integer values, one per grid axis or search control.
         name: Parameter name used in errors.
         minimum: Smallest accepted integer.
+
+    Returns:
+        None.
     """
     if any(v < minimum for v in values):
         raise ValueError(f"{name} must contain integers >= {minimum}.")
@@ -28,6 +31,9 @@ def validate_cyclic_axes(values: list[int], dims: int) -> None:
     Args:
         values: Periodic-axis indices, shape (k).
         dims: Number of available array axes.
+
+    Returns:
+        None.
     """
     validate_integer_list(values, "cyclic dimensions")
     if len(set(values)) != len(values) or any(axis >= dims for axis in values):
@@ -42,6 +48,9 @@ def validate_spacings(values: list[float], dims: int) -> None:
     Args:
         values: Coordinate spacings, shape (d).
         dims: Expected number of spacings.
+
+    Returns:
+        None.
     """
     if len(values) != dims:
         raise ValueError(f"Expected {dims} difference intervals, one spacing per grid axis.")

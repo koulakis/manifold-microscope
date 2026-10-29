@@ -31,6 +31,9 @@ def compute(
         reach_subsample: Stride used when selecting reach candidates.
         reach_batch_size: Number of reach query points per batch.
         device: Device used for tensor computations.
+
+    Returns:
+        AnalysisResults containing per-class measure grids, scalar aggregates and cropping metadata.
     """
     features = features.reshape(*dataset.grid_shape, -1)
     print(f'[geometry] computing volume, curvature and reach on {device}')

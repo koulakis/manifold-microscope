@@ -39,6 +39,9 @@ def invert_integral(
         tol: Absolute stopping tolerance on the integral residual.
         max_iter: Maximum number of Newton iterations.
         quad_kwargs: Options forwarded to scipy.integrate.quad.
+
+    Returns:
+        Estimated upper integration bound, including the final iterate if convergence is not reached.
     """
     quad_args = DEFAULT_QUAD_KWARGS if quad_kwargs is None else quad_kwargs
 
@@ -48,6 +51,9 @@ def invert_integral(
 
         Args:
             t: Upper integration bound.
+
+        Returns:
+            Integral of f from lower_limit to t.
         """
         return quad(f, lower_limit, t, **quad_args)[0]
 
@@ -79,6 +85,9 @@ def uniform_to_parameter_space_dim_2(
         limits: Coordinate integration bounds, shape (2 2).
         quad_kwargs: Options forwarded to scipy.integrate.quad.
         invert_integral_kwargs: Options forwarded to invert_integral.
+
+    Returns:
+        (first_coordinate, second_coordinate), two scalar parameters distributed according to measure_f.
     """
     s1, s2 = sample
     [l1_l, l1_u], [l2_l, l2_u] = limits
@@ -89,6 +98,9 @@ def uniform_to_parameter_space_dim_2(
 
         Args:
             s: Coordinate held fixed during the inner integration.
+
+        Returns:
+            Marginal density at s after integrating over the first coordinate.
         """
         return quad(lambda t: measure_f(t, s), l1_l, l1_u, **quad_kwargs)[0]
 
@@ -127,6 +139,10 @@ def uniform_to_parameter_space_dim_3(
         limits: Coordinate integration bounds, shape (3 2).
         quad_kwargs: Options forwarded to scipy.integrate.quad.
         invert_integral_kwargs: Options forwarded to invert_integral.
+
+    Returns:
+        (first_coordinate, second_coordinate, third_coordinate), three scalar parameters distributed according to
+        measure_f.
     """
     s1, s2, s3 = sample
     [l1_l, l1_u], [l2_l, l2_u], [l3_l, l3_u] = limits
@@ -137,6 +153,9 @@ def uniform_to_parameter_space_dim_3(
 
         Args:
             r: Third coordinate held fixed during integration.
+
+        Returns:
+            Marginal density at r after integrating over the first two coordinates.
         """
         return quad(
             lambda s: quad(lambda t: measure_f(t, s, r), l1_l, l1_u, **quad_kwargs)[0],
@@ -160,6 +179,9 @@ def uniform_to_parameter_space_dim_3(
 
         Args:
             s: Coordinate held fixed during the inner integration.
+
+        Returns:
+            Density at (s, inv3) after integrating over the first coordinate.
         """
         return quad(lambda t: measure_f(t, s, inv3), l1_l, l1_u, **quad_kwargs)[0]
 
@@ -209,6 +231,11 @@ def sample_manifold_uniformly(
         quad_kwargs: Options forwarded to scipy.integrate.quad.
         invert_integral_kwargs: Options forwarded to invert_integral.
         seed: Optional random seed for the isometry.
+
+    Returns:
+        (points, parameters), with shapes (n_samples, f) and (n_samples, d). The coordinate map determines f, extended
+        to ambient_space_dim when requested. With apply_random_isometry=True, the points entry is
+        (transformed_points, (rotation, translation)), with rotation shape (f f) and translation shape (f).
     """
     if quad_kwargs is None:
         quad_kwargs = DEFAULT_QUAD_KWARGS
@@ -274,6 +301,11 @@ def sample_ellipsoid_uniformly(
         quad_kwargs: Options forwarded to scipy.integrate.quad.
         invert_integral_kwargs: Options forwarded to invert_integral.
         seed: Optional random seed for the isometry.
+
+    Returns:
+        (points, semi_axes, parameters), with semi-axis shape (d + 1) and parameter shape (n_samples, d). Points have
+        shape (n_samples, f), where f is ambient_space_dim or d + 1. With apply_random_isometry=True, the points entry
+        is (transformed_points, (rotation, translation)), with rotation shape (f f) and translation shape (f).
     """
     semi_axes_array = np.array(semi_axes)
     dim = len(semi_axes_array) - 1
@@ -300,6 +332,9 @@ def sample_ellipsoid_uniformly(
 
         Args:
             *phis: Coordinate arrays, each of shape (n).
+
+        Returns:
+            Mapped coordinates, normally shape (n, d + 1); singleton axes are squeezed.
         """
         return parameter_lambd(*phis).squeeze().T
 
@@ -341,6 +376,11 @@ def sample_hyperboloid_uniformly(
         quad_kwargs: Options forwarded to scipy.integrate.quad.
         invert_integral_kwargs: Options forwarded to invert_integral.
         seed: Optional random seed for the isometry.
+
+    Returns:
+        (points, semi_axes, parameters), with semi-axis shape (d + 1) and parameter shape (n_samples, d). Points have
+        shape (n_samples, f), where f is ambient_space_dim or d + 1. With apply_random_isometry=True, the points entry
+        is (transformed_points, (rotation, translation)), with rotation shape (f f) and translation shape (f).
     """
     semi_axes_array = np.array(semi_axes)
     dim = len(semi_axes_array) - 1
@@ -367,6 +407,9 @@ def sample_hyperboloid_uniformly(
 
         Args:
             *phis: Coordinate arrays, each of shape (n).
+
+        Returns:
+            Mapped coordinates, normally shape (n, d + 1); singleton axes are squeezed.
         """
         return parameter_lambd(*phis).squeeze().T
 

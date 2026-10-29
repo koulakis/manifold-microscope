@@ -12,6 +12,9 @@ def statistical_scaling(data: np.ndarray) -> np.ndarray:
 
     Args:
         data: Input array of arbitrary shape (s1 ... sn).
+
+    Returns:
+        Centered and scaled array with the same shape (s1 ... sn) as data.
     """
     data_mean = data.mean()
     data_std = data.std()
@@ -30,7 +33,7 @@ def rotate_image(
         angle: The angle in degrees.
 
     Returns:
-        The rotated image, same size as the input image.
+        Rotated image array with the same shape (h w) as image.
     """
     center = np.array(image.shape) / 2
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
@@ -48,7 +51,7 @@ def place_in_middle_of_background(background: np.ndarray, image: np.ndarray) -> 
         image: Smaller foreground image, shape (hi wi).
 
     Returns:
-        A copy of the background image with the foreground image pasted in the middle.
+        Copy of the background with the foreground pasted in its center, shape (h w).
     """
     background = background.copy()
     cy, cx = (np.array(background.shape) // 2).astype(np.int64)
@@ -79,7 +82,7 @@ def shrink_image(
         interpolation: The interpolation method.
 
     Returns:
-        An image with the shrunk input image in the middle.
+        Centered, padded image array of shape (output_size, output_size).
     """
     if output_size < size:
         raise ValueError(f"Attempting to shrink image or shape {output_size} to the larger size {size}.")
@@ -103,7 +106,7 @@ def translate_image(
         dy: The translation on the y-axis in pixels.
 
     Returns:
-        The translated image in a numpy array, same size as the input image.
+        Translated image array with the same shape (h w) as image.
     """
     translation_matrix = np.array([
         [1, 0, dx],

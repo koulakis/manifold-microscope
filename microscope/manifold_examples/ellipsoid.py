@@ -11,7 +11,7 @@ def ellipsoid_volume_element(principal_radii: np.ndarray, coordinates: np.ndarra
         coordinates: Parameter coordinates, shape (... d).
 
     Returns:
-        A vector of shape (n_points) with the volume element per point.
+        Volume-element array with the broadcast leading shape (...) of coordinates and principal_radii.
     """
     n = coordinates.shape[-1]
 
@@ -56,7 +56,7 @@ def ellipsoid_scalar_curvature(principal_radii: np.ndarray, coordinates: np.ndar
         coordinates: Parameter coordinates, shape (... d).
 
     Returns:
-        The scalar curvature as a float.
+        Scalar-curvature array with the broadcast leading shape (...) of coordinates and principal_radii.
     """
     n = coordinates.shape[-1]
 

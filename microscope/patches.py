@@ -26,6 +26,10 @@ def _iter_patches_with_halo(
         patch_sizes: Patch size along each of the d grid axes.
         halo: Number of extra samples on each side of an output tile.
         cyclic_dimensions: Zero-based periodic grid axes.
+
+    Yields:
+        (destination, patch): output-grid slices and an array of shape (p1 ... pd f1 ... fk). Each pi includes both halo
+        margins and is at most patch_sizes[i]; trailing feature axes match array.
     """
     dims = len(patch_sizes)
     shape = array.shape[:dims]
@@ -77,6 +81,9 @@ def _validate_patch_inputs(
         patch_sizes: Patch size along each of the d grid axes.
         overlaps: Overlap along each patched grid axis.
         cyclic_dimensions: Zero-based periodic grid axes.
+
+    Returns:
+        None.
     """
     validate_integer_list(patch_sizes, "patch sizes", minimum=1)
     validate_integer_list(overlaps, "patch overlaps")
@@ -118,7 +125,8 @@ def extract_patches(
         verbose: If true it prints info and warning messages.
 
     Returns:
-        A view of the overlapping patches, preserving their structure.
+        Patch-grid view of shape (g1 ... gd p1 ... pd f1 ... fk), where pi = patch_sizes[i] and gi counts patches along
+        grid axis i. Feature axes are unchanged; padding may allocate a backing array.
     """
     if cyclic_dimensions is None:
         cyclic_dimensions = []
@@ -193,7 +201,7 @@ def stack_patches(patches: np.ndarray, n_features: int) -> np.ndarray:
         n_features: The number of features which are not patched.
 
     Returns:
-        An array with all the patches stacked along their corresponding dimensions.
+        Reassembled array of shape (g1 * p1, ..., gd * pd, f1, ..., fk), with n_features trailing feature axes.
     """
     # Number of spatial dimensions.
     n_dim = (len(patches.shape) - n_features) // 2

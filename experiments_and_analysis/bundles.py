@@ -35,6 +35,9 @@ def bundle_family(config: dict) -> dict:
 
     Args:
         config: Experiment or sweep configuration.
+
+    Returns:
+        Copied configuration with output_layout and dataset sample_size removed for grouping compatible experiments.
     """
     family = deepcopy(config)
     family.pop('output_layout', None)
@@ -48,6 +51,9 @@ def _atomic_pickle(path: Path, value: object) -> None:
     Args:
         path: Filesystem path.
         value: Value to serialize or assign.
+
+    Returns:
+        None.
     """
     temporary = path.with_suffix(path.suffix + '.tmp')
     with temporary.open('wb') as stream:
@@ -63,6 +69,10 @@ def _decode(name: str, data: bytes) -> object:
     Args:
         name: Name used for labels or output files.
         data: Serialized artifact bytes.
+
+    Returns:
+        Decoded artifact: text/bytes, JSON or pickle data, a NumPy array with its stored shape, or a dictionary of
+        stored arrays for an NPZ file.
     """
     if name.endswith('.json'):
         return json.loads(data)
@@ -79,7 +89,11 @@ def _decode(name: str, data: bytes) -> object:
 class Bundle:
     @property
     def journal(self) -> Path:
-        """Return the path to the incremental experiment journal."""
+        """Return the path to the incremental experiment journal.
+
+        Returns:
+            Filesystem path to progress.pkl in the bundle directory.
+        """
         return self.directory / 'progress.pkl'
 
     def _read(self, stream: BinaryIO) -> dict | None:
@@ -87,6 +101,9 @@ class Bundle:
 
         Args:
             stream: Open journal stream positioned at an event header.
+
+        Returns:
+            Decoded journal-event dictionary, or None at the end of committed data or an incomplete trailing event.
         """
         header = stream.read(40)
         if len(header) < 40:
@@ -105,6 +122,9 @@ class Bundle:
 
         Args:
             offset: Byte offset of a committed event.
+
+        Returns:
+            Committed event dictionary at the requested byte offset.
         """
         if self.cached is None or self.cached[0] != offset:
             with self.journal.open('rb') as stream:
@@ -125,6 +145,9 @@ class Bundle:
         Args:
             event: Committed experiment metadata and file payloads.
             offset: Byte offset of the event in the journal.
+
+        Returns:
+            None.
         """
         self.experiments[event['experiment_id']] = offset
         for name in event['files']:
@@ -132,7 +155,11 @@ class Bundle:
             self.dirs.update(str(p) if str(p) != '.' else '' for p in PurePosixPath(name).parents)
 
     def _scan(self) -> None:
-        """Index complete journal events and retain the last committed offset."""
+        """Index complete journal events and retain the last committed offset.
+
+        Returns:
+            None.
+        """
         if not self.journal.is_file():
             return
         with self.journal.open('rb') as stream:
@@ -154,6 +181,9 @@ class Bundle:
         Args:
             directory: Directory or virtual bundle path for this stage.
             family: Expected bundle configuration, or None to use saved metadata.
+
+        Returns:
+            None.
         """
         self.directory = directory
         metadata = directory / 'family.pkl'
@@ -182,6 +212,9 @@ class Bundle:
 
         Args:
             name: Name used for labels or output files.
+
+        Returns:
+            Raw bytes of the requested pending or committed virtual file.
         """
         if name in self.pending:
             return self.pending[name]
@@ -190,7 +223,11 @@ class Bundle:
         return self.event(self.index[name])['files'][name]
 
     def export(self) -> None:
-        """Export committed experiments as standard pickle and CSV files."""
+        """Export committed experiments as standard pickle and CSV files.
+
+        Returns:
+            None.
+        """
         if not self.experiments or (not self.dirty and (self.directory / 'results.pkl').is_file()
                                     and (self.directory / 'summary.csv').is_file()):
             return
@@ -247,6 +284,9 @@ class Bundle:
 
         Args:
             experiment_id: Identifier attached to the committed experiment.
+
+        Yields:
+            None while pending files are collected for one atomic journal event.
         """
         if self.pending or self.pending_dirs:
             raise RuntimeError('Nested bundle transaction')
@@ -285,6 +325,9 @@ def get_bundle(directory: str | Path, family: dict | None = None) -> Bundle:
     Args:
         directory: Directory or virtual bundle path for this stage.
         family: Expected bundle configuration, or None to use saved metadata.
+
+    Returns:
+        Cached or newly opened Bundle matching the requested directory and family.
     """
     directory = Path(directory).resolve()
     if directory not in _bundles:
@@ -307,12 +350,19 @@ class BundlePath:
         Args:
             bundle: Bundle containing this virtual path.
             relative: Relative POSIX path inside the bundle.
+
+        Returns:
+            None.
         """
         self.bundle, self.relative = bundle, relative
 
     @property
     def name(self) -> str:
-        """Return the final virtual path component."""
+        """Return the final virtual path component.
+
+        Returns:
+            Final component of the relative virtual path.
+        """
         return PurePosixPath(self.relative).name
 
     def __truediv__(self, name: str) -> BundlePath:
@@ -320,16 +370,27 @@ class BundlePath:
 
         Args:
             name: Name used for labels or output files.
+
+        Returns:
+            New virtual path with the supplied component appended.
         """
         return BundlePath(self.bundle, f'{self.relative}/{name}'.lstrip('/'))
 
     def __str__(self) -> str:
-        """Return the bundle locator for this virtual path."""
+        """Return the bundle locator for this virtual path.
+
+        Returns:
+            Locator string in the form bundle_directory::relative_path.
+        """
         return f'{self.bundle.directory}::{self.relative}'
 
     @property
     def parent(self) -> BundlePath:
-        """Return the parent virtual path."""
+        """Return the parent virtual path.
+
+        Returns:
+            Virtual path to the parent directory.
+        """
         relative = str(PurePosixPath(self.relative).parent)
         return BundlePath(self.bundle, '' if relative == '.' else relative)
 
@@ -338,15 +399,26 @@ class BundlePath:
 
         Args:
             name: Name used for labels or output files.
+
+        Returns:
+            Sibling virtual path with the requested final component.
         """
         return self.parent / name
 
     def is_file(self) -> bool:
-        """Check whether the virtual file is pending or committed."""
+        """Check whether the virtual file is pending or committed.
+
+        Returns:
+            True if the virtual file is pending or committed; otherwise False.
+        """
         return self.relative in self.bundle.pending or self.relative in self.bundle.index
 
     def exists(self) -> bool:
-        """Check whether the virtual path names a file or directory."""
+        """Check whether the virtual path names a file or directory.
+
+        Returns:
+            True if the virtual path identifies a known file or directory; otherwise False.
+        """
         return self.is_file() or self.relative in self.bundle.dirs or self.relative in self.bundle.pending_dirs
 
     def mkdir(
@@ -359,6 +431,9 @@ class BundlePath:
         Args:
             parents: Accepted for compatibility with filesystem paths; parent directories are implicit.
             exist_ok: Allow a directory that already exists.
+
+        Returns:
+            None.
         """
         if self.exists() and not exist_ok:
             raise FileExistsError(str(self))
@@ -369,15 +444,26 @@ class BundlePath:
 
         Args:
             value: Text content to store.
+
+        Returns:
+            None.
         """
         self.bundle.pending[self.relative] = value.encode('utf-8')
 
     def read_text(self) -> str:
-        """Read a virtual file as UTF-8 text."""
+        """Read a virtual file as UTF-8 text.
+
+        Returns:
+            UTF-8-decoded contents of the virtual file.
+        """
         return self.bundle.read(self.relative).decode('utf-8')
 
     def unlink(self) -> None:
-        """Remove a pending virtual file."""
+        """Remove a pending virtual file.
+
+        Returns:
+            None.
+        """
         del self.bundle.pending[self.relative]
 
     @contextmanager
@@ -386,6 +472,10 @@ class BundlePath:
 
         Args:
             mode: Read or write mode: r, rb, w or wb.
+
+        Yields:
+            In-memory binary or text stream matching mode; writable contents are stored as a pending virtual file on
+            exit.
         """
         if mode not in ('r', 'rb', 'w', 'wb'):
             raise ValueError(f'Unsupported bundle file mode: {mode}')
@@ -404,6 +494,9 @@ def output_root(config: dict, root: str | Path) -> Path | BundlePath:
     Args:
         config: Experiment or sweep configuration.
         root: Root directory for experiment artifacts.
+
+    Returns:
+        Filesystem root or virtual bundle root selected by the output configuration.
     """
     if config['output_layout'] == 'directories':
         return Path(root)
@@ -418,6 +511,9 @@ def bundled_path(locator: str) -> BundlePath:
 
     Args:
         locator: Bundle directory and relative path separated by ::.
+
+    Returns:
+        Virtual path resolved from a bundle_directory::relative_path locator.
     """
     directory, relative = locator.split('::', 1)
     return BundlePath(get_bundle(directory), relative)
@@ -428,6 +524,9 @@ def export_bundle(directory: str | Path) -> None:
 
     Args:
         directory: Directory or virtual bundle path for this stage.
+
+    Returns:
+        None.
     """
     get_bundle(directory).export()
 
@@ -438,6 +537,9 @@ def bundle_session(root: str | Path) -> Iterator[None]:
 
     Args:
         root: Root directory for experiment artifacts.
+
+    Yields:
+        None while bundled experiments execute; pending exports are refreshed on exit.
     """
     root = Path(root).resolve()
     _sessions[root] = _sessions.get(root, 0) + 1

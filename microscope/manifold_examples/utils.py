@@ -25,6 +25,10 @@ def parallel_apply(
         processes: Number of worker processes; None uses the available CPU count.
         element_wise: Apply f to scalars instead of leading-axis items.
         **kwargs: Additional keyword arguments forwarded to f.
+
+    Returns:
+        Array of results in input order. Leading-axis mapping gives shape (n, *result_shape); element-wise mapping
+        restores the input shape and requires scalar results.
     """
     if processes is None:
         processes = multiprocessing.cpu_count()
@@ -58,6 +62,9 @@ def embed_to_ambient_space(grid: np.ndarray, ambient_space_dim: int) -> np.ndarr
     Args:
         grid: Embedded point grid, shape (s1 ... sd f).
         ambient_space_dim: Number of embedding coordinates.
+
+    Returns:
+        Point grid of shape (s1 ... sd ambient_space_dim), with zero-filled added coordinates.
     """
     return np.concatenate(
         [
@@ -79,6 +86,9 @@ def random_isometry_transform(
         grid: Embedded point grid, shape (s1 ... sd f).
         limit: Symmetric bound for the random translation coordinates.
         seed: Optional random seed for the isometry.
+
+    Returns:
+        (transformed_grid, (rotation, translation)), with shapes (s1 ... sd f), (f f) and (f), respectively.
     """
     ambient_space_dim = grid.shape[-1]
 

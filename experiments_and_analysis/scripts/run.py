@@ -58,6 +58,9 @@ def check_device(device: str) -> None:
 
     Args:
         device: Device used for tensor computations.
+
+    Returns:
+        None.
     """
     import torch
     target = torch.device(device)
@@ -80,6 +83,9 @@ def load_dataset(
         spec: Dataset or split specification.
         root: Root directory for experiment artifacts.
         device: Device used for tensor computations.
+
+    Returns:
+        Loaded Dataset, reusing a cached toy reference where available.
     """
     started = perf_counter()
     if spec['name'] not in ('Sphere', 'Torus', 'Circle', 'Moons'):
@@ -112,6 +118,9 @@ def prepare_indices(
         config: Experiment or sweep configuration.
         root: Root directory for experiment artifacts.
         source: Dataset identity including source provenance.
+
+    Returns:
+        (train_indices, test_indices), flat dataset index arrays of shapes (n_train) and (n_test).
     """
     spec = config['split']
     if spec['method'] in ('full', 'provided'):
@@ -164,6 +173,9 @@ def fit_model(
         data: Input samples of shape (n ...), with sample axis first.
         directory: Directory or virtual bundle path for this stage.
         split_id: Identifier of the training split, when available.
+
+    Returns:
+        Relative filenames of the model artifacts written by the selected training method.
     """
     from ..models.beta_vae import fitting as vae
     from ..models.mmls import fitting as mmls
@@ -204,6 +216,10 @@ def domain_data(dataset: Dataset, indices: np.ndarray | None) -> np.ndarray:
     Args:
         dataset: Loaded dataset and its grid/split metadata.
         indices: Selected sample indices of shape (n), or None for the full grid.
+
+    Returns:
+        Selected sample array of shape (n_selected, *dataset.flat.shape[1:]), normalized unless the dataset supplies its
+        own split.
     """
     data = dataset.flat if indices is None else dataset.flat[indices]
     # Toy manifolds already supply their analytic, normalized coordinates.
@@ -221,6 +237,9 @@ def load_model(
         config: Experiment or sweep configuration.
         directory: Directory or virtual bundle path for this stage.
         training_points: Training samples of shape (n f), if not exported with the fit.
+
+    Returns:
+        Restored beta-VAE or MMLS projector, or None when no model is configured.
     """
     from ..models.beta_vae.inference import load_autoencoder_from_checkpoint
     from ..models.mmls.fitting import load_projector
@@ -253,6 +272,10 @@ def predictions(
         model: Autoencoder used for inference.
         data: Input samples of shape (n ...), with sample axis first.
         representation: Requested input, latent, layer or output representation.
+
+    Yields:
+        (start_index, values), with each NumPy array of shape (b, *representation_shape). Beta-VAE images have shape (b
+        1 h w), latent means (b z), and MMLS output retains the input shape (n ...).
     """
     from ..models.beta_vae.inference import batches
     from ..models.mmls.inference import predict
@@ -299,6 +322,9 @@ def analyze(
         model: Autoencoder used for inference.
         root: Root directory for experiment artifacts.
         model_id: Model-stage identifier, or None for input-only analyses.
+
+    Returns:
+        List of result records for each configured analysis, domain and representation.
     """
     from ..analyses.errors import pointwise_distances, summarize
     from ..analyses.geometry import compute
@@ -454,6 +480,9 @@ def completed_result(
         config: Experiment or sweep configuration.
         root: Root directory for experiment artifacts.
         source: Known dataset identity, or None to inspect the configured source.
+
+    Returns:
+        Reusable completed-experiment result dictionary, or None if required stages are missing or incompatible.
     """
     source = source_identity(config['dataset']) if source is None else source
     paths = experiment_paths(output_root(config, root), config, source)
@@ -485,6 +514,9 @@ def _run(
         root: Root directory for experiment artifacts.
         dataset: Loaded dataset and its grid/split metadata.
         artifacts: Root for ordinary or bundled stage artifacts.
+
+    Returns:
+        Experiment result dictionary containing its stage identifiers, artifact paths and analysis records.
     """
     source = source_identity(config['dataset'])
     split_id, model_id = stage_ids(config, source)
@@ -571,6 +603,9 @@ def run(
         output_dir: Directory for generated outputs.
         dataset: Loaded dataset to reuse, or None to load from the configuration.
         quick_run: Apply the shared reduced experiment budgets.
+
+    Returns:
+        Experiment result dictionary containing its stage identifiers, artifact paths and analysis records.
     """
     config = apply_quick_run(config) if quick_run else resolve(config)
     root = Path(output_dir).expanduser().resolve()
@@ -605,6 +640,9 @@ def main(
         output_dir: Directory for generated outputs.
         quick_run: Apply the shared reduced experiment budgets.
         device: Optional device override, such as cpu or cuda:0.
+
+    Returns:
+        None.
     """
     configuration = load_config(config)
     if device is not None:

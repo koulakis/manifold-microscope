@@ -24,6 +24,9 @@ def quick_grid(grid: dict) -> dict:
 
     Args:
         grid: Sweep axes mapped to choices or integer ranges.
+
+    Returns:
+        Reduced copy of the sweep axes, retaining the original model, dataset and layer choices.
     """
     grid = deepcopy(grid)
     for path, sizes in [('split.train_fraction', QUICK_RUN['train_fractions']),
@@ -42,6 +45,9 @@ def apply_quick_run(config: dict) -> dict:
 
     Args:
         config: Experiment or sweep configuration.
+
+    Returns:
+        Resolved configuration with reduced training, inference and plotting budgets.
     """
     result = resolve(config)
     if result['model']['name'] == 'beta_vae':

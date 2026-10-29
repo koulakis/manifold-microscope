@@ -22,6 +22,9 @@ def cuda(tensor: torch.Tensor, uses_cuda: bool) -> torch.Tensor:
     Args:
         tensor: Tensor of shape (...).
         uses_cuda: Move the tensor to CUDA when true.
+
+    Returns:
+        Tensor with unchanged shape (...), moved to CUDA when uses_cuda=True.
     """
     return tensor.cuda() if uses_cuda else tensor
 
@@ -32,6 +35,9 @@ def to_device(tensor: torch.Tensor, device: str) -> torch.Tensor:
     Args:
         tensor: Tensor of shape (...).
         device: Device used for tensor computations.
+
+    Returns:
+        Tensor with unchanged shape (...) on the requested device.
     """
     return tensor.to(device)
 
@@ -41,6 +47,9 @@ def str2bool(v: str) -> bool:
 
     Args:
         v: Boolean text such as yes/no, true/false or 1/0.
+
+    Returns:
+        True for a recognized true string and False for a recognized false string.
     """
     # codes from : https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
 
@@ -66,6 +75,9 @@ def where(
         cond: Condition mask broadcastable to x and y, of shape (...).
         x: Values where the mask is true, of shape (...).
         y: Values where the mask is false, of shape (...).
+
+    Returns:
+        Tensor of the broadcast shape of cond, x and y, combining x and y according to cond.
     """
     cond = cond.float()
     return (cond*x) + ((1-cond)*y)
@@ -85,6 +97,9 @@ def grid2gif(
         image_str: ImageMagick input image expression.
         output_gif: Output GIF filename.
         delay: Frame delay in hundredths of a second.
+
+    Returns:
+        None.
     """
     str1 = 'convert -delay '+str(delay)+' -loop 0 ' + image_str  + ' ' + output_gif
     subprocess.call(str1, shell=True)

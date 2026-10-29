@@ -10,7 +10,7 @@ def hyperboloid_volume_element(principal_radii: np.ndarray, coordinates: np.ndar
         coordinates: Parameter coordinates, shape (... d).
 
     Returns:
-        A single number which is the value of the volume element.
+        Volume-element array with the broadcast leading shape (...) of coordinates and principal_radii.
     """
     n = coordinates.shape[-1]
 
@@ -37,6 +37,9 @@ def hyperboloid_scalar_curvature(
     Args:
         principal_radii: Principal semi-axes, shape (d + 1) or (... d + 1).
         coordinates: Parameter coordinates, shape (... d).
+
+    Returns:
+        Scalar-curvature array with the broadcast leading shape (...) of coordinates and principal_radii.
     """
     n = coordinates.shape[-1]
 

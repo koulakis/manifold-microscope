@@ -34,6 +34,9 @@ def experiment_output(quiet: bool) -> Iterator[None]:
 
     Args:
         quiet: Suppress experiment prints and progress bars.
+
+    Yields:
+        None while experiment output is suppressed or redirected around the sweep progress bar.
     """
     if quiet:
         with open(os.devnull, 'w') as sink, redirect_stdout(sink), redirect_stderr(sink):
@@ -56,6 +59,9 @@ def set_choice(
         config: Experiment or sweep configuration.
         path: Dotted key identifying the configuration field to replace.
         value: Value to serialize or assign.
+
+    Returns:
+        None.
     """
     keys = path.split('.')
     current = config
@@ -75,6 +81,9 @@ def expand(
         config: Experiment or sweep configuration.
         quick_run: Apply the shared reduced experiment budgets.
         device: Optional device override for every experiment.
+
+    Returns:
+        Deduplicated list of resolved experiment configurations after applying choices, exclusions and overrides.
     """
     experiments = []
     for group in config.get('groups', [dict()]):
@@ -122,6 +131,10 @@ def run(
         quick_run: Apply the shared reduced experiment budgets.
         device: Optional device override for every experiment.
         quiet_experiments: Override whether experiment output is suppressed during a sweep.
+
+    Returns:
+        Dictionary containing resolved configurations, experiment results and generated plot paths; dry runs leave the
+        last two lists empty.
     """
     started = perf_counter()
     quiet = config.get('quiet_experiments', False) if quiet_experiments is None else quiet_experiments
@@ -198,6 +211,9 @@ def main(
         quick_run: Apply the shared reduced experiment budgets.
         quiet_experiments: Override whether experiment output is suppressed during a sweep.
         device: Optional device override, such as cpu or cuda:0.
+
+    Returns:
+        None.
     """
     result = run(
         load_config(config),

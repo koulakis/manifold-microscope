@@ -41,6 +41,9 @@ def reconstruction_loss(
         x: Target images of shape (b c h w); the batch must be nonempty.
         x_recon: Reconstruction logits of shape (b c h w).
         distribution: Reconstruction likelihood, bernoulli or gaussian.
+
+    Returns:
+        Batch-averaged reconstruction loss as a scalar tensor of shape (), or None for an unsupported distribution.
     """
     batch_size = x.size(0)
     assert batch_size != 0
@@ -62,6 +65,10 @@ def kl_divergence(mu: torch.Tensor, logvar: torch.Tensor) -> tuple[torch.Tensor,
     Args:
         mu: Latent means of shape (b z), or (b z 1 1).
         logvar: Latent log variances with the same shape as mu.
+
+    Returns:
+        (total_kld, dimension_wise_kld, mean_kld), tensors of shapes (1), (z) and (1), respectively, averaged over the
+        batch.
     """
     batch_size = mu.size(0)
     assert batch_size != 0
@@ -81,7 +88,11 @@ def kl_divergence(mu: torch.Tensor, logvar: torch.Tensor) -> tuple[torch.Tensor,
 class DataGather(object):
     @staticmethod
     def get_empty_data_dict() -> dict[str, list]:
-        """Create empty lists for training statistics."""
+        """Create empty lists for training statistics.
+
+        Returns:
+            Dictionary mapping each tracked training statistic to an empty list.
+        """
         return dict(
             iter=[],
             recon_loss=[],
@@ -96,7 +107,11 @@ class DataGather(object):
         )
 
     def __init__(self) -> None:
-        """Initialize the collected training statistics."""
+        """Initialize the collected training statistics.
+
+        Returns:
+            None.
+        """
         self.data = self.get_empty_data_dict()
 
     def insert(self, **kwargs: object) -> None:
@@ -104,12 +119,19 @@ class DataGather(object):
 
         Args:
             **kwargs: Named statistics; tensor values have the shape of their corresponding metric.
+
+        Returns:
+            None.
         """
         for key in kwargs:
             self.data[key].append(kwargs[key])
 
     def flush(self) -> None:
-        """Clear all collected training statistics."""
+        """Clear all collected training statistics.
+
+        Returns:
+            None.
+        """
         self.data = self.get_empty_data_dict()
 
 
@@ -119,6 +141,9 @@ def plot_training_curve(train_losses: list[float], plots_dir: Path) -> None:
     Args:
         train_losses: Reconstruction losses in training-step order.
         plots_dir: Directory for the saved training curve.
+
+    Returns:
+        None.
     """
     plt.figure(figsize=(8, 5))
     epochs = len(train_losses)
@@ -148,6 +173,9 @@ def visualize_reconstructions(
         data_loader: Loader yielding image batches of shape (b c h w).
         device: Device used for tensor computations.
         num_images: Maximum number of images to display.
+
+    Returns:
+        None.
     """
     autoencoder.eval()
     images = next(iter(data_loader))
@@ -195,6 +223,9 @@ class Solver(object):
 
         Args:
             tensor_or_module: Tensor of shape (...) or module to move to the configured device.
+
+        Returns:
+            Tensor with unchanged shape (...) or the same module, placed on the configured device.
         """
         return tensor_or_module.to(self.device)
 
@@ -203,6 +234,9 @@ class Solver(object):
 
         Args:
             filename: Checkpoint filename relative to the checkpoint directory.
+
+        Returns:
+            None.
         """
         file_path = self.ckpt_dir / filename
         if os.path.isfile(file_path):
@@ -229,6 +263,9 @@ class Solver(object):
         Args:
             args: Model, optimizer, device, output and training settings.
             data_loader: Loader yielding image batches of shape (b c h w).
+
+        Returns:
+            None.
         """
         self.args = args
 
@@ -300,6 +337,9 @@ class Solver(object):
 
         Args:
             train: Enable training mode when true, or evaluation mode when false.
+
+        Returns:
+            None.
         """
         if not isinstance(train, bool):
             raise 'Only bool type is supported. True or False'
@@ -319,6 +359,9 @@ class Solver(object):
         Args:
             filename: Checkpoint filename; None derives a name from recent training losses.
             silent: Suppress the checkpoint confirmation message.
+
+        Returns:
+            None.
         """
         model_states = {'net': self.net.state_dict()}
         optim_states = {'optim': self.optim.state_dict()}
@@ -373,6 +416,9 @@ class Solver(object):
         """Fit the model; strict_budget opts into exact batch and epoch limits.
 
         Historical default behavior finishes an epoch after a stop condition.
+
+        Returns:
+            None.
         """
         strict_budget = self.args.strict_budget
         if strict_budget:
