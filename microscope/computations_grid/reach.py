@@ -337,7 +337,9 @@ def reach_per_point(
                 best = torch.where(improve, values, best)
                 witnesses = torch.where(improve, c+indices, witnesses)
             if not geometry_ok:
-                raise FloatingPointError("Reach geometry overflow or nonfinite ratios; rescale the embedding or use float64.")
+                raise FloatingPointError(
+                    "Reach geometry overflow or nonfinite ratios; rescale the embedding or use float64."
+                )
             unresolved = torch.isfinite(near_separation)
             if unresolved.any():
                 index = int(torch.nonzero(unresolved, as_tuple=False)[0, 0])

@@ -8,7 +8,6 @@ import matplotlib
 
 
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 from microscope.computations_grid.data_analysis.data_analysis import (
     compute_measures_multiclass,

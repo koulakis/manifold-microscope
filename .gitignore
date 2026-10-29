@@ -14,3 +14,4 @@ results
 !docs/images/colorful_mathematical_surface_microscope.png
 dist
 .DS_Store
+.ruff_cache/

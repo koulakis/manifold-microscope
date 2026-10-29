@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from torch.utils.data import DataLoader

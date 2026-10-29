@@ -1,0 +1,788 @@
+[
+  {
+    "file": "experiments_and_analysis/analyses/toy.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"X\" of type \"ndarray[Unknown, Unknown]\" in function \"__init__\"\n\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/analyses/toy.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"samples\" of type \"ndarray[Unknown, Unknown]\" in function \"fit\"\n\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/analyses/toy.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"R\" for class \"Manifold\"\n\u00a0\u00a0Attribute \"R\" is unknown",
+    "count": 6
+  },
+  {
+    "file": "experiments_and_analysis/analyses/toy.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"r\" for class \"Manifold\"\n\u00a0\u00a0Attribute \"r\" is unknown",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/analyses/toy.py",
+    "rule": "reportRedeclaration",
+    "message": "Declaration \"manifold\" is obscured by a declaration of the same name",
+    "count": 4
+  },
+  {
+    "file": "experiments_and_analysis/analyses/toy.py",
+    "rule": "reportRedeclaration",
+    "message": "Parameter declaration \"manifold\" is obscured by a declaration of the same name",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/bundles.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"directory\" of type \"str | Path\" in function \"get_bundle\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"Path\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/bundles.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"encode\" for class \"bytes\"\n\u00a0\u00a0Attribute \"encode\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/bundles.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"get\" for class \"object\"\n\u00a0\u00a0Attribute \"get\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/bundles.py",
+    "rule": "reportIndexIssue",
+    "message": "\"__getitem__\" method not defined on type \"object\"",
+    "count": 3
+  },
+  {
+    "file": "experiments_and_analysis/bundles.py",
+    "rule": "reportOptionalMemberAccess",
+    "message": "\"get\" is not a known attribute of \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/bundles.py",
+    "rule": "reportOptionalSubscript",
+    "message": "Object of type \"None\" is not subscriptable",
+    "count": 3
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/fitting.py",
+    "rule": "reportReturnType",
+    "message": "Type \"Tensor | Module\" is not assignable to return type \"BetaVAE_H\"\n\u00a0\u00a0Type \"Tensor | Module\" is not assignable to type \"BetaVAE_H\"\n\u00a0\u00a0\u00a0\u00a0\"Module\" is not assignable to \"BetaVAE_H\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/inference.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown] | None\" cannot be assigned to parameter \"value\" of type \"ndarray[Unknown, Unknown]\" in function \"__setitem__\"\n\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | None\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/inference.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"data_tensor\" of type \"Tensor\" in function \"__init__\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/inference.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"Tensor\" is not assignable to declared type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\"Tensor\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/model.py",
+    "rule": "reportGeneralTypeIssues",
+    "message": "\"Module\" is not iterable\n\u00a0\u00a0\"__iter__\" method not defined",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/model.py",
+    "rule": "reportOptionalIterable",
+    "message": "Object of type \"None\" cannot be used as iterable value",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/model.py",
+    "rule": "reportOptionalMemberAccess",
+    "message": "\"data\" is not a known attribute of \"None\"",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"DataLoader[Unknown] | None\" cannot be assigned to parameter \"data_loader\" of type \"DataLoader[Unknown]\" in function \"visualize_reconstructions\"\n\u00a0\u00a0Type \"DataLoader[Unknown] | None\" is not assignable to type \"DataLoader[Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"DataLoader[Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Tensor | Module\" cannot be assigned to parameter \"autoencoder\" of type \"Module\" in function \"visualize_reconstructions\"\n\u00a0\u00a0Type \"Tensor | Module\" is not assignable to type \"Module\"\n\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"Module\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Tensor | Module\" cannot be assigned to parameter \"x\" of type \"Tensor\" in function \"reconstruction_loss\"\n\u00a0\u00a0Type \"Tensor | Module\" is not assignable to type \"Tensor\"\n\u00a0\u00a0\u00a0\u00a0\"Module\" is not assignable to \"Tensor\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Tensor | Unknown\" cannot be assigned to parameter \"max\" of type \"Number | complex | None\" in function \"clamp\"\n\u00a0\u00a0Type \"Tensor | Unknown\" is not assignable to type \"Number | complex | None\"\n\u00a0\u00a0\u00a0\u00a0Type \"Tensor\" is not assignable to type \"Number | complex | None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"int\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"float\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"bool\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"complex\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"eval\" for class \"Tensor\"\n\u00a0\u00a0Attribute \"eval\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"load_state_dict\" for class \"Tensor\"\n\u00a0\u00a0Attribute \"load_state_dict\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"parameters\" for class \"Tensor\"\n\u00a0\u00a0Attribute \"parameters\" is unknown",
+    "count": 3
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"state_dict\" for class \"Tensor\"\n\u00a0\u00a0Attribute \"state_dict\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"train\" for class \"Tensor\"\n\u00a0\u00a0Attribute \"train\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportCallIssue",
+    "message": "No overloads for \"clamp\" match the provided arguments",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportCallIssue",
+    "message": "Object of type \"Tensor\" is not callable\n\u00a0\u00a0Attribute \"__call__\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportIndexIssue",
+    "message": "\"__getitem__\" method not defined on type \"Module\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"-\" not supported for types \"Tensor\" and \"Tensor | Module\"\n\u00a0\u00a0Operator \"-\" not supported for types \"Tensor\" and \"Module\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"/\" not supported for types \"Tensor | Module\" and \"float\"\n\u00a0\u00a0Operator \"/\" not supported for types \"Module\" and \"float\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportOptionalIterable",
+    "message": "Object of type \"None\" cannot be used as iterable value",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportOptionalMemberAccess",
+    "message": "\"data\" is not a known attribute of \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportOptionalMemberAccess",
+    "message": "\"detach\" is not a known attribute of \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/beta_vae/solver.py",
+    "rule": "reportOptionalOperand",
+    "message": "Operator \"+\" not supported for \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/denoising_autoencoder.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"list[int] | tuple[int, ...]\" cannot be assigned to parameter \"hidden_channels\" of type \"List[int]\" in function \"__init__\"\n\u00a0\u00a0Type \"list[int] | tuple[int, ...]\" is not assignable to type \"List[int]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[int, ...]\" is not assignable to \"List[int]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/denoising_autoencoder.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "\"callbacks\" is not a known attribute of module \"pytorch_lightning\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/denoising_autoencoder.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"*\" not supported for types \"Tensor\" and \"Tensor | None\"\n\u00a0\u00a0Operator \"*\" not supported for types \"Tensor\" and \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/fitting.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BufferedReader[_BufferedReaderStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"_ReadableFileobj\" in function \"load\"\n\u00a0\u00a0Type \"BufferedReader[_BufferedReaderStream] | BytesIO | StringIO\" is not assignable to type \"_ReadableFileobj\"\n\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"_ReadableFileobj\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"read\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(size: int | None = -1, /) -> str\" is not assignable to type \"(n: int, /) -> bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Function return type \"str\" is incompatible with type \"bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"readline\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(size: int = -1, /) -> str\" is not assignable to type \"() -> bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Function return type \"str\" is incompatible with type \"bytes\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/fitting.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"SupportsWrite[bytes]\" in function \"dump\"\n\u00a0\u00a0Type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" is not assignable to type \"SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(s: str, /) -> int\" is not assignable to type \"(s: _T_contra@SupportsWrite, /) -> object\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Parameter 1: type \"_T_contra@SupportsWrite\" is incompatible with type \"str\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/projector.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"input\" of type \"Tensor\" in function \"zeros_like\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/projector.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"points\" of type \"Tensor\" in function \"_project_thin_svd\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/projector.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown]\" cannot be assigned to parameter \"x1\" of type \"Tensor\" in function \"cdist\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Tensor\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/projector.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"Tensor\" is not assignable to declared type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\"Tensor\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/models/mmls/projector.py",
+    "rule": "reportOptionalMemberAccess",
+    "message": "\"query\" is not a known attribute of \"None\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/outputs.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"str | PathLike[str] | _SupportsWrite[bytes]\" in function \"save\"\n\u00a0\u00a0Type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"StringIO\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"_SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(s: str, /) -> int\" is not assignable to type \"(s: _CharType_contra@_SupportsWrite, /) -> object\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/outputs.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BundlePath | str | Path\" cannot be assigned to parameter \"args\" of type \"StrPath\" in function \"__new__\"\n\u00a0\u00a0Type \"BundlePath | str | Path\" is not assignable to type \"StrPath\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"StrPath\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/outputs.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\" in function \"load\"\n\u00a0\u00a0Type \"BytesIO | StringIO\" is not assignable to type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"StringIO\" is not assignable to type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is not assignable to \"bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"PathLike[Any]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"_SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"read\" is an incompatible type\n  ...",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/outputs.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"str | None\" cannot be assigned to parameter \"mmap_mode\" of type \"Literal['r+', 'r', 'w+', 'c'] | None\" in function \"load\"\n\u00a0\u00a0Type \"str | None\" is not assignable to type \"Literal['r+', 'r', 'w+', 'c'] | None\"\n\u00a0\u00a0\u00a0\u00a0Type \"str\" is not assignable to type \"Literal['r+', 'r', 'w+', 'c'] | None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to type \"Literal['r+']\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to type \"Literal['r']\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to type \"Literal['w+']\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to type \"Literal['c']\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/outputs.py",
+    "rule": "reportReturnType",
+    "message": "Type \"BundlePath | str | Path\" is not assignable to return type \"Path | BundlePath\"\n\u00a0\u00a0Type \"BundlePath | str | Path\" is not assignable to type \"Path | BundlePath\"\n\u00a0\u00a0\u00a0\u00a0Type \"str\" is not assignable to type \"Path | BundlePath\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"Path\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"BundlePath\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/bounds.py",
+    "rule": "reportPrivateImportUsage",
+    "message": "\"FuncFormatter\" is not exported from module \"matplotlib.pyplot\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/merge.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "\"colors\" is not a known attribute of module \"matplotlib\"",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"file\" of type \"str | PathLike[str] | _SupportsWrite[bytes]\" in function \"savez\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"_SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is not present",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"fp\" of type \"StrOrBytesPath | IO[bytes]\" in function \"save\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"StrOrBytesPath | IO[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"StrOrBytesPath | IO[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n  ...",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"output_dir\" of type \"str | Path\" in function \"create_layer_plots\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"Path\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"output_dir\" of type \"str | Path\" in function \"create_repetitions_shaded_plot\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"Path\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"target\" of type \"StrPath\" in function \"rename\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"StrPath\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"StrPath\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"rename\" for class \"BundlePath\"\n\u00a0\u00a0Attribute \"rename\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/plotting/render.py",
+    "rule": "reportReturnType",
+    "message": "Type \"Path | BundlePath\" is not assignable to return type \"Path\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"Path\"\n\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"Path\"",
+    "count": 2
+  },
+  {
+    "file": "experiments_and_analysis/quick.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"int | list[float]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[_T@list]\" in function \"__init__\"\n\u00a0\u00a0Type \"int | list[float]\" is not assignable to type \"Iterable[_T@list]\"\n\u00a0\u00a0\u00a0\u00a0\"int\" is incompatible with protocol \"Iterable[_T@list]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__iter__\" is not present",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/quick.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"int | list[float]\" cannot be assigned to parameter \"obj\" of type \"Sized\" in function \"len\"\n\u00a0\u00a0Type \"int | list[float]\" is not assignable to type \"Sized\"\n\u00a0\u00a0\u00a0\u00a0\"int\" is incompatible with protocol \"Sized\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__len__\" is not present",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/quick.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"-\" not supported for type \"int | list[float]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BetaVAE_H | ANNMMLSProjector | None\" cannot be assigned to parameter \"model\" of type \"BetaVAE_H\" in function \"batches\"\n\u00a0\u00a0Type \"BetaVAE_H | ANNMMLSProjector | None\" is not assignable to type \"BetaVAE_H\"\n\u00a0\u00a0\u00a0\u00a0\"ANNMMLSProjector\" is not assignable to \"BetaVAE_H\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BetaVAE_H | ANNMMLSProjector | None\" cannot be assigned to parameter \"model\" of type \"BetaVAE_H\" in function \"representation_names\"\n\u00a0\u00a0Type \"BetaVAE_H | ANNMMLSProjector | None\" is not assignable to type \"BetaVAE_H\"\n\u00a0\u00a0\u00a0\u00a0\"ANNMMLSProjector\" is not assignable to \"BetaVAE_H\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BetaVAE_H | ANNMMLSProjector | None\" cannot be assigned to parameter \"projector\" of type \"ANNMMLSProjector\" in function \"predict\"\n\u00a0\u00a0Type \"BetaVAE_H | ANNMMLSProjector | None\" is not assignable to type \"ANNMMLSProjector\"\n\u00a0\u00a0\u00a0\u00a0\"BetaVAE_H\" is not assignable to \"ANNMMLSProjector\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BufferedReader[_BufferedReaderStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\" in function \"load\"\n\u00a0\u00a0Type \"BufferedReader[_BufferedReaderStream] | BytesIO | StringIO\" is not assignable to type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"StringIO\" is not assignable to type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is not assignable to \"bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"PathLike[Any]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"_SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"read\" is an incompatible type\n  ...",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"SupportsWrite[bytes]\" in function \"dump\"\n\u00a0\u00a0Type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" is not assignable to type \"SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(s: str, /) -> int\" is not assignable to type \"(s: _T_contra@SupportsWrite, /) -> object\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Parameter 1: type \"_T_contra@SupportsWrite\" is incompatible with type \"str\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" cannot be assigned to parameter \"file\" of type \"str | PathLike[str] | _SupportsWrite[bytes]\" in function \"savez\"\n\u00a0\u00a0Type \"BufferedWriter[_BufferedWriterStream] | BytesIO | StringIO\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"StringIO\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"StringIO\" is incompatible with protocol \"_SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"(s: str, /) -> int\" is not assignable to type \"(s: _CharType_contra@_SupportsWrite, /) -> object\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"checkpoint_path\" of type \"Path\" in function \"load_autoencoder_from_checkpoint\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"Path\"\n\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"Path\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"directory\" of type \"str | Path\" in function \"fit\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | Path\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"Path\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"file\" of type \"str | PathLike[str] | _SupportsWrite[bytes]\" in function \"save\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | PathLike[str] | _SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[str]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"_SupportsWrite[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is not present",
+    "count": 3
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Path | BundlePath\" cannot be assigned to parameter \"file\" of type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\" in function \"load\"\n\u00a0\u00a0Type \"Path | BundlePath\" is not assignable to type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0Type \"BundlePath\" is not assignable to type \"str | bytes | PathLike[Any] | _SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"str\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is not assignable to \"bytes\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"PathLike[Any]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__fspath__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"BundlePath\" is incompatible with protocol \"_SupportsReadSeek[bytes]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"read\" is not present\n  ...",
+    "count": 3
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"memmap[Unknown, Unknown] | memmap[Any, dtype[float64]] | ndarray[Unknown, Unknown] | Unknown | ndarray[Any, dtype[float64]] | None\" cannot be assigned to parameter \"features\" of type \"ndarray[Unknown, Unknown]\" in function \"compute\"\n\u00a0\u00a0Type \"memmap[Unknown, Unknown] | memmap[Any, dtype[float64]] | ndarray[Unknown, Unknown] | Unknown | ndarray[Any, dtype[float64]] | None\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"memmap[Unknown, Unknown] | memmap[Any, dtype[float64]] | ndarray[Unknown, Unknown] | Unknown | ndarray[Any, dtype[float64]] | None\" cannot be assigned to parameter \"value\" of type \"ndarray[Unknown, Unknown]\" in function \"save_array\"\n\u00a0\u00a0Type \"memmap[Unknown, Unknown] | memmap[Any, dtype[float64]] | ndarray[Unknown, Unknown] | Unknown | ndarray[Any, dtype[float64]] | None\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"str | Unknown\" cannot be assigned to parameter \"normalize_curvatures\" of type \"bool\" in function \"compute\"\n\u00a0\u00a0Type \"str | Unknown\" is not assignable to type \"bool\"\n\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"bool\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"str | Unknown\" cannot be assigned to parameter \"normalize_for_volume\" of type \"bool\" in function \"compute\"\n\u00a0\u00a0Type \"str | Unknown\" is not assignable to type \"bool\"\n\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"bool\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"str | Unknown\" cannot be assigned to parameter \"reach_batch_size\" of type \"int\" in function \"compute\"\n\u00a0\u00a0Type \"str | Unknown\" is not assignable to type \"int\"\n\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"int\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"str | Unknown\" cannot be assigned to parameter \"reach_subsample\" of type \"int\" in function \"compute\"\n\u00a0\u00a0Type \"str | Unknown\" is not assignable to type \"int\"\n\u00a0\u00a0\u00a0\u00a0\"str\" is not assignable to \"int\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/run.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"+\" not supported for types \"list[str] | Unbound\" and \"list[str]\"\n\u00a0\u00a0Operator \"+\" not supported for types \"Unbound\" and \"list[str]\" when expected type is \"list[str]\"",
+    "count": 1
+  },
+  {
+    "file": "experiments_and_analysis/scripts/sweep.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"DummyTqdmFile\" cannot be assigned to parameter \"new_target\" of type \"_SupportsRedirectT@redirect_stdout\" in function \"__init__\"\n\u00a0\u00a0Type \"DummyTqdmFile\" is not assignable to type \"_SupportsRedirect | None\"\n\u00a0\u00a0\u00a0\u00a0Type \"DummyTqdmFile\" is not assignable to type \"_SupportsRedirect | None\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"DummyTqdmFile\" is incompatible with protocol \"_SupportsRedirect\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"flush\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"write\" is an incompatible type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"DummyTqdmFile\" is not assignable to \"None\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/_curvature_geometry.py",
+    "rule": "reportPrivateImportUsage",
+    "message": "\"LinAlgError\" is not exported from module \"torch.linalg\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"Tensor | Unknown\" cannot be assigned to parameter \"value\" of type \"None\" in function \"__setitem__\"\n\u00a0\u00a0Type \"Tensor | Unknown\" is not assignable to type \"None\"\n\u00a0\u00a0\u00a0\u00a0\"Tensor\" is not assignable to \"None\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportArgumentType",
+    "message": "Expression of type \"tuple[Literal['first'], Literal['second']]\" cannot be assigned to parameter of type \"list[str]\"\n\u00a0\u00a0\"tuple[Literal['first'], Literal['second']]\" is not assignable to \"list[str]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportCallIssue",
+    "message": "Expected 2 more positional arguments",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"*\" not supported for types \"float\" and \"Tensor | None\"\n\u00a0\u00a0Operator \"*\" not supported for types \"float\" and \"None\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"*\" not supported for types \"float\" and \"Tensor | Unknown | None\"\n\u00a0\u00a0Operator \"*\" not supported for types \"float\" and \"None\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"-\" not supported for types \"Tensor | None\" and \"Tensor | None\"\n\u00a0\u00a0Operator \"-\" not supported for types \"Tensor\" and \"None\"\n\u00a0\u00a0Operator \"-\" not supported for types \"None\" and \"Tensor\"\n\u00a0\u00a0Operator \"-\" not supported for types \"None\" and \"None\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportReturnType",
+    "message": "Type \"Tensor | Unknown | None\" is not assignable to return type \"Tensor\"\n\u00a0\u00a0Type \"Tensor | Unknown | None\" is not assignable to type \"Tensor\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"Tensor\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/curvature.py",
+    "rule": "reportReturnType",
+    "message": "Type \"dict[str, None]\" is not assignable to return type \"dict[str, Tensor | None]\"\n\u00a0\u00a0\"dict[str, None]\" is not assignable to \"dict[str, Tensor | None]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_VT@dict\" is invariant, but \"None\" is not the same as \"Tensor | None\"\n\u00a0\u00a0\u00a0\u00a0Consider switching from \"dict\" to \"Mapping\" which is covariant in the value type",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"normalized_curvatures\" of type \"dict[str, ndarray[Unknown, Unknown]]\" in function \"__init__\"\n\u00a0\u00a0\"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str, ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str | tuple[str, str]\" is not the same as \"str\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"normalized_distances\" of type \"dict[tuple[str, str], ndarray[Unknown, Unknown]]\" in function \"__init__\"\n\u00a0\u00a0\"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[tuple[str, str], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str | tuple[str, str]\" is not the same as \"tuple[str, str]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"normalized_reaches\" of type \"dict[str, ndarray[Unknown, Unknown]]\" in function \"__init__\"\n\u00a0\u00a0\"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str, ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str | tuple[str, str]\" is not the same as \"str\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"normalized_volume_elements\" of type \"dict[str, ndarray[Unknown, Unknown]]\" in function \"__init__\"\n\u00a0\u00a0\"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str, ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str | tuple[str, str]\" is not the same as \"str\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"volume_elements\" of type \"dict[str, ndarray[Unknown, Unknown]]\" in function \"__init__\"\n\u00a0\u00a0\"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str, ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str | tuple[str, str]\" is not the same as \"str\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[str, ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"measure\" of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" in function \"clip_measure_multiclass\"\n\u00a0\u00a0\"dict[str, ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"str\" is not the same as \"str | tuple[str, str]\"",
+    "count": 4
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"dict[tuple[str, str], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"measure\" of type \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\" in function \"clip_measure_multiclass\"\n\u00a0\u00a0\"dict[tuple[str, str], ndarray[Unknown, Unknown]]\" is not assignable to \"dict[str | tuple[str, str], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\u00a0\u00a0Type parameter \"_KT@dict\" is invariant, but \"tuple[str, str]\" is not the same as \"str | tuple[str, str]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown] | None\" cannot be assigned to parameter \"ar\" of type \"ArrayLike\" in function \"unique\"\n\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | None\" is not assignable to type \"ArrayLike\"\n\u00a0\u00a0\u00a0\u00a0Type \"None\" is not assignable to type \"ArrayLike\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"None\" is incompatible with protocol \"_SupportsArray[dtype[Any]]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__array__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"None\" is incompatible with protocol \"_NestedSequence[_SupportsArray[dtype[Any]]]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__len__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__getitem__\" is not present\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__contains__\" is not present\n  ...",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"value\" of type \"ndarray[Unknown, Unknown]\" in function \"__setitem__\"\n\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/data_analysis/data_analysis.py",
+    "rule": "reportCallIssue",
+    "message": "No overloads for \"unique\" match the provided arguments",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/reach_two_step.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"reshape\" for class \"float\"\n\u00a0\u00a0Attribute \"reshape\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/reach_two_step.py",
+    "rule": "reportReturnType",
+    "message": "Type \"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None, ndarray[Unknown, Unknown]]\" is not assignable to return type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ...]\"\n\u00a0\u00a0Type \"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None, ndarray[Unknown, Unknown]]\" is not assignable to type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ...]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None, ndarray[Unknown, Unknown]]\" is not assignable to \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None, ndarray[Unknown, Unknown]]\" is not assignable to \"tuple[ndarray[Unknown, Unknown], ...]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Tuple entry 1 is incorrect type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | tuple[int, int] | None\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"tuple[int, int]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/computations_grid/reach_two_step.py",
+    "rule": "reportReturnType",
+    "message": "Type \"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None]\" is not assignable to return type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ...]\"\n\u00a0\u00a0Type \"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None]\" is not assignable to type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ...]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None]\" is not assignable to \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], tuple[int, int] | ndarray[Unknown, Unknown] | None]\" is not assignable to \"tuple[ndarray[Unknown, Unknown], ...]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Tuple entry 1 is incorrect type\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | tuple[int, int] | None\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"tuple[int, int]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/coil20.py",
+    "rule": "reportArgumentType",
+    "message": "Expression of type \"float32\" cannot be assigned to parameter of type \"dtype[Unknown]\"\n\u00a0\u00a0Type \"float32\" is not assignable to type \"dtype[Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/custom_dsprites.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"float\" cannot be assigned to parameter \"dx\" of type \"int\" in function \"translate_image\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/custom_dsprites.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"float\" cannot be assigned to parameter \"dy\" of type \"int\" in function \"translate_image\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/custom_dsprites.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"float32\" cannot be assigned to parameter \"dtype\" of type \"dtype[Unknown]\" in function \"dsprites\"\n\u00a0\u00a0Type \"float32\" is not assignable to type \"dtype[Unknown]\"",
+    "count": 3
+  },
+  {
+    "file": "microscope/datasets/custom_dsprites.py",
+    "rule": "reportArgumentType",
+    "message": "Expression of type \"float32\" cannot be assigned to parameter of type \"dtype[Unknown]\"\n\u00a0\u00a0Type \"float32\" is not assignable to type \"dtype[Unknown]\"",
+    "count": 4
+  },
+  {
+    "file": "microscope/datasets/custom_dsprites.py",
+    "rule": "reportArgumentType",
+    "message": "Expression of type \"tuple[None, None, None, None]\" cannot be assigned to parameter of type \"list[int | None]\"\n\u00a0\u00a0\"tuple[None, None, None, None]\" is not assignable to \"list[int | None]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/dataset_split.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"Tensor\" is not assignable to declared type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\"Tensor\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/generic_dataset_loader.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"list[int] | None\" cannot be assigned to parameter \"cyclic_dimensions\" of type \"list[int]\" in function \"get_difference_intervals\"\n\u00a0\u00a0Type \"list[int] | None\" is not assignable to type \"list[int]\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is not assignable to \"list[int]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/generic_dataset_loader.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"list[int] | None\" cannot be assigned to parameter \"obj\" of type \"Sized\" in function \"len\"\n\u00a0\u00a0Type \"list[int] | None\" is not assignable to type \"Sized\"\n\u00a0\u00a0\u00a0\u00a0\"None\" is incompatible with protocol \"Sized\"\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"__len__\" is not present",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/generic_dataset_loader.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"Literal['dsprites', 'dsprites_single_size', 'custom_dsprites_single_size', 'custom_dsprites', 'custom_dsprites_balanced', 'extended_coil20']\" is not assignable to declared type \"DatasetName\"\n\u00a0\u00a0Type \"Literal['dsprites', 'dsprites_single_size', 'custom_dsprites_single_size', 'custom_dsprites', 'custom_dsprites_balanced', 'extended_coil20']\" is not assignable to type \"DatasetName\"\n\u00a0\u00a0\u00a0\u00a0\"Literal['custom_dsprites']\" is not assignable to \"DatasetName\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/datasets/generic_dataset_loader.py",
+    "rule": "reportOptionalOperand",
+    "message": "Operator \"/\" not supported for \"None\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/image_transforms.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"NDArray[floating[Any]]\" cannot be assigned to parameter \"center\" of type \"Point2f\" in function \"getRotationMatrix2D\"\n\u00a0\u00a0\"ndarray[Any, dtype[floating[Any]]]\" is not assignable to \"Sequence[float]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/image_transforms.py",
+    "rule": "reportInvalidTypeForm",
+    "message": "\"...\" is not allowed in this context",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/original_dsprites.py",
+    "rule": "reportArgumentType",
+    "message": "Expression of type \"float32\" cannot be assigned to parameter of type \"dtype[Unknown]\"\n\u00a0\u00a0Type \"float32\" is not assignable to type \"dtype[Unknown]\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/datasets/toy_manifolds.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" cannot be assigned to parameter \"points\" of type \"ndarray[Unknown, Unknown]\" in function \"measures_pointwise\"\n\u00a0\u00a0Type \"ndarray[Unknown, Unknown] | tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to type \"ndarray[Unknown, Unknown]\"\n\u00a0\u00a0\u00a0\u00a0\"tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/toy_manifolds.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"T\" for class \"tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0Attribute \"T\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "microscope/datasets/toy_manifolds.py",
+    "rule": "reportAttributeAccessIssue",
+    "message": "Cannot access attribute \"shape\" for class \"tuple[ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0Attribute \"shape\" is unknown",
+    "count": 1
+  },
+  {
+    "file": "microscope/manifold_examples/plotting.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"float\" cannot be assigned to parameter \"s\" of type \"int\" in function \"scatter\"\n\u00a0\u00a0\"float\" is not assignable to \"int\"",
+    "count": 3
+  },
+  {
+    "file": "microscope/manifold_examples/plotting.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"ndarray[Any, Unknown]\" cannot be assigned to parameter \"zs\" of type \"int\" in function \"scatter\"\n\u00a0\u00a0\"ndarray[Any, Unknown]\" is not assignable to \"int\"",
+    "count": 3
+  },
+  {
+    "file": "microscope/manifold_examples/plotting.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"Axes3D\" is not assignable to declared type \"list[Axes3D]\"\n\u00a0\u00a0\"Axes3D\" is not assignable to \"list[Axes3D]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/manifold_examples/plotting.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"ndarray[Unknown, Unknown]\" is not assignable to declared type \"list[Axes3D]\"\n\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"list[Axes3D]\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/manifold_examples/sampling_uniform.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"NDArray[Any]\" is not assignable to declared type \"list[float]\"\n\u00a0\u00a0\"ndarray[Any, dtype[Any]]\" is not assignable to \"list[float]\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/manifold_examples/sampling_uniform.py",
+    "rule": "reportReturnType",
+    "message": "Type \"tuple[ndarray[Unknown, Unknown] | tuple[Unknown, ...], list[float], ndarray[Unknown, Unknown]]\" is not assignable to return type \"tuple[ndarray[Unknown, Unknown] | tuple[Unknown, ...], ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0\"list[float]\" is not assignable to \"ndarray[Unknown, Unknown]\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/manifold_examples/symbolic_computations.py",
+    "rule": "reportArgumentType",
+    "message": "Argument of type \"float\" cannot be assigned to parameter \"seconds\" of type \"int\"\n\u00a0\u00a0\"float\" is not assignable to \"int\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/manifold_examples/symbolic_computations.py",
+    "rule": "reportReturnType",
+    "message": "Type \"tuple[Unknown | ndarray[Unknown, Unknown], Unknown | ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\" is not assignable to return type \"tuple[Expr, ndarray[Unknown, Unknown], ndarray[Unknown, Unknown]]\"\n\u00a0\u00a0Type \"Unknown | ndarray[Unknown, Unknown]\" is not assignable to type \"Expr\"\n\u00a0\u00a0\u00a0\u00a0\"ndarray[Unknown, Unknown]\" is not assignable to \"Expr\"",
+    "count": 1
+  },
+  {
+    "file": "microscope/patches.py",
+    "rule": "reportAssignmentType",
+    "message": "Type \"NDArray[Any]\" is not assignable to declared type \"list[int]\"\n\u00a0\u00a0\"ndarray[Any, dtype[Any]]\" is not assignable to \"list[int]\"",
+    "count": 2
+  },
+  {
+    "file": "microscope/patches.py",
+    "rule": "reportOperatorIssue",
+    "message": "Operator \"-\" not supported for types \"list[int]\" and \"list[int]\"",
+    "count": 1
+  }
+]

@@ -64,6 +64,7 @@ reference for the paper workflow.
 - [Outputs and reuse](docs/source/guide/outputs.rst)
 - [Build and publish the docs](docs/source/guide/building.rst)
 - [Dataset and geometry notebooks](notebooks/datasets_and_measures)
+- [Development checks and pre-commit setup](CONTRIBUTING.md)
 
 **Note:** The original paper experiments were not fully seeded. Current presets
 specify seeds, but plots may still vary slightly across runs or devices.

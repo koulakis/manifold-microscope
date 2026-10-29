@@ -7,7 +7,7 @@ import pytest
 
 from experiments_and_analysis.config import resolve
 from experiments_and_analysis.data.preparation import split_indices
-from experiments_and_analysis.outputs import identity, read_json, stage_ids
+from experiments_and_analysis.outputs import read_json, stage_ids
 from experiments_and_analysis.scripts import run as single
 from experiments_and_analysis.scripts.sweep import expand
 
