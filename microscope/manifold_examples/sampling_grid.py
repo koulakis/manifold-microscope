@@ -19,6 +19,9 @@ def _validate_grid_sampling_inputs(
         semi_axes: Principal semi-axis lengths, one per intrinsic dimension plus one.
         n_samples_per_dim: Number of coordinate samples along each grid axis.
         ambient_space_dim: Number of embedding coordinates.
+
+    Returns:
+        None.
     """
     assert len(semi_axes) - 1 == len(n_samples_per_dim), "Inconsistent number of semi-axes and samples per dimension."
     assert ambient_space_dim >= len(n_samples_per_dim) + 1
@@ -44,6 +47,11 @@ def sample_ellipsoid_on_grid(
         fraction_of_angles: Upper fraction of pi; nonperiodic angles start at its complement.
         apply_random_isometry: Apply a random rotation and translation.
         seed: Optional random seed for the isometry.
+
+    Returns:
+        (grid, semi_axes, parameters, isometry), with shapes (s1 ... sd ambient_space_dim), (d + 1) and (s1 ... sd d)
+        for the first three arrays. isometry is None or (rotation, translation) with shapes (ambient_space_dim,
+        ambient_space_dim) and (ambient_space_dim,).
     """
     _validate_grid_sampling_inputs(semi_axes, n_samples_per_dim, ambient_space_dim)
     dim = len(n_samples_per_dim)
@@ -102,6 +110,11 @@ def sample_hyperboloid_on_grid(
         apply_random_isometry: Apply a random rotation and translation.
         height_variable_limit: Symmetric bound for nonperiodic hyperbolic coordinates.
         seed: Optional random seed for the isometry.
+
+    Returns:
+        (grid, semi_axes, parameters, isometry), with shapes (s1 ... sd ambient_space_dim), (d + 1) and (s1 ... sd d)
+        for the first three arrays. isometry is None or (rotation, translation) with shapes (ambient_space_dim,
+        ambient_space_dim) and (ambient_space_dim,).
     """
     _validate_grid_sampling_inputs(semi_axes, n_samples_per_dim, ambient_space_dim)
     dim = len(n_samples_per_dim)

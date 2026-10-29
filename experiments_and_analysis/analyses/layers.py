@@ -53,6 +53,9 @@ def run_single_output(
         export_plots: Save distribution and projection plots.
         n_samples_for_plots: Maximum number of samples used in plots.
         device: Device used for tensor computations.
+
+    Returns:
+        MeasureAggregates for the computed and clipped multiclass geometry fields.
     """
     measures = compute_measures_multiclass(
         data=features_on_grid,

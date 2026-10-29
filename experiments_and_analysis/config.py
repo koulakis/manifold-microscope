@@ -15,6 +15,9 @@ def load_config(path: str | Path) -> dict:
 
     Args:
         path: Filesystem path.
+
+    Returns:
+        Configuration dictionary parsed from the YAML or JSON file.
     """
     path = Path(path)
     with path.open() as stream:
@@ -30,6 +33,9 @@ def merge(base: dict, changes: dict) -> dict:
     Args:
         base: Base configuration.
         changes: Values that override the base configuration.
+
+    Returns:
+        New recursively merged dictionary, with changes taking precedence over base.
     """
     result = deepcopy(base)
     for key, value in changes.items():
@@ -50,6 +56,9 @@ def _validate_experiment_options(result: dict, defaults: dict) -> None:
     Args:
         result: Configuration after applying defaults.
         defaults: Recognized configuration sections and default options.
+
+    Returns:
+        None.
     """
     unknown = set(result) - set(defaults)
     if unknown:
@@ -81,6 +90,9 @@ def _validate_inference_options(result: dict, split: dict) -> None:
     Args:
         result: Configuration after applying defaults.
         split: Resolved split configuration.
+
+    Returns:
+        None.
     """
     if result['inference']['batch_size'] < 1:
         raise ValueError('inference.batch_size must be positive.')
@@ -111,6 +123,9 @@ def _validate_analysis_options(
         analysis: Analysis request, updated in place with default domain and representations.
         result: Configuration after applying defaults.
         split: Resolved split configuration.
+
+    Returns:
+        None.
     """
     if analysis['name'] not in ('errors', 'geometry'):
         raise ValueError(f"Unknown analysis: {analysis['name']}")
@@ -154,6 +169,9 @@ def _validate_output_options(
         result: Configuration after applying defaults.
         split: Resolved split configuration.
         analyses: Resolved analysis requests.
+
+    Returns:
+        None.
     """
     if result['output_layout'] not in ('directories', 'bundled'):
         raise ValueError('output_layout must be directories or bundled.')
@@ -169,6 +187,9 @@ def resolve(config: dict) -> dict:
 
     Args:
         config: Configuration with supported dataset, split, model, inference and analysis options.
+
+    Returns:
+        Validated configuration dictionary with defaults filled in, leaving config unchanged.
     """
     repetition = config.get('repetition', {'index': 0, 'seed': 42})
     seed = repetition['seed']

@@ -72,6 +72,9 @@ class Manifold(ABC):
         Args:
             *args: Radius parameters to normalize.
             **kwargs: Named radius parameters to normalize.
+
+        Returns:
+            Normalized radius parameter, or a tuple of parameters, giving unit manifold volume.
         """
         pass
 
@@ -89,6 +92,10 @@ class Manifold(ABC):
             normalized: If true, the manifold is scaled to have d-volume 1 before being sampled.
             return_unitary_normal: If true, it additionally returns on each point the unitary vector orthogonal to the
                 tangent space.
+
+        Returns:
+            Sample array of shape (N f); if requested, returns (samples, unit_normals) with both arrays of shape (N f),
+            where f is the ambient dimension.
         """
 
     @abstractmethod
@@ -105,6 +112,10 @@ class Manifold(ABC):
             N: The number of points to sample.
             normalized: If true, the manifold is scaled to have d-volume 1 before being sampled.
             device: Torch device used by surface relaxation; unused by analytic curves.
+
+        Returns:
+            Spread-out point array of shape (n_points, f), with sample count determined by the concrete manifold
+            implementation.
         """
         pass
 
@@ -131,17 +142,27 @@ class Manifold(ABC):
             points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
             normalized: If true, it scales the manifold to have d-volume 1 before computing the measures.
 
-        Returns: An instance of 'MeasuresLocal' which contains all the measures as attributes.
+        Returns:
+            MeasuresLocal with arrays of shape (n), one value per input point, for volume element, curvature and reach.
         """
         pass
 
     def __str__(self) -> str:
+        """Describe the concrete manifold class.
+
+        Returns:
+            Concrete manifold class name.
+        """
         return self.__class__.__name__
 
     @property
     @abstractmethod
     def dimension(self) -> int:
-        """Returns the intrinsic dimension of the manifold."""
+        """Returns the intrinsic dimension of the manifold.
+
+        Returns:
+            Intrinsic manifold dimension.
+        """
         pass
 
 
@@ -165,6 +186,9 @@ def cvt_surface(
         normalized: Rescale the manifold to unit volume before computing.
         dtype: Data type of generated values.
         device: Torch device used for relaxation.
+
+    Returns:
+        Relaxed point array of shape (N f), where f is the ambient dimension of the sampled manifold.
     """
     x = torch.tensor(manifold.sample(n_samples, normalized=normalized), dtype=dtype, device=device)
     c = torch.tensor(
@@ -193,7 +217,11 @@ def cvt_surface(
 class Circle(Manifold):
     @property
     def dimension(self) -> int:
-        """Return the intrinsic manifold dimension."""
+        """Return the intrinsic manifold dimension.
+
+        Returns:
+            Intrinsic dimension 1.
+        """
         return 1
 
     @staticmethod
@@ -202,6 +230,9 @@ class Circle(Manifold):
 
         Args:
             R: Optional input radius; ignored for fixed unit-volume normalization.
+
+        Returns:
+            Radius 1 / (2 * pi), giving a circle of unit length.
         """
         return 1 / (2 * np.pi)
 
@@ -215,6 +246,9 @@ class Circle(Manifold):
         Args:
             R: Radius; None selects the unit-volume radius where supported.
             dtype: Data type of generated values.
+
+        Returns:
+            None.
         """
         self.R = self.normalize_parameters() if R is None else R
         self.dtype = dtype
@@ -231,6 +265,10 @@ class Circle(Manifold):
             N: Number of points to sample.
             normalized: Rescale the manifold to unit volume before computing.
             return_unitary_normal: Also return one unit normal per sample.
+
+        Returns:
+            Sample array of shape (N 2); if return_unitary_normal=True, returns (samples, unit_normals) with both arrays
+            of shape (N 2).
         """
         R = self.normalize_parameters(self.R) if normalized else self.R
         theta = np.random.uniform(low=0, high=2 * np.pi, size=N).astype(self.dtype)
@@ -247,6 +285,9 @@ class Circle(Manifold):
 
         Args:
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresGlobal containing scalar volume, curvature and reach summaries.
         """
         R = self.normalize_parameters() if normalized else self.R
         length = 2 * np.pi * R
@@ -273,6 +314,9 @@ class Circle(Manifold):
         Args:
             points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresLocal whose volume, curvature and reach fields are arrays of shape (n), one value per input point.
         """
         R = self.normalize_parameters() if normalized else self.R
 
@@ -297,6 +341,9 @@ class Circle(Manifold):
             N: Number of points to sample.
             normalized: Rescale the manifold to unit volume before computing.
             device: Torch device used for tensor computation.
+
+        Returns:
+            Equally spaced circle points, shape (N 2).
         """
         R = self.normalize_parameters() if normalized else self.R
         theta = np.linspace(
@@ -312,7 +359,11 @@ class Circle(Manifold):
 class Moons(Manifold):
     @property
     def dimension(self) -> int:
-        """Return the intrinsic manifold dimension."""
+        """Return the intrinsic manifold dimension.
+
+        Returns:
+            Intrinsic dimension 1.
+        """
         return 1
 
     @staticmethod
@@ -321,6 +372,9 @@ class Moons(Manifold):
 
         Args:
             R: Optional input radius; ignored for fixed unit-volume normalization.
+
+        Returns:
+            Semicircle radius 1 / (2 * pi), giving total length one.
         """
         return 1 / (2 * np.pi)
 
@@ -334,6 +388,9 @@ class Moons(Manifold):
         Args:
             R: Radius; None selects the unit-volume radius where supported.
             dtype: Data type of generated values.
+
+        Returns:
+            None.
         """
         self.R = self.normalize_parameters() if R is None else R
         self.dtype = dtype
@@ -350,6 +407,10 @@ class Moons(Manifold):
             N: Number of points to sample.
             normalized: Rescale the manifold to unit volume before computing.
             return_unitary_normal: Also return one unit normal per sample.
+
+        Returns:
+            Sample array of shape (N 2); if return_unitary_normal=True, returns (samples, unit_normals) with both arrays
+            of shape (N 2).
         """
         R = self.normalize_parameters() if normalized else self.R
         theta = 2 * np.pi * np.random.rand(N).astype(self.dtype)
@@ -378,6 +439,9 @@ class Moons(Manifold):
         Args:
             points: An array with points of the moons manifolds.
             R: The radius of the two semicircles.
+
+        Returns:
+            Local-reach array of shape (n), one value per input point.
         """
         # First compute which points belong to component A and which on B.
         cA = np.array([0.0, 0.0])
@@ -456,6 +520,9 @@ class Moons(Manifold):
 
         Args:
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresGlobal containing scalar volume, curvature and reach summaries.
         """
         R = self.normalize_parameters() if normalized else self.R
         arc_len = np.pi * R
@@ -486,6 +553,9 @@ class Moons(Manifold):
         Args:
             points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresLocal whose volume, curvature and reach fields are arrays of shape (n), one value per input point.
         """
         R = self.normalize_parameters(self.R) if normalized else self.R
         reach = self.reach(points, R=R)
@@ -510,6 +580,9 @@ class Moons(Manifold):
             N: Number of points to sample.
             normalized: Rescale the manifold to unit volume before computing.
             device: Torch device used for tensor computation.
+
+        Returns:
+            Points on both semicircles, shape (N 2).
         """
         R = self.normalize_parameters(self.R) if normalized else self.R
 
@@ -539,7 +612,11 @@ class Moons(Manifold):
 class Sphere(Manifold):
     @property
     def dimension(self) -> int:
-        """Return the intrinsic manifold dimension."""
+        """Return the intrinsic manifold dimension.
+
+        Returns:
+            Intrinsic dimension 2.
+        """
         return 2
 
     @staticmethod
@@ -548,6 +625,9 @@ class Sphere(Manifold):
 
         Args:
             R: Optional input radius; ignored for fixed unit-volume normalization.
+
+        Returns:
+            Radius 1 / sqrt(4 * pi), giving a sphere of unit area.
         """
         return 1 / np.sqrt(4 * np.pi)
 
@@ -561,6 +641,9 @@ class Sphere(Manifold):
         Args:
             R: Radius; None selects the unit-volume radius where supported.
             dtype: Data type of generated values.
+
+        Returns:
+            None.
         """
         self.R = self.normalize_parameters() if R is None else R
         self.dtype = dtype
@@ -577,6 +660,10 @@ class Sphere(Manifold):
             N: Number of points to sample.
             normalized: Rescale the manifold to unit volume before computing.
             return_unitary_normal: Also return one unit normal per sample.
+
+        Returns:
+            Sample array of shape (N 3); if return_unitary_normal=True, returns (samples, unit_normals) with both arrays
+            of shape (N 3).
         """
         R = self.normalize_parameters() if normalized else self.R
 
@@ -595,6 +682,9 @@ class Sphere(Manifold):
 
         Args:
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresGlobal containing scalar volume, curvature and reach summaries.
         """
         R = self.normalize_parameters() if normalized else self.R
         area = 4 * np.pi * R**2
@@ -623,6 +713,9 @@ class Sphere(Manifold):
         Args:
             points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresLocal whose volume, curvature and reach fields are arrays of shape (n), one value per input point.
         """
         R = self.normalize_parameters() if normalized else self.R
         gaussian = 1 / R**2
@@ -650,6 +743,9 @@ class Sphere(Manifold):
             normalized: Rescale the manifold to unit volume before computing.
             iterations: Number of refinement iterations.
             device: Torch device used for tensor computation.
+
+        Returns:
+            Relaxed points projected onto the sphere, shape (N 3).
         """
         approx_points = cvt_surface(
             self,
@@ -667,7 +763,11 @@ class Sphere(Manifold):
 class Torus(Manifold):
     @property
     def dimension(self) -> int:
-        """Return the intrinsic manifold dimension."""
+        """Return the intrinsic manifold dimension.
+
+        Returns:
+            Intrinsic dimension 2.
+        """
         return 2
 
     def __init__(
@@ -682,6 +782,9 @@ class Torus(Manifold):
             R: Major radius of the torus.
             r: Minor radius of the torus.
             dtype: Data type of generated values.
+
+        Returns:
+            None.
         """
         self.R = R
         self.r = r
@@ -694,6 +797,9 @@ class Torus(Manifold):
         Args:
             R: Major radius of the torus.
             r: Minor radius of the torus.
+
+        Returns:
+            (major_radius, minor_radius), scaled to give unit torus area while preserving their ratio.
         """
         sqrt_area = np.sqrt(4 * np.pi ** 2 * R * r)
 
@@ -714,12 +820,18 @@ class Torus(Manifold):
             y_vals: Uniform cumulative probabilities, shape (n).
             R: Radius parameter of the manifold.
             r: Minor radius of the torus.
+
+        Returns:
+            Toroidal angles with the same shape (n) as y_vals.
         """
         def F(v: float) -> float:
             """Evaluate the torus angular cumulative distribution.
 
             Args:
                 v: Toroidal angle whose cumulative probability is evaluated.
+
+            Returns:
+                Cumulative probability at the toroidal angle v.
             """
             return (R * v + r * np.sin(v)) / (2 * np.pi * R)
 
@@ -741,6 +853,10 @@ class Torus(Manifold):
             N: Number of points to sample.
             normalized: Rescale the manifold to unit volume before computing.
             return_unitary_normal: Also return one unit normal per sample.
+
+        Returns:
+            Sample array of shape (N 3); if return_unitary_normal=True, returns (samples, unit_normals) with both arrays
+            of shape (N 3).
         """
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
@@ -773,7 +889,8 @@ class Torus(Manifold):
             R: The major radius of the torus.
             r: The minor radius of the torus.
 
-        Returns: An array with a reach per point.
+        Returns:
+            Local-reach array of shape (n), one value per input point.
         """
         d = np.linalg.norm(points[:, :2], axis=1)
         return np.minimum(r, r * d / np.abs(d - R))
@@ -786,6 +903,9 @@ class Torus(Manifold):
         Args:
             R: Radius parameter of the manifold.
             r: Minor radius of the torus.
+
+        Returns:
+            Surface-area-weighted average of the local reach.
         """
         radii_ratio = R / (2 * r)
 
@@ -806,6 +926,9 @@ class Torus(Manifold):
 
         Args:
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresGlobal containing scalar volume, curvature and reach summaries.
         """
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
@@ -869,6 +992,9 @@ class Torus(Manifold):
         Args:
             points: Embedded points, shape (n f); f is 2 for curves and 3 for surfaces.
             normalized: Rescale the manifold to unit volume before computing.
+
+        Returns:
+            MeasuresLocal whose volume, curvature and reach fields are arrays of shape (n), one value per input point.
         """
         R, r = self.normalize_parameters(self.R, self.r) if normalized else (self.R, self.r)
 
@@ -903,6 +1029,9 @@ class Torus(Manifold):
             iterations: Number of refinement iterations.
             normalized: Rescale the manifold to unit volume before computing.
             device: Torch device used for tensor computation.
+
+        Returns:
+            Relaxed points projected onto the torus, shape (N 3).
         """
         approx_points = cvt_surface(
             self,
@@ -950,6 +1079,9 @@ def plot_manifold(
         s: Scatter marker size.
         shrink: Relative color-bar length.
         figsize: Figure size (width height) in inches.
+
+    Returns:
+        None.
     """
     import matplotlib.pyplot as plt
 
@@ -978,6 +1110,9 @@ def plot_manifold(
             pos: One-based panel position.
             title: Title displayed above the plot.
             values: Per-point scalar values, shape (n).
+
+        Returns:
+            None.
         """
         ax = fig.add_subplot(1, 5, pos, projection='3d' if is_3d else None)
         sc = ax.scatter(

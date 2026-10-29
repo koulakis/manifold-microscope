@@ -11,6 +11,9 @@ def pointwise_distances(original: np.ndarray, reconstructed: np.ndarray) -> np.n
     Args:
         original: Original samples of shape (n ...).
         reconstructed: Reconstructed samples of shape (n ...), with matching flattened features.
+
+    Returns:
+        Euclidean reconstruction-error array of shape (n), one value per input sample.
     """
     if len(original) != len(reconstructed):
         raise ValueError('Original and reconstruction lengths differ.')
@@ -24,6 +27,9 @@ def summarize(distances: np.ndarray, number_of_train_points: int) -> dict:
     Args:
         distances: Pointwise distances of shape (n).
         number_of_train_points: Number of training samples used to fit the model.
+
+    Returns:
+        Dictionary containing sample counts, maximum and mean reconstruction error, and the metric description.
     """
     if not len(distances) or not np.isfinite(distances).all():
         raise ValueError('Errors must be nonempty and finite.')

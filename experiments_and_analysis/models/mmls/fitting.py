@@ -28,6 +28,9 @@ def fit(
         data: Input samples of shape (n ...), with sample axis first.
         config: MMLS projection parameters.
         device: Device used for tensor computations.
+
+    Returns:
+        MMLS projector initialized from the training points and configuration.
     """
     points = data.reshape(len(data), -1)
     return ANNMMLSProjector(
@@ -58,6 +61,9 @@ def save_projector(
         directory: Directory or virtual bundle path for this stage.
         split_id: Identifier of the training split, when available.
         export_points: Save standalone training points instead of relying only on the split identifier.
+
+    Returns:
+        None.
     """
     directory = artifact_path(directory)
     write_json(directory / 'projector.json', dict(parameters=asdict(config), split_id=split_id,
@@ -80,6 +86,9 @@ def load_projector(
         directory: Directory or virtual bundle path for this stage.
         training_points: Training samples of shape (n f), if not exported with the fit.
         device: Device used for tensor computations.
+
+    Returns:
+        Restored MMLS projector with its training points and available neighbor index.
     """
     directory = artifact_path(directory)
     state = read_json(directory / 'projector.json')

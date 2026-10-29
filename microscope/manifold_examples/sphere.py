@@ -11,7 +11,7 @@ def sphere_volume_element(radius: float, coordinates: np.ndarray) -> float:
         coordinates: Parameter coordinates, shape (... d).
 
     Returns:
-        The volume element value of the point at the given coordinates.
+        Volume-element values with shape coordinates.shape[:-1], or a scalar for one parameter point.
     """
     coordinates = np.array(coordinates)
     n = coordinates.shape[-1]
@@ -35,7 +35,7 @@ def sphere_scalar_curvature(
             Carmo.
 
     Returns:
-        A tensor with the scalar curvature of the sphere of the given radius repeated to match the input shape.
+        Scalar-curvature array of shape coordinates.shape[:-1], one value per parameter point.
     """
     if normalized:
         return np.repeat(1/radius**2, np.prod(coordinates.shape[:-1])).reshape(coordinates.shape[:-1])

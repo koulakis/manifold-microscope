@@ -35,6 +35,9 @@ def _max_normal_curvature(
         form: Normal-valued form in orthonormal coordinates, shape (... f d d).
         n_directions: Number of additional deterministic random search directions.
         iterations: Number of refinement iterations.
+
+    Returns:
+        Maximum-normal-curvature estimates as a tensor of shape (...), matching the leading axes of form.
     """
     dims = form.shape[-1]
     form = .5*(form + form.transpose(-1, -2))
@@ -92,6 +95,10 @@ def _bottleneck_radius(
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
         device: Torch device used for tensor computation.
         return_per_point: Return arrays of local radii and witnesses instead of a global pair.
+
+    Returns:
+        (minimum_radius, index_pair), with index_pair=None if no partner is accepted. With return_per_point=True,
+        returns (radii, witnesses), arrays of shape (n); witnesses are int64 indices or -1.
     """
     coordinates = points.numpy()
     maxima = np.maximum(np.abs(coordinates.min(axis=0)), np.abs(coordinates.max(axis=0)))
@@ -170,6 +177,9 @@ def _repeat_to_grid(
         values: Sampled values, shape (t1 ... td ...), with optional trailing components.
         shape: Target spatial shape (s1 ... sd).
         stride: Number of repeats along each spatial axis.
+
+    Returns:
+        Array of shape (*shape, *values.shape[len(shape):]), retaining any trailing component axes.
     """
     if stride > 1:
         for axis in range(len(shape)):
@@ -194,6 +204,9 @@ def _validate_reach_grid(
         range_sizes: Parameter-range length along each of the d grid axes.
         patch_sizes: Patch size along each of the d grid axes.
         cyclic_dimensions: Zero-based periodic grid axes.
+
+    Returns:
+        None.
     """
     if features_on_grid.dtype not in (np.float32, np.float64):
         raise TypeError("Two-step reach requires a NumPy float32 or float64 array.")
@@ -232,6 +245,9 @@ def _validate_reach_options(
         curvature_iterations: Number of spectral refinements per curvature direction.
         bottleneck_tolerance: Maximum tangential fraction of an accepted unit chord.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
+
+    Returns:
+        None.
     """
     validate_integer_list([stride], "subsample stride", minimum=1)
     validate_integer_list([batch_size], "batch size", minimum=1)
@@ -321,6 +337,11 @@ def reach_per_point(
         curvature_iterations: Number of spectral refinements per curvature direction.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
         return_components: Return (reach, witnesses, radii); radii has shape (... 2).
+
+    Returns:
+        Reach array of shape (t1, ..., td), with ti = si on cyclic axes and si - 4 otherwise. return_witnesses adds an
+        int64 array (n_sampled,) of flat partner indices; return_components also adds radii of shape (t1, ..., td, 2),
+        ordered curvature then bottleneck.
     """
     cyclic = cyclic_dimensions if cyclic_dimensions is not None else []
     _validate_reach_grid(
@@ -434,6 +455,10 @@ def reach_curvature_bottleneck(
         curvature_iterations: Number of spectral refinements per curvature direction.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
         return_components: Return a ReachComponents tuple instead of the global reach scalar.
+
+    Returns:
+        Minimum estimated reach as a scalar, or ReachComponents containing global reach, curvature radius, bottleneck
+        radius and the sampled bottleneck index pair.
     """
     estimates, witnesses, components = reach_per_point(
         features_on_grid,

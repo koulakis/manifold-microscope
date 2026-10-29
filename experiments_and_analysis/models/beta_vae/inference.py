@@ -29,6 +29,9 @@ def get_dataloader(
         batch_size: Number of points or images per batch.
         num_workers: Number of data-loader workers.
         device: Device used for tensor computations.
+
+    Returns:
+        DataLoader yielding float32 grayscale image tensors of shape (b 1 h w) in input order.
     """
     data_tensor = torch.from_numpy(data).unsqueeze(1).float()
     train_kwargs = {'data_tensor': data_tensor}
@@ -63,6 +66,9 @@ def load_autoencoder_from_checkpoint(
         random_model: Use newly initialized model weights.
         latent_dim: Number of latent coordinates.
         device: Device used for tensor computations.
+
+    Returns:
+        Initialized or checkpoint-loaded beta-VAE on the requested device, in evaluation mode.
     """
     if model_type == "B":
         autoencoder = BetaVAE_B(z_dim=latent_dim, nc=1)
@@ -95,6 +101,10 @@ def get_intermediate_from_autoencoder(
         only_latent_and_output: Collect the latent mean and reconstruction without hidden layers.
         decoder_sampling: Sample latent codes instead of decoding the latent mean.
         representations: Activation names to collect, or None for all eligible layers.
+
+    Returns:
+        (reconstruction, activations). Reconstruction has shape (b c h w), or is None when skipped; activation arrays
+        have shape (b, *layer_shape), including latent means (b z).
     """
     intermediate_outputs = {}
     requested = set(representations) if representations is not None else None
@@ -147,6 +157,10 @@ def gather_intermediate_outputs(
         only_latent_and_output: Collect the latent mean and reconstruction without hidden layers.
         device: Device used for tensor computations.
         decoder_sampling: Sample latent codes instead of decoding the latent mean.
+
+    Returns:
+        Dictionary of representation arrays of shape (n, *layer_shape), including input/output images (n c h w) and
+        latent means (n z).
     """
     autoencoder.to(device)
     autoencoder.eval()
@@ -188,6 +202,9 @@ def representation_names(model: BetaVAE_H) -> list[str]:
 
     Args:
         model: Autoencoder used for inference.
+
+    Returns:
+        Available representation names in input, encoder, latent, decoder and output order.
     """
     return (['input'] + [f'encoder_relu_{i}' for i, layer in enumerate(model.encoder)
                          if isinstance(layer, nn.ReLU) and i > 3] + ['mu'] +
@@ -216,6 +233,10 @@ def batches(
         num_workers: Number of data-loader workers.
         seed: Random seed.
         decoder_sampling: Sample latent codes instead of decoding the latent mean.
+
+    Yields:
+        (start_index, outputs), with representation arrays of shape (b, *layer_shape); input/output images have shape (b
+        1 h w), and latent means have shape (b z).
     """
     unknown = set(representations) - set(representation_names(model))
     if unknown:

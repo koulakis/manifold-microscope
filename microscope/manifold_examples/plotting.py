@@ -28,6 +28,9 @@ def plot_points(
         alpha: Opacity of plotted points or densities.
         size_mult: Size of each plot panel in inches.
         subsample_ratio: Optional fraction of grid points to plot.
+
+    Returns:
+        None.
     """
     n_plots = 1
     if curvature is not None:

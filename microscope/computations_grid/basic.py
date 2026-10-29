@@ -45,7 +45,7 @@ def crop_dim_borders(
         crop: A integer indicating the amount of cropping at the start and end of a dimension of the tensor.
 
     Returns:
-        The cropped tensor.
+        Tensor of shape (t1 ... tn), where ti = si - 2 * crop on axes in dims and si on all other axes.
     """
     device = tensor.device
 
@@ -69,6 +69,9 @@ def _validate_derivative_inputs(
         tensor: Input tensor, shape (s1 ... sd f1 ... fk).
         manifold_dim: Number of leading axes to differentiate.
         difference_intervals: Coordinate spacing along each of the d grid axes.
+
+    Returns:
+        None.
     """
     if not 1 <= manifold_dim <= tensor.ndim:
         raise ValueError("manifold_dim must identify the leading grid axes.")

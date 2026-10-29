@@ -14,6 +14,10 @@ def dsprites_original(
         flat: Flatten transformation axes into one sample axis.
         scale: Center the images and divide by their standard deviation.
         dtype: Data type of generated values.
+
+    Returns:
+        (images, labels), with grid shapes (3 6 40 32 32 64 64) and (3 6 40 32 32). With flat=True, shapes are (n 64 64)
+        and (n), where n = 3 * 6 * 40 * 32 * 32.
     """
     data_path = (
         "<path to dataset>/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz"
@@ -49,6 +53,10 @@ def dsprites_original_single_size(
         flat: Flatten transformation axes into one sample axis.
         scale: Center the images and divide by their standard deviation.
         dtype: Data type of generated values.
+
+    Returns:
+        (images, labels), with grid shapes (3 40 32 32 64 64) and (3 40 32 32). With flat=True, shapes are (n 64 64) and
+        (n), where n = 3 * 40 * 32 * 32.
     """
     dsprites = dsprites_original(dtype=dtype)
     dsprites, target = dsprites

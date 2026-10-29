@@ -23,6 +23,10 @@ def _normal_geometry(
         tensor: Embedding tensor, shape (s1 ... sd f).
         difference_intervals: Coordinate spacing along each of the d grid axes.
         return_frame: Also return the orthonormal tangent frame.
+
+    Returns:
+        (form, metric, inverse_factor), optionally followed by frame. With ti = si - 4, form has shape
+        (t1 ... td f d d), metric and inverse_factor have shape (t1 ... td d d), and frame has shape (t1 ... td f d).
     """
     validate_tensor(tensor, difference_intervals, border=2)
     intrinsic_dim = tensor.ndim - 1
@@ -58,6 +62,10 @@ def _second_fundamental_form_and_metric(
     Args:
         tensor: Embedding tensor, shape (s1 ... sd f).
         difference_intervals: Coordinate spacing along each of the d grid axes.
+
+    Returns:
+        (form, metric), tensors of shapes (s1 - 4, ..., sd - 4, f, d, d) and (s1 - 4, ..., sd - 4, d, d), on the input
+        device.
     """
     form, metric, _ = _normal_geometry(tensor, difference_intervals)
     return form, metric
@@ -108,6 +116,9 @@ def scalar_curvature_batch(
         tensor: Embedding tensor, shape (s1 ... sd f).
         difference_intervals: Coordinate spacing along each of the d grid axes.
         normalize: Divide scalar curvature by d * (d - 1).
+
+    Returns:
+        Scalar-curvature tensor of shape (s1 - 6, ..., sd - 6), with the input dtype and device.
     """
     validate_tensor(tensor, difference_intervals, border=3)
     intrinsic_dim = tensor.ndim - 1
@@ -159,6 +170,10 @@ def scalar_curvature(
         patch_sizes: Patch size along each of the d grid axes.
         normalize: Divide scalar curvature by d * (d - 1).
         device: Torch device; None selects CUDA when available, otherwise CPU.
+
+    Returns:
+        Curvature array of shape (t1, ..., td), where ti = si on cyclic axes and si - 6 otherwise; dtype matches the
+        input.
     """
     _validate_curvature_grid(
         features_on_grid,

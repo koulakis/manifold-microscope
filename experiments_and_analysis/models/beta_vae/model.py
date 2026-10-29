@@ -19,6 +19,9 @@ def reparametrize(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
     Args:
         mu: Latent means of shape (b z), or (b z 1 1).
         logvar: Latent log variances with the same shape as mu.
+
+    Returns:
+        Sampled latent tensor with the same shape as mu: (b z) or (b z 1 1).
     """
     std = logvar.div(2).exp()
     eps = Variable(std.data.new(std.size()).normal_())
@@ -31,6 +34,9 @@ class View(nn.Module):
 
         Args:
             size: Target dimensions, optionally including one inferred dimension (-1).
+
+        Returns:
+            None.
         """
         super(View, self).__init__()
         self.size = size
@@ -40,6 +46,9 @@ class View(nn.Module):
 
         Args:
             tensor: Tensor of shape (...).
+
+        Returns:
+            Tensor view with shape self.size, resolving any -1 dimension from the input size.
         """
         return tensor.view(self.size)
 
@@ -49,6 +58,9 @@ def kaiming_init(m: nn.Module) -> None:
 
     Args:
         m: Layer whose weights and biases are initialized.
+
+    Returns:
+        None.
     """
     if isinstance(m, (nn.Linear, nn.Conv2d)):
         init.kaiming_normal_(m.weight)
@@ -71,6 +83,9 @@ def normal_init(
         m: Layer whose weights and biases are initialized.
         mean: Mean of the normal weight distribution.
         std: Standard deviation of the normal weight distribution.
+
+    Returns:
+        None.
     """
     if isinstance(m, (nn.Linear, nn.Conv2d)):
         m.weight.data.normal_(mean, std)
@@ -87,7 +102,11 @@ class BetaVAE_H(nn.Module):
     """Model proposed in original beta-VAE paper(Higgins et al, ICLR, 2017)."""
 
     def weight_init(self) -> None:
-        """Initialize the encoder and decoder weights."""
+        """Initialize the encoder and decoder weights.
+
+        Returns:
+            None.
+        """
         for block in self._modules:
             for m in self._modules[block]:
                 kaiming_init(m)
@@ -102,6 +121,9 @@ class BetaVAE_H(nn.Module):
         Args:
             z_dim: Number of latent coordinates.
             nc: Number of image channels.
+
+        Returns:
+            None.
         """
         super(BetaVAE_H, self).__init__()
         self.z_dim = z_dim
@@ -142,6 +164,9 @@ class BetaVAE_H(nn.Module):
 
         Args:
             x: Images of shape (b c 64 64).
+
+        Returns:
+            Gaussian-parameter tensor of shape (b, 2 * z_dim), with means followed by log variances.
         """
         return self.encoder(x)
 
@@ -150,6 +175,9 @@ class BetaVAE_H(nn.Module):
 
         Args:
             z: Latent codes of shape (b z).
+
+        Returns:
+            Reconstruction-logit tensor of shape (b nc 64 64).
         """
         return self.decoder(z)
 
@@ -158,6 +186,9 @@ class BetaVAE_H(nn.Module):
 
         Args:
             x: Images of shape (b c 64 64).
+
+        Returns:
+            (reconstruction_logits, mu, logvar), with tensor shapes (b nc 64 64), (b z_dim) and (b z_dim).
         """
         distributions = self._encode(x)
         mu = distributions[:, :self.z_dim]
@@ -172,7 +203,11 @@ class BetaVAE_B(BetaVAE_H):
     """Model proposed in understanding beta-VAE paper(Burgess et al, arxiv:1804.03599, 2018)."""
 
     def weight_init(self) -> None:
-        """Initialize the encoder and decoder weights."""
+        """Initialize the encoder and decoder weights.
+
+        Returns:
+            None.
+        """
         for block in self._modules:
             for m in self._modules[block]:
                 kaiming_init(m)
@@ -187,6 +222,9 @@ class BetaVAE_B(BetaVAE_H):
         Args:
             z_dim: Number of latent coordinates.
             nc: Number of image channels.
+
+        Returns:
+            None.
         """
         super(BetaVAE_B, self).__init__()
         self.nc = nc
@@ -232,6 +270,9 @@ class BetaVAE_B(BetaVAE_H):
 
         Args:
             x: Images of shape (b c 64 64).
+
+        Returns:
+            Gaussian-parameter tensor of shape (b, 2 * z_dim), with means followed by log variances.
         """
         return self.encoder(x)
 
@@ -240,6 +281,9 @@ class BetaVAE_B(BetaVAE_H):
 
         Args:
             z: Latent codes of shape (b z).
+
+        Returns:
+            Reconstruction-logit tensor of shape (b nc 64 64).
         """
         return self.decoder(z)
 
@@ -248,6 +292,9 @@ class BetaVAE_B(BetaVAE_H):
 
         Args:
             x: Images of shape (b c 64 64).
+
+        Returns:
+            (reconstruction_logits, mu, logvar), with tensor shapes (b nc 64 64), (b z_dim) and (b z_dim).
         """
         distributions = self._encode(x)
         mu = distributions[:, :self.z_dim]

@@ -20,6 +20,9 @@ def format_title_text(title_text: str) -> str:
 
     Args:
         title_text: Internal panel title.
+
+    Returns:
+        Human-readable panel title with model and dimension names expanded.
     """
     return (
         title_text
@@ -38,6 +41,9 @@ def format_abs_values(y: float, p: int | None) -> str:
     Args:
         y: Axis value to format.
         p: Tick position supplied by Matplotlib, unused.
+
+    Returns:
+        Tick-label string displaying the absolute value of y.
     """
     if y <= 0:
         return '0'
@@ -72,6 +78,9 @@ class CustomLogFormatter(LogFormatterMathtext):
         Args:
             x: Axis value to format.
             pos: Tick position supplied by Matplotlib, unused.
+
+        Returns:
+            Logarithmic-axis tick label displaying the absolute value of x.
         """
         if x <= 0:
             return '0'
@@ -93,6 +102,9 @@ def format_label(label: str) -> str:
 
     Args:
         label: Label to format.
+
+    Returns:
+        Readable bound label identifying upper or lower bounds when present.
     """
     if 'upper' in label.lower():
         return f"Upper Bound - {label.replace('upper', '').replace('_', ' ').strip().title()}"
@@ -108,6 +120,9 @@ def assign_colors_by_group(bound_types: list[str]) -> tuple[dict[str, str], dict
 
     Args:
         bound_types: Names of the bound curves.
+
+    Returns:
+        (color_map, group_info), mapping curve names to colors and grouped legend metadata.
     """
     colors = ['tab:blue', 'tab:green', 'tab:orange', 'tab:red', 'tab:purple',
               'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
@@ -198,6 +213,9 @@ def get_legend_entries(
         bound_types: Names of the bound curves.
         color_map: Curve names mapped to colors.
         group_info: Legend labels, colors and members for each bound group.
+
+    Returns:
+        Ordered legend-entry dictionaries for the requested curves and groups.
     """
     legend_entries = []
     processed_groups = set()
@@ -231,6 +249,9 @@ def get_grouped_legend_label(
         bound_type: Name of the current bound curve.
         group_info: Legend labels, colors and members for each bound group.
         emitted_groups: Group names already labeled, updated in place.
+
+    Returns:
+        Display label for the bound type or group, or an empty string when no label applies.
     """
     for group_key, group in group_info.items():
         if bound_type in group['bounds']:
@@ -255,6 +276,9 @@ def compute_figsize(
         width_per_col: Figure width per subplot column in inches.
         height: Figure height in inches.
         min_width: Minimum figure width in inches.
+
+    Returns:
+        (width, height) of the plot figure in inches.
     """
     fig_width = max(min_width, width_per_col * n_cols)
     return (fig_width, height)
@@ -275,6 +299,9 @@ def resolve_plot_fontsizes(
         fontsize: Global font size; None keeps the default.
         title_fontsize: Title font size, overriding the global setting.
         text_fontsize: Axis, tick and legend font size, overriding the global setting.
+
+    Returns:
+        (title_size, label_size, tick_size, legend_size), font sizes in points.
     """
     if fontsize is None:
         title_size = 28
@@ -302,6 +329,9 @@ def resolve_legend_y(legend_y: float | None = None) -> float:
 
     Args:
         legend_y: Vertical legend position in figure coordinates; None uses the default.
+
+    Returns:
+        Explicit legend position, or the default vertical offset -0.05.
     """
     return -0.05 if legend_y is None else legend_y
 
@@ -333,6 +363,9 @@ def create_repetitions_shaded_plot(
         text_fontsize: Axis, tick and legend font size, overriding the global setting.
         legend_y: Vertical legend position in figure coordinates; None uses the default.
         name: Name used for labels or output files.
+
+    Returns:
+        None.
     """
     title_size, label_size, tick_size, legend_size = resolve_plot_fontsizes(
         fontsize=fontsize,

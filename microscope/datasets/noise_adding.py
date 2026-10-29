@@ -47,6 +47,9 @@ def cotangent_gaussian_noise(
         batch_size: Number of tangent matrices processed together.
         check_orthogonality: Check sampled tangent/normal products after constructing the bases.
         orthogonality_check_sample_size: Number of bases sampled for the optional numerical check.
+
+    Returns:
+        Normal-noise array of shape (t1 ... td f), where ti = si on cyclic axes and si - 2 otherwise.
     """
     dims_shape = data.shape[:-1]
 
@@ -117,5 +120,8 @@ def compute_gaussian_noise(shape: tuple[int, ...], sigma: float) -> np.ndarray:
     Args:
         shape: Shape (s1 ... sn) of the generated noise array.
         sigma: Standard deviation of the Gaussian noise.
+
+    Returns:
+        Gaussian-noise array with the requested shape (s1 ... sn).
     """
     return np.random.normal(size=shape, loc=0, scale=sigma)

@@ -34,12 +34,21 @@ class Dataset:
 
     @property
     def flat(self) -> np.ndarray:
-        """View the grid with all class and parameter axes flattened into a sample axis."""
+        """View the grid with all class and parameter axes flattened into a sample axis.
+
+        Returns:
+            Sample array of shape (n, *grid.shape[-feature_ndim:]), where n is the product of all class and
+            parameter-grid dimensions.
+        """
         return self.grid.reshape(-1, *self.grid.shape[-self.feature_ndim:])
 
     @property
     def grid_shape(self) -> tuple[int, ...]:
-        """Return the class and parameter-grid dimensions."""
+        """Return the class and parameter-grid dimensions.
+
+        Returns:
+            Tuple of class and parameter-grid axis lengths, excluding feature axes.
+        """
         return self.grid.shape[:-self.feature_ndim]
 
 
@@ -48,6 +57,9 @@ def source_identity(spec: dict) -> dict:
 
     Args:
         spec: Dataset or split specification.
+
+    Returns:
+        Dataset specification augmented with available source-file provenance.
     """
     result = dict(spec)
     if 'path' in spec:
@@ -70,6 +82,9 @@ def normalize(data: np.ndarray) -> np.ndarray:
 
     Args:
         data: Input samples of shape (n ...), with sample axis first.
+
+    Returns:
+        Float32 array with the input shape (n ...), rescaled to [0, 1]; constant inputs become zeros.
     """
     lower, upper = data.min(), data.max()
     if upper == lower:
@@ -84,6 +99,9 @@ def toy_manifold(name: str) -> Manifold:
 
     Args:
         name: Name used for labels or output files.
+
+    Returns:
+        Analytic Sphere, Torus, Circle or Moons instance selected by name.
     """
     from microscope.datasets import toy_manifolds
     match name:
@@ -105,6 +123,9 @@ def toy_reference(spec: dict, device: str = 'cpu') -> np.ndarray:
     Args:
         spec: Dataset or split specification.
         device: Device used for tensor computations.
+
+    Returns:
+        Unit-volume reference points of shape (n_reference, f), with f = 2 for curves or 3 for surfaces.
     """
     state = np.random.get_state()
     try:
@@ -121,6 +142,9 @@ def load_source(spec: dict, reference: np.ndarray | None = None) -> Dataset:
     Args:
         spec: Dataset or split specification.
         reference: Optional toy reference points of shape (n f).
+
+    Returns:
+        Dataset containing the embedding grid or point cloud together with class, feature and split metadata.
     """
     if spec['name'] in ('Sphere', 'Torus', 'Circle', 'Moons'):
         manifold = toy_manifold(spec['name'])
@@ -173,6 +197,9 @@ def candidates(dataset: Dataset) -> np.ndarray:
 
     Args:
         dataset: Loaded dataset and its grid/split metadata.
+
+    Returns:
+        Flat int64 index array of shape (n_candidates), selecting the interior split grid.
     """
     indices = np.arange(len(dataset.flat)).reshape(dataset.grid_shape)
     return indices[dataset.split_slices].reshape(-1)
@@ -189,6 +216,9 @@ def sampling_weights(
         dataset: Loaded dataset and its grid/split metadata.
         weighted: Use volume weights instead of uniform probabilities.
         device: Device used for tensor computations.
+
+    Returns:
+        Normalized sampling-probability array of shape (n_candidates), aligned with candidates(dataset).
     """
     indices = candidates(dataset)
     if not weighted:
@@ -226,6 +256,9 @@ def split_indices(
         spec: Dataset or split specification.
         device: Device used for tensor computations.
         fixed_test: Fixed local test indices of shape (t), if supplied.
+
+    Returns:
+        (train_indices, test_indices), int64 arrays of shapes (n_train) and (n_test) indexing points.
     """
     state = np.random.get_state()
     try:
@@ -281,6 +314,9 @@ def prepare_split(
         device: Device used for tensor computations.
         weights: Sampling probabilities of shape (n), or None to compute them.
         fixed_test: Fixed local test indices of shape (t), if supplied.
+
+    Returns:
+        (train_indices, test_indices), int64 arrays of shapes (n_train) and (n_test) indexing dataset.flat.
     """
     available = candidates(dataset)
     if spec['method'] == 'full':

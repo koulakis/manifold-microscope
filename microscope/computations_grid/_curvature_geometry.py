@@ -18,6 +18,9 @@ def validate_tensor(
         tensor: Embedding tensor, shape (s1 ... sd f).
         intervals: Coordinate spacing along each of the d axes.
         border: Number of samples discarded at each end of a grid axis.
+
+    Returns:
+        None.
     """
     if tensor.dtype not in (torch.float32, torch.float64):
         raise TypeError("Curvature requires float32 or float64 inputs.")
@@ -43,6 +46,10 @@ def tangent_geometry(
     Args:
         tangent: Tangent matrices, shape (... f d).
         grid_indices: Optional original grid indices, shape (n d), for flattened batches.
+
+    Returns:
+        (metric, frame, inverse_factor), with tensor shapes (... d d), (... f d) and (... d d), respectively; leading
+        axes match tangent.
     """
     if not torch.isfinite(tangent).all():
         raise FloatingPointError("Nonfinite finite-difference tangent vectors.")
@@ -90,6 +97,9 @@ def metric_and_inverse(tangent: torch.Tensor) -> tuple[torch.Tensor, torch.Tenso
 
     Args:
         tangent: Tangent matrices, shape (... f d).
+
+    Returns:
+        (metric, inverse), two tensors of shape (... d d) with the leading axes of tangent.
     """
     metric = tangent.transpose(-1, -2) @ tangent
     # Any nonfinite tangent component makes its Gram diagonal nonfinite too.

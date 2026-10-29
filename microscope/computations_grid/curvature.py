@@ -115,6 +115,9 @@ def _scalar_curvature_from_metric(
         metric_inv: Inverse metric field with the same shape.
         difference_intervals: Coordinate spacing along each of the d grid axes.
         normalize: Divide scalar curvature by d * (d - 1).
+
+    Returns:
+        Scalar-curvature tensor of shape (s1 - 4, ..., sd - 4), on the metric device.
     """
     intrinsic_dim = metric.ndim - 2
     gamma_first_kind, gamma_second_kind = christoffel_symbols(
@@ -166,6 +169,9 @@ def _validate_curvature_grid(
         difference_intervals: Coordinate spacing along each of the d grid axes.
         cyclic_dimensions: Zero-based periodic grid axes.
         patch_sizes: Patch size along each of the d grid axes.
+
+    Returns:
+        None.
     """
     if features_on_grid.dtype not in (np.dtype("float32"), np.dtype("float64")):
         raise TypeError("Curvature requires float32 or float64 inputs.")
@@ -237,6 +243,10 @@ def _scalar_curvature_in_patches(
         patch_sizes: Patch size along each of the d grid axes.
         normalize: Divide scalar curvature by d * (d - 1).
         device: Torch device; None selects CUDA when available, otherwise CPU.
+
+    Returns:
+        Curvature array of shape (t1, ..., td), where ti = si on cyclic axes and si - 6 otherwise; dtype matches the
+        input.
     """
     _validate_curvature_grid(
         features_on_grid,
@@ -356,6 +366,9 @@ def compute_total_curvature(
         element: Volume-element grid, shape (s1 ... sd).
         curvature: Scalar-curvature grid, shape (s1 ... sd), aligned with element.
         range_sizes: Parameter-range length along each of the d grid axes.
+
+    Returns:
+        Volume-weighted integral of scalar curvature over the parameter domain.
     """
     grid_volume = np.prod(range_sizes)
 

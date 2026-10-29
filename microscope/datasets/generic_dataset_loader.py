@@ -37,10 +37,9 @@ def load_dataset_no_split(
         scale_to_0_1: If true scale to [0, 1].
 
     Returns:
-        If return_data_slice_info is False:
-            data, target
-        else:
-            data, target, patch_sizes, difference_intervals, volume_clip_slices, full_clip_slices
+        (data, target), with shapes (n_classes s1 ... sd h w) and (n_classes s1 ... sd). With
+        return_data_slice_info=True, also returns patch_sizes, difference_intervals, volume_clip_slices,
+        full_clip_slices, range_sizes and cyclic_dimensions, in that order.
     """
     difference_intervals, cyclic_dimensions, patch_sizes = 3*[None]
     init_flat = False
@@ -189,8 +188,10 @@ def load_dataset(
         device: Torch device.
 
     Returns:
-        The following arrays with the corresponding splits. Note that the grid dimensions are flattened.
-            data_train data_test target_train target_test
+        (train_data, test_data, train_labels, test_labels), with image shapes (n_train h w), (n_test h w) and label
+        shapes (n_train), (n_test). return_full_datasets=True instead returns (data, labels) of shapes (n h w) and (n);
+        with return_dataset_unflat_with_metadata=True, returns the unflattened grid and labels followed by range_sizes,
+        cyclic_dimensions and patch_sizes.
     """
     (
         data,
@@ -304,6 +305,9 @@ def export_fixed_grid_test_set_and_rest_for_train(
         output_dir: Directory for the cached fixed test split.
         max_test_size: Maximum number of fixed test samples.
         device: Torch device used for tensor computation.
+
+    Returns:
+        None.
     """
     if max_test_size < 1:
         raise ValueError("max_test_size must be positive.")
@@ -452,8 +456,8 @@ def load_dataset_fixed_test_split(
             simulate a uniform sampling on the volume measure.
 
     Returns:
-        The following arrays with the corresponding splits. Note that the grid dimensions are flattened.
-            data_train data_test target_train target_test
+        (train_data, test_data, train_labels, test_labels), with image shapes (n_train h w), (n_test h w) and label
+        shapes (n_train), (n_test).
     """
     # Load the dataset info.
     if isinstance(dataset_name, Enum):

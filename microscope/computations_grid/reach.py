@@ -17,6 +17,10 @@ def _chord_geometry(points: torch.Tensor, x: torch.Tensor) -> tuple[torch.Tensor
     Args:
         points: Candidate points, shape (c f).
         x: Query points, shape (b f).
+
+    Returns:
+        (lengths, unit_chords), tensors of shapes (b c) and (b c f). Coincident pairs have zero length and zero unit
+        chord.
     """
     differences = points[None] - x[:, None]
     scale = differences.abs().amax(dim=-1)
@@ -40,6 +44,10 @@ def _pair_geometry(
         frame: Orthonormal query tangent frames, shape (b f d).
         points: Candidate points, shape (c f).
         x: Query points, shape (b f).
+
+    Returns:
+        (distances, normal_fractions), tensors of shape (b c) containing chord lengths and the fractions orthogonal to
+        each query tangent space.
     """
     distance, unit = _chord_geometry(points, x)
     normal = unit - (unit @ frame) @ frame.transpose(-1, -2)
@@ -60,6 +68,9 @@ def _distances_to_tangent_space(
         tangent_vectors: Query tangent matrices, shape (b f d).
         points: Candidate points, shape (c f).
         x: Query points, shape (b f).
+
+    Returns:
+        Normal-distance tensor of shape (b c), one value per query/candidate pair.
     """
     _, frame, _ = tangent_geometry(tangent_vectors)
     distance, normal_fraction = _pair_geometry(frame, points, x)
@@ -77,6 +88,9 @@ def _subsample_dims(
         tensor: Input tensor, shape (s1 ... sn).
         take_every_k: Sample stride along the selected axes.
         dim_idxs: Zero-based axes to subsample.
+
+    Returns:
+        Tensor of shape (t1 ... tn), where ti = ceil(si / take_every_k) on selected axes and si on all other axes.
     """
     for dim in dim_idxs:
         tensor = torch.index_select(
@@ -109,6 +123,9 @@ def _validate_reach_grid(
         range_sizes: Parameter-range length along each of the d grid axes.
         patch_sizes: Patch size along each of the d grid axes.
         cyclic_dimensions: Zero-based periodic grid axes.
+
+    Returns:
+        None.
     """
     if features_on_grid.dtype not in (np.float32, np.float64):
         raise TypeError("Reach requires float32 or float64 inputs.")
@@ -138,6 +155,9 @@ def _validate_reach_options(
         candidate_batch_size: Number of candidate points processed together.
         subsample_points: Optional stride along each grid axis; None uses every point.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
+
+    Returns:
+        None.
     """
     validate_integer_list([batch_size], "batch size", minimum=1)
     validate_integer_list([candidate_batch_size], "candidate batch size", minimum=1)
@@ -155,6 +175,9 @@ def _validate_reach_samples(features_on_grid: np.ndarray) -> None:
 
     Args:
         features_on_grid: Embedding array, shape (s1 ... sd f).
+
+    Returns:
+        None.
     """
     dims_shape = features_on_grid.shape[:-1]
     if any(n < 3 for n in dims_shape):

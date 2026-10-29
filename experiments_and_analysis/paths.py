@@ -18,6 +18,9 @@ def number(value: float | int | str | Decimal) -> str:
 
     Args:
         value: Numeric value to format.
+
+    Returns:
+        Decimal string without scientific notation or redundant trailing zeros.
     """
     value = format(Decimal(str(value)), 'f')
     return value.rstrip('0').rstrip('.') if '.' in value else value
@@ -28,6 +31,9 @@ def percentage(fraction: float | Decimal) -> str:
 
     Args:
         fraction: Fraction to express as a percentage.
+
+    Returns:
+        Percentage string without a percent sign.
     """
     return number(Decimal(str(fraction)) * 100)
 
@@ -37,6 +43,9 @@ def dataset_label(spec: dict) -> str:
 
     Args:
         spec: Dataset or split specification.
+
+    Returns:
+        Dataset label combining its name and sampling choices.
     """
     parts = [spec['name']]
     if 'path' in spec:
@@ -54,6 +63,9 @@ def selection_label(split: dict, include_seed: bool = True) -> str:
     Args:
         split: Resolved split configuration.
         include_seed: Include the split seed in the label.
+
+    Returns:
+        Split-selection label, including its seed when requested.
     """
     parts = [split['method']]
     if split['method'] not in ('full', 'provided'):
@@ -73,6 +85,9 @@ def split_label(config: dict) -> str:
 
     Args:
         config: Experiment or sweep configuration.
+
+    Returns:
+        Combined dataset and split label.
     """
     return f"{dataset_label(config['dataset'])}__{selection_label(config['split'])}"
 
@@ -82,6 +97,9 @@ def model_label(config: dict) -> str:
 
     Args:
         config: Experiment or sweep configuration.
+
+    Returns:
+        Model label including its training selection and trial.
     """
     model, split, training = config['model'], config['split'], config['training']
     parts = [dataset_label(config['dataset']), model['name'] or 'input']
@@ -108,6 +126,9 @@ def representation_label(
         config: Experiment or sweep configuration.
         domain: Training, test or grid domain.
         representation: Requested input, latent, layer or output representation.
+
+    Returns:
+        Label identifying the data domain and representation.
     """
     if representation == 'input':
         # Input grid geometry is shared across models, fractions and trials.
@@ -132,6 +153,9 @@ def experiment_paths(
         root: Root directory for experiment artifacts.
         config: Experiment or sweep configuration.
         source: Dataset identity including source provenance.
+
+    Returns:
+        Dictionary of configuration, split and model artifact paths, as filesystem or virtual bundle paths.
     """
     root = artifact_path(root)
     split_id, model_id = stage_ids(config, source)
@@ -151,6 +175,9 @@ def sweep_label(config: dict, experiments: list[dict]) -> str:
     Args:
         config: Experiment or sweep configuration.
         experiments: Resolved configurations in the sweep.
+
+    Returns:
+        Readable label for the selected sweep outputs or experiment choices.
     """
     names = [request['filename'] for request in config.get('outputs', [])]
     if not names:

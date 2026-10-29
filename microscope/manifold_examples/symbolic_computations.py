@@ -21,10 +21,18 @@ class TimeIt:
 
         Args:
             process_name: Name printed when the timed block starts and finishes.
+
+        Returns:
+            None.
         """
         self.process_name = process_name
 
     def __enter__(self) -> "TimeIt":
+        """Start timing the context block.
+
+        Returns:
+            This timer instance, with its start time recorded.
+        """
         print(f"Computing the {self.process_name}.")
         self.start = time.time()
         return self
@@ -41,6 +49,9 @@ class TimeIt:
             type: Exception class, or None after normal completion.
             value: Exception instance, or None after normal completion.
             traceback: Exception traceback, or None after normal completion.
+
+        Returns:
+            None.
         """
         time_elapsed = time.time() - self.start
         print(f"{self.process_name} done, time elapsed: {time_elapsed:.3f} seconds.\n")
@@ -57,6 +68,9 @@ def time_limit(seconds: int, message: str | None = None) -> Iterator[None]:
     Args:
         seconds: Maximum elapsed time before SIGALRM is raised.
         message: Optional message printed on timeout.
+
+    Yields:
+        None while the protected block executes under the configured alarm.
     """
     def signal_handler(signum: int, frame: FrameType | None) -> None:
         """Raise the timeout exception for an alarm signal.
@@ -64,6 +78,9 @@ def time_limit(seconds: int, message: str | None = None) -> Iterator[None]:
         Args:
             signum: Received signal number.
             frame: Interrupted Python stack frame, if available.
+
+        Returns:
+            Does not return; raises the timeout exception.
         """
         if message is not None:
             print(message)
@@ -111,7 +128,7 @@ def _matrix_fast_inverse(matrix: sp.Matrix) -> np.ndarray:
         matrix: Symbolic square matrix, shape (d d).
 
     Returns:
-        A sympy matrix which is the inverse of the input matrix.
+        Symbolic inverse as a NumPy object array of shape (d d).
     """
     n = matrix.shape[0]
 
@@ -142,7 +159,8 @@ def scalar_curvature_formula(
             Carmo.
 
     Returns:
-        A sympy formula for the scalar curvature.
+        (scalar_curvature, ricci, riemann_first_kind): a symbolic scalar and NumPy arrays of symbolic expressions with
+        shapes (d d) and (d d d d), where d = len(coordinate_variables).
     """
     dim = len(coordinate_variables)
 
@@ -231,8 +249,8 @@ def ellipsoid_parametrization(dim: int) -> tuple[sp.Matrix, sp.Matrix]:
         dim: The dimension of the ellipsoid.
 
     Returns:
-        u: The patch parametrization of the ellipsoid.
-        coordinates: A sympy array Matrix with the variables of the parametrization.
+        (u, coordinates), symbolic column matrices of shapes (dim + 1, 1) and (dim, 1) describing the embedding and its
+        parameters.
     """
     # Define the variables.
     semi_axes = sp.symbols(" ".join([f"a_{i}" for i in range(1, dim + 2)]))
@@ -257,8 +275,8 @@ def hyperboloid_parametrization(dim: int) -> tuple[sp.Matrix, sp.Matrix]:
         dim: The dimension of the ellipsoid.
 
     Returns:
-        u: The patch parametrization of the ellipsoid.
-        coordinates: A sympy array Matrix with the variables of the parametrization.
+        (u, coordinates), symbolic column matrices of shapes (dim + 1, 1) and (dim, 1) describing the embedding and its
+        parameters.
     """
     # Define the variables.
     semi_axes = sp.symbols(" ".join([f"a_{i}" for i in range(1, dim + 2)]))
@@ -300,7 +318,8 @@ def ellipsoid_scalar_curvature_formula(
             Carmo.
 
     Returns:
-        A sympy formula for the scalar curvature of the n-ellipsoid.
+        (scalar_curvature, ricci, riemann_first_kind): a symbolic scalar and arrays of symbolic expressions with shapes
+        (dim dim) and (dim dim dim dim).
     """
     u, coordinates = ellipsoid_parametrization(dim)
     return scalar_curvature_formula(u, coordinates, normalize=normalize)
@@ -321,7 +340,8 @@ def hyperboloid_scalar_curvature_formula(
             Carmo.
 
     Returns:
-        A sympy formula for the scalar curvature of the n-hyperboloid.
+        (scalar_curvature, ricci, riemann_first_kind): a symbolic scalar and arrays of symbolic expressions with shapes
+        (dim dim) and (dim dim dim dim).
     """
     u, coordinates = hyperboloid_parametrization(dim)
     return scalar_curvature_formula(u, coordinates, normalize=normalize)
@@ -334,7 +354,7 @@ def ellipsoid_volume_element_formula(dim: int) -> sp.Expr:
         dim: The dimension of the ellipsoid.
 
     Returns:
-        A sympy formula for the scalar curvature of the n-ellipsoid.
+        Symbolic volume-element expression for the dim-dimensional ellipsoid.
     """
     u, coordinates = ellipsoid_parametrization(dim)
     return volume_element_formula(u, coordinates)
@@ -347,7 +367,7 @@ def hyperboloid_volume_element_formula(dim: int) -> sp.Expr:
         dim: The dimension of the hyperboloid_volume_element_formula.
 
     Returns:
-        A sympy formula for the scalar curvature of the n-hyperboloid_volume_element_formula.
+        Symbolic volume-element expression for the dim-dimensional hyperboloid.
     """
     u, coordinates = hyperboloid_parametrization(dim)
     return volume_element_formula(u, coordinates)
@@ -359,6 +379,9 @@ def _prepend_np_to_functions(formula: str, function_names: list[str]) -> str:
     Args:
         formula: Symbolic expression to transform.
         function_names: Function names to qualify with the np namespace.
+
+    Returns:
+        Expression string with matching function names prefixed by np.
     """
     for name in function_names:
         formula = formula.replace(name, f"np.{name}")

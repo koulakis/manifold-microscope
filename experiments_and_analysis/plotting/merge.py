@@ -33,6 +33,9 @@ def merge_layer_evolution(
         merge_output_dir: Directory for merged figures.
         dpi: Resolution of saved plots in dots per inch.
         figsize: Figure width and height in inches.
+
+    Returns:
+        None.
     """
     for scale in ["linear", "symlog"]:
         image_paths = list((plots_intermediate_outputs_dir / f"layer_evolution/{scale}").glob("*.png"))
@@ -77,6 +80,9 @@ def merge_distributions(
         alpha: Scatter-point opacity.
         quantile_margin: Tail fraction trimmed from plot ranges.
         cmap: Colormap used for the measure values.
+
+    Returns:
+        None.
     """
     measures_paths = list((plots_intermediate_outputs_dir / "measures").glob("*.pkl"))
 
@@ -163,6 +169,9 @@ def merge_projection_classes(
         layers: Layer names in plotted order.
         dpi: Resolution of saved plots in dots per inch.
         figsize: Figure width and height in inches.
+
+    Returns:
+        None.
     """
     projection_class_paths = list((plots_intermediate_outputs_dir / "projection_classes").glob("*.png"))
 
@@ -216,6 +225,9 @@ def merge_projection_measures(
         sprites: Class labels to include.
         dpi: Resolution of saved plots in dots per inch.
         figsize: Figure width and height in inches.
+
+    Returns:
+        None.
     """
     projection_measure_paths = list((plots_intermediate_outputs_dir / "projection_measures").glob("*.png"))
 
@@ -271,6 +283,9 @@ def main(
         data_dir: Experiment directory containing the saved plots.
         dpi: Resolution of saved plots in dots per inch.
         model: Model family whose plots are being merged.
+
+    Returns:
+        None.
     """
     # Handle directories.
     plots_intermediate_outputs_dir = data_dir / "plots_intermediate_outputs"

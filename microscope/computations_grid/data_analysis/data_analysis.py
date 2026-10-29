@@ -59,6 +59,9 @@ def compute_measure_aggregates_multiclass(
     Args:
         measures: Per-class measure grids, shape (s1 ... sd), and volume metadata.
         range_sizes: Parameter-range length along each of the d grid axes.
+
+    Returns:
+        MeasureAggregates containing scalar integrals, minima and averages keyed by class or class pair.
     """
     class_names = list(measures.normalized_volume_elements.keys())
     grid_volume = np.prod(range_sizes)
@@ -150,6 +153,9 @@ def clip_measure_multiclass(
     Args:
         measure: Named measure grids, each of shape (s1 ... sd).
         quantile_margin: Fraction clipped from each tail of each measure.
+
+    Returns:
+        Dictionary with the same keys and array shapes (s1 ... sd), with each field clipped to its quantile interval.
     """
     clipped_measure = {}
 
@@ -169,6 +175,9 @@ def _validate_class_names(data: np.ndarray, class_names: list[str]) -> None:
     Args:
         data: Class embedding grids, shape (n_classes s1 ... sd f).
         class_names: One name per leading class axis entry.
+
+    Returns:
+        None.
     """
     if len(class_names) != data.shape[0]:
         raise ValueError(
@@ -198,6 +207,9 @@ def _plot_measure_pairs(
         classes: Optional class labels, shape (n), aligned with plotted values.
         height: Height of each pair-plot panel in inches.
         alpha: Opacity of plotted points or densities.
+
+    Returns:
+        None.
     """
     if classes is None:
         df = pd.DataFrame(dict(
@@ -246,6 +258,9 @@ def _plot_feature_measure_pairs(
         classes: Optional class labels, shape (n), aligned with plotted values.
         height: Height of each pair-plot panel in inches.
         alpha: Opacity of plotted points or densities.
+
+    Returns:
+        None.
     """
     n_classes = len(np.unique(classes))
     rotations, x_translations, y_translations = np.meshgrid(*[np.arange(n) for n in data.shape[1:-1]])
@@ -318,6 +333,9 @@ def _plot_with_scalar_values(
         dpi: Resolution of exported images in dots per inch.
         output_path: Optional output image path.
         show: Display the plot after rendering.
+
+    Returns:
+        None.
     """
     n_plots = len(scalar_values)
 
@@ -511,6 +529,10 @@ def clip_results_multiclass(
     Args:
         results: Measure grids, aggregates and metadata to copy with clipped fields.
         quantile_margin: Fraction clipped from each tail of each measure.
+
+    Returns:
+        AnalysisResults containing clipped measure grids with their original shapes, recomputed aggregates and unchanged
+        grid metadata.
     """
     clipped_measures = Measures(
         volume_elements=clip_measure_multiclass(results.measures.volume_elements, quantile_margin),
@@ -555,6 +577,9 @@ def plot_pairs_multiclass(
         alpha: Opacity of plotted points or densities.
         dpi: Resolution of exported images in dots per inch.
         n_samples_for_plots: Maximum number of points included in each plot.
+
+    Returns:
+        None.
     """
     class_names = list(analysis_results.measures.normalized_volume_elements.keys())
     if len(class_names) != data.shape[0]:
@@ -624,6 +649,9 @@ def plot_features_vs_measures_multiclass(
         plot_per_class: Also render a separate plot for each class.
         height: Height of each pair-plot panel in inches.
         alpha: Opacity of plotted points or densities.
+
+    Returns:
+        None.
     """
     class_names = list(analysis_results.measures.normalized_volume_elements.keys())
     if len(class_names) != data.shape[0]:
@@ -699,6 +727,9 @@ def plot_3d_pca_projections_multiclass(
         dpi: Resolution of exported images in dots per inch.
         show: Display the plot after rendering.
         n_samples_for_plots: Maximum number of points included in each plot.
+
+    Returns:
+        None.
     """
     class_names = list(analysis_results.measures.normalized_volume_elements.keys())
     if len(class_names) != data.shape[0]:

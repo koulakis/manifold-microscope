@@ -17,6 +17,9 @@ def _validate_padding_inputs(
         array: Input array, shape (s1 ... sn).
         cyclic_dimensions: Zero-based periodic grid axes.
         pad_sizes: Number of samples added at each end of each periodic axis.
+
+    Returns:
+        None.
     """
     validate_cyclic_axes(cyclic_dimensions, array.ndim)
     validate_integer_list(pad_sizes, "pad sizes")
@@ -45,7 +48,8 @@ def pad_cyclic_dimensions(
         pad_sizes: Number of samples added at each end of each periodic axis.
 
     Returns:
-        The padded array.
+        Array with each cyclic axis length increased by twice its corresponding pad size; all other axis lengths are
+        unchanged.
     """
     _validate_padding_inputs(array, cyclic_dimensions, pad_sizes)
     padding = [(0, 0)]*array.ndim
@@ -68,6 +72,9 @@ def _validate_difference_interval_inputs(
         n_samples_per_dim: Number of coordinate samples along each grid axis.
         range_sizes: Parameter-range length along each of the d grid axes.
         cyclic_dimensions: Zero-based periodic grid axes.
+
+    Returns:
+        None.
     """
     validate_integer_list(n_samples_per_dim, "sample counts", minimum=1)
     validate_cyclic_axes(cyclic_dimensions, len(n_samples_per_dim))

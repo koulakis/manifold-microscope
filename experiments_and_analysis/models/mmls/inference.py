@@ -15,5 +15,8 @@ def predict(projector: ANNMMLSProjector, data: np.ndarray) -> np.ndarray:
     Args:
         projector: Fitted MMLS projector.
         data: Input samples of shape (n ...), with sample axis first.
+
+    Returns:
+        Projected NumPy array with the same shape (n ...) as data.
     """
     return projector.project(data.reshape(len(data), -1)).reshape(data.shape)

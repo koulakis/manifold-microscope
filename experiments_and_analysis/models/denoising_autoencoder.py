@@ -16,6 +16,9 @@ def _validate_training_batch(batch: tuple[torch.Tensor, ...] | list[torch.Tensor
     Args:
         batch: Point tensors of shape (b f), with a second normal tensor when required.
         noise_along_normals: Perturb points along supplied normals instead of isotropically.
+
+    Returns:
+        None.
     """
     if noise_along_normals:
         assert len(batch) == 2
@@ -40,6 +43,9 @@ class DenoisingAutoencoderPL(pl.LightningModule):
             lr: Optimizer learning rate.
             noise_std: Standard deviation of the added Gaussian noise.
             noise_along_normals: Perturb points along supplied normals instead of isotropically.
+
+        Returns:
+            None.
         """
         super().__init__()
         self.lr = lr
@@ -56,6 +62,9 @@ class DenoisingAutoencoderPL(pl.LightningModule):
 
         Args:
             x: Points of shape (b f).
+
+        Returns:
+            Reconstructed-point tensor of shape (b f).
         """
         return self.decoder(self.encoder(x))
 
@@ -69,6 +78,9 @@ class DenoisingAutoencoderPL(pl.LightningModule):
         Args:
             points: Points of shape (b f).
             normals: Unit normals of shape (b f), required for normal-directed noise.
+
+        Returns:
+            Perturbed-point tensor with the same shape (b f) as points.
         """
         if self.noise_along_normals:
             noise_norm = torch.normal(
@@ -97,6 +109,9 @@ class DenoisingAutoencoderPL(pl.LightningModule):
         Args:
             batch: Point tensors of shape (b f), followed by normals when used.
             batch_idx: Batch index supplied by Lightning.
+
+        Returns:
+            Differentiable reconstruction-loss tensor of scalar shape ().
         """
         _validate_training_batch(batch, self.noise_along_normals)
         if self.noise_along_normals:
@@ -118,7 +133,11 @@ class DenoisingAutoencoderPL(pl.LightningModule):
         return loss
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        """Create the AdamW optimizer."""
+        """Create the AdamW optimizer.
+
+        Returns:
+            AdamW optimizer over the model parameters.
+        """
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         return optimizer
 
@@ -142,6 +161,9 @@ class DenoisingAutoencoder:
             noise_std: Standard deviation of the added Gaussian noise.
             noise_along_normals: Perturb points along supplied normals instead of isotropically.
             device: Device used for tensor computations.
+
+        Returns:
+            None.
         """
         self.noise_along_normals = noise_along_normals
         self.model = DenoisingAutoencoderPL(
@@ -172,6 +194,9 @@ class DenoisingAutoencoder:
             train_loss_stop_threshold: Training loss threshold for early stopping.
             batch_size: Number of points or images per batch.
             num_workers: Number of data-loader workers.
+
+        Returns:
+            None.
         """
         if self.noise_along_normals:
             dataset = TensorDataset(
@@ -215,6 +240,9 @@ class DenoisingAutoencoder:
             points: Query points of shape (n f).
             batch_size: Number of points or images per batch.
             num_workers: Number of data-loader workers.
+
+        Returns:
+            Reconstructed NumPy array with the same shape (n f) as points.
         """
         dataset = TensorDataset(torch.from_numpy(points))
         dataloader = DataLoader(

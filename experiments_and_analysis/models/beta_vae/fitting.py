@@ -36,6 +36,9 @@ def fit(
         seed: Random seed.
         device: Device used for tensor computations.
         num_workers: Number of data-loader workers.
+
+    Returns:
+        Trained beta-VAE model from the completed solver run.
     """
     directory = Path(directory)
     config = BetaVAEConfig(

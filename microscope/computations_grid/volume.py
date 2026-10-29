@@ -94,6 +94,9 @@ def compute_total_volume(element: np.ndarray, range_sizes: list[float]) -> float
     Args:
         element: Volume-element grid, shape (s1 ... sd).
         range_sizes: Parameter-range length along each of the d grid axes.
+
+    Returns:
+        Estimated manifold volume, integrating the volume element over the parameter domain.
     """
     grid_volume = np.prod(range_sizes)
 

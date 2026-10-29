@@ -20,6 +20,9 @@ def is_power_of_2(num: int) -> bool:
 
     Args:
         num: Integer to check.
+
+    Returns:
+        True if num is a positive power of two; otherwise False.
     """
     return ((num & (num - 1)) == 0) and num != 0
 
@@ -30,6 +33,9 @@ class CustomTensorDataset(Dataset):
 
         Args:
             data_tensor: Images of shape (n c h w).
+
+        Returns:
+            None.
         """
         self.data_tensor = data_tensor
 
@@ -38,11 +44,19 @@ class CustomTensorDataset(Dataset):
 
         Args:
             index: Image index or slice along the sample axis.
+
+        Returns:
+            Image tensor of shape (c h w) for an integer index, or an image batch of shape (n_selected c h w) for a
+            slice.
         """
         return self.data_tensor[index]
 
     def __len__(self) -> int:
-        """Return the number of images."""
+        """Return the number of images.
+
+        Returns:
+            Number of images in the dataset.
+        """
         return self.data_tensor.size(0)
 
 
@@ -59,6 +73,9 @@ def training_loader(
         batch_size: Number of points or images per batch.
         num_workers: Number of data-loader workers.
         device: Device used for tensor computations.
+
+    Returns:
+        DataLoader yielding shuffled image tensors of shape (b c h w), including any smaller final batch.
     """
     if data.shape[1:] != (64, 64):
         raise ValueError("beta-VAE requires grayscale images of shape (64, 64).")

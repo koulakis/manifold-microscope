@@ -35,7 +35,7 @@ def create_square_sprite(
         dtype: The data type of the image.
 
     Returns:
-        A numpy array containing the sprite image.
+        Square-sprite image array of shape (image_size, image_size).
     """
     background = np.zeros((image_size, image_size), dtype=dtype)
     square = np.ones((square_size, square_size), dtype=dtype)
@@ -57,7 +57,7 @@ def create_heart_sprite(
         dtype: The data type of the image.
 
     Returns:
-        An image with the heart.
+        Heart-sprite image array of shape (image_size, image_size).
     """
     # Create a black image
     image = np.zeros((image_size, image_size), dtype=dtype)
@@ -93,7 +93,7 @@ def create_ellipse_sprite(
         dtype: The data type of the image.
 
     Returns:
-        An image with the ellipse.
+        Ellipse-sprite image array of shape (image_size, image_size).
     """
     # Create a black image
     image = np.zeros((image_size, image_size), dtype=dtype)
@@ -128,6 +128,9 @@ def _validate_sprite_sizes(image_size: int, sprite_initial_size: int) -> None:
     Args:
         image_size: Side length of the output image in pixels.
         sprite_initial_size: Side length of the sprite before transformations.
+
+    Returns:
+        None.
     """
     assert image_size % 2 == 0
     assert sprite_initial_size % 2 == 0

@@ -37,6 +37,9 @@ def compute_distances(
         error_weight: Scale applied to the denoising training stop threshold.
         device: Device used for tensor computations.
         projection_method: MMLS projection implementation.
+
+    Returns:
+        (distances, maximum_distance), with distances an array of shape (n) containing paired Euclidean errors.
     """
     if fitting_method.startswith("denoising_autoencoder_"):
         from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
@@ -162,6 +165,9 @@ def run_size_ablation(
         max_workers: Maximum concurrent fits; None uses the executor default.
         device: Device used for tensor computations.
         projection_method: MMLS projection implementation.
+
+    Returns:
+        (average_distances, hausdorff_distances), dictionaries of errors grouped by sample size and trial.
     """
     avg_all, haus_all = {}, {}
 
@@ -234,6 +240,9 @@ def fit_and_get_measures(
         error_weight: Scale applied to the denoising training stop threshold.
         device: Device used for tensor computations.
         projection_method: MMLS projection implementation.
+
+    Returns:
+        None.
     """
     output_path.mkdir(exist_ok=True, parents=True)
 
