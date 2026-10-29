@@ -4,12 +4,16 @@ import pytest
 import torch
 
 from microscope.patches import extract_patches, stack_patches
-from microscope.computations_grid import basic, curvature, volume
+from microscope.computations_grid import basic, curvature, curvature_extrinsic, volume
 
 
 class NoFlatten(np.ndarray):
     def reshape(self, *args, **kwargs):
         raise AssertionError('Do not materialize the overlapping patch grid')
+
+
+def forbidden_padding(*args, **kwargs):
+    raise AssertionError('Wrap curvature boundaries within individual tiles')
 
 
 @pytest.mark.parametrize('shape,cyclic', [((11, 12), []), ((10, 11), [1]),
@@ -25,6 +29,8 @@ def test_streamed_results_match_original_patch_assembly(monkeypatch, shape, cycl
         (volume, volume.volume_element, lambda t: volume.volume_element_batch(t, intervals), 2, 0),
         (curvature, curvature.scalar_curvature,
          lambda t: curvature.scalar_curvature_batch(t, intervals), 6, 0),
+        (curvature_extrinsic, curvature_extrinsic.scalar_curvature,
+         lambda t: curvature_extrinsic.scalar_curvature_batch(t, intervals), 6, 0),
     ]:
         patches = extract_patches(data, sizes, [overlap] * dims, cyclic)
         values = [kernel(torch.from_numpy(patch)).numpy()
@@ -33,8 +39,19 @@ def test_streamed_results_match_original_patch_assembly(monkeypatch, shape, cycl
         reference = stack_patches(assembled, n_features=n_features)
         crop = tuple(slice(0, s if i in cyclic else s - overlap) for i, s in enumerate(shape))
         with monkeypatch.context() as patcher:
-            patcher.setattr(module, 'extract_patches',
-                            lambda *args, **kwargs: extract_patches(*args, **kwargs).view(NoFlatten))
-            result = function(data, difference_intervals=intervals, patch_sizes=sizes,
-                              cyclic_dimensions=cyclic, device='cpu')
+            if module in (curvature, curvature_extrinsic):
+                patcher.setattr(np, 'pad', forbidden_padding)
+            else:
+                patcher.setattr(
+                    module,
+                    'extract_patches',
+                    lambda *args, **kwargs: extract_patches(*args, **kwargs).view(NoFlatten)
+                )
+            result = function(
+                data,
+                difference_intervals=intervals,
+                patch_sizes=sizes,
+                cyclic_dimensions=cyclic,
+                device='cpu'
+            )
         np.testing.assert_array_equal(result, reference[crop])

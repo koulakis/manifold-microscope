@@ -1,13 +1,13 @@
 import numpy as np
 
-from microscope._grid_validation import cyclic_axes, integer_list, spacings
+from microscope._grid_validation import validate_cyclic_axes, validate_integer_list, validate_spacings
 
 
 def _validate_padding_inputs(
     array: np.ndarray,
     cyclic_dimensions: list[int],
     pad_sizes: list[int]
-) -> tuple[list[int], list[int]]:
+) -> None:
     """Validate circular padding sizes and axes.
 
     Require unique valid periodic axes and one nonnegative integer pad size per axis. Empty periodic axes cannot be
@@ -18,8 +18,8 @@ def _validate_padding_inputs(
         cyclic_dimensions: Zero-based periodic grid axes.
         pad_sizes: Number of samples added at each end of each periodic axis.
     """
-    cyclic_dimensions = cyclic_axes(cyclic_dimensions, array.ndim)
-    pad_sizes = integer_list(pad_sizes, "pad sizes")
+    validate_cyclic_axes(cyclic_dimensions, array.ndim)
+    validate_integer_list(pad_sizes, "pad sizes")
     if len(cyclic_dimensions) != len(pad_sizes):
         raise ValueError(
             f"Expected the number of cyclic dimensions ({len(cyclic_dimensions)}) to equal the number"
@@ -28,7 +28,6 @@ def _validate_padding_inputs(
     for dim in cyclic_dimensions:
         if array.shape[dim] == 0:
             raise ValueError("Cannot wrap an empty cyclic axis.")
-    return cyclic_dimensions, pad_sizes
 
 
 def pad_cyclic_dimensions(
@@ -48,7 +47,7 @@ def pad_cyclic_dimensions(
     Returns:
         The padded array.
     """
-    cyclic_dimensions, pad_sizes = _validate_padding_inputs(array, cyclic_dimensions, pad_sizes)
+    _validate_padding_inputs(array, cyclic_dimensions, pad_sizes)
     padding = [(0, 0)]*array.ndim
     for dim, pad_size in zip(cyclic_dimensions, pad_sizes):
         padding[dim] = (pad_size, pad_size)
@@ -59,7 +58,7 @@ def _validate_difference_interval_inputs(
     n_samples_per_dim: list[int],
     range_sizes: list[float],
     cyclic_dimensions: list[int]
-) -> tuple[list[int], list[float], list[int]]:
+) -> None:
     """Validate sample counts, ranges and periodic axes.
 
     Require positive integer sample counts, with at least two samples on nonperiodic axes. Ranges must be finite nonzero
@@ -70,12 +69,11 @@ def _validate_difference_interval_inputs(
         range_sizes: Parameter-range length along each of the d grid axes.
         cyclic_dimensions: Zero-based periodic grid axes.
     """
-    n_samples_per_dim = integer_list(n_samples_per_dim, "sample counts", minimum=1)
-    cyclic_dimensions = cyclic_axes(cyclic_dimensions, len(n_samples_per_dim))
-    range_sizes = spacings(range_sizes, len(n_samples_per_dim))
+    validate_integer_list(n_samples_per_dim, "sample counts", minimum=1)
+    validate_cyclic_axes(cyclic_dimensions, len(n_samples_per_dim))
+    validate_spacings(range_sizes, len(n_samples_per_dim))
     if any(n < 2 for axis, n in enumerate(n_samples_per_dim) if axis not in cyclic_dimensions):
         raise ValueError("Noncyclic axes need at least two samples to define a spacing.")
-    return n_samples_per_dim, range_sizes, cyclic_dimensions
 
 
 def get_difference_intervals(
@@ -97,8 +95,10 @@ def get_difference_intervals(
     Returns:
         A list with the difference interval per dimension.
     """
-    n_samples_per_dim, range_sizes, cyclic_dimensions = _validate_difference_interval_inputs(
-        n_samples_per_dim, range_sizes, cyclic_dimensions
+    _validate_difference_interval_inputs(
+        n_samples_per_dim,
+        range_sizes,
+        cyclic_dimensions
     )
     return [
         size / n_samples

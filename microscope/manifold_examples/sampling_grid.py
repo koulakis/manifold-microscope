@@ -9,8 +9,8 @@ def _validate_grid_sampling_inputs(
     semi_axes: list[float],
     n_samples_per_dim: list[int],
     ambient_space_dim: int
-) -> int:
-    """Validate coordinate-grid dimensions and return the intrinsic dimension.
+) -> None:
+    """Validate coordinate-grid dimensions.
 
     Assert that d grid sample counts match d + 1 semi-axes and that the ambient dimension is at least d + 1, retaining
     the original assertions.
@@ -21,9 +21,7 @@ def _validate_grid_sampling_inputs(
         ambient_space_dim: Number of embedding coordinates.
     """
     assert len(semi_axes) - 1 == len(n_samples_per_dim), "Inconsistent number of semi-axes and samples per dimension."
-    dim = len(n_samples_per_dim)
-    assert ambient_space_dim >= dim + 1
-    return dim
+    assert ambient_space_dim >= len(n_samples_per_dim) + 1
 
 
 def sample_ellipsoid_on_grid(
@@ -47,7 +45,8 @@ def sample_ellipsoid_on_grid(
         apply_random_isometry: Apply a random rotation and translation.
         seed: Optional random seed for the isometry.
     """
-    dim = _validate_grid_sampling_inputs(semi_axes, n_samples_per_dim, ambient_space_dim)
+    _validate_grid_sampling_inputs(semi_axes, n_samples_per_dim, ambient_space_dim)
+    dim = len(n_samples_per_dim)
 
     phis_per_dim = [
         *[
@@ -104,7 +103,8 @@ def sample_hyperboloid_on_grid(
         height_variable_limit: Symmetric bound for nonperiodic hyperbolic coordinates.
         seed: Optional random seed for the isometry.
     """
-    dim = _validate_grid_sampling_inputs(semi_axes, n_samples_per_dim, ambient_space_dim)
+    _validate_grid_sampling_inputs(semi_axes, n_samples_per_dim, ambient_space_dim)
+    dim = len(n_samples_per_dim)
 
     phis_per_dim = [
         *[

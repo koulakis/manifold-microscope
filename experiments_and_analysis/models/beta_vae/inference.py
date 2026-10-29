@@ -30,8 +30,8 @@ def get_dataloader(
         num_workers: Number of data-loader workers.
         device: Device used for tensor computations.
     """
-    data = torch.from_numpy(data).unsqueeze(1).float()
-    train_kwargs = {'data_tensor': data}
+    data_tensor = torch.from_numpy(data).unsqueeze(1).float()
+    train_kwargs = {'data_tensor': data_tensor}
 
     dataset = CustomTensorDataset(**train_kwargs)
     train_loader = DataLoader(

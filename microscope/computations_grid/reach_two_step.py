@@ -4,7 +4,7 @@ from typing import NamedTuple
 import numpy as np
 import torch
 
-from microscope._grid_validation import cyclic_axes, integer_list, spacings
+from microscope._grid_validation import validate_cyclic_axes, validate_integer_list, validate_spacings
 from microscope.computations_grid.curvature_extrinsic import _normal_geometry
 from microscope.computations_grid.reach import _chord_geometry
 from microscope.cyclic_dimensions import get_difference_intervals
@@ -181,9 +181,9 @@ def _validate_reach_grid(
     features_on_grid: np.ndarray,
     range_sizes: list[float],
     patch_sizes: list[int],
-    cyclic_dimensions: list[int] | None
-) -> tuple[list[float], list[int], list[int]]:
-    """Validate grid geometry and return normalized ranges, sizes and axes.
+    cyclic_dimensions: list[int]
+) -> None:
+    """Validate grid geometry.
 
     Require a NumPy float32/float64 array with ambient dimension f >= d >= 1. Provide one finite nonzero real range and
     one integer patch size >= 5 per grid axis. Periodic axes must be unique valid indices. Nonperiodic axes need at
@@ -193,43 +193,39 @@ def _validate_reach_grid(
         features_on_grid: Embedding array, shape (s1 ... sd f).
         range_sizes: Parameter-range length along each of the d grid axes.
         patch_sizes: Patch size along each of the d grid axes.
-        cyclic_dimensions: Zero-based periodic grid axes; None uses no periodic axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
     """
-    if not isinstance(features_on_grid, np.ndarray) or features_on_grid.dtype not in (np.float32, np.float64):
+    if features_on_grid.dtype not in (np.float32, np.float64):
         raise TypeError("Two-step reach requires a NumPy float32 or float64 array.")
     dims = features_on_grid.ndim-1
     if dims < 1 or features_on_grid.shape[-1] < dims:
         raise ValueError("A grid needs ambient dimension >= intrinsic dimension >=1.")
-    range_sizes = spacings(range_sizes, dims)
-    cyclic = cyclic_axes(cyclic_dimensions if cyclic_dimensions is not None else [], dims)
-    patches = integer_list(patch_sizes, "patch sizes", minimum=5)
-    if len(patches) != dims:
+    validate_spacings(range_sizes, dims)
+    validate_cyclic_axes(cyclic_dimensions, dims)
+    validate_integer_list(patch_sizes, "patch sizes", minimum=5)
+    if len(patch_sizes) != dims:
         raise ValueError("One patch size is required per grid axis.")
-    if any(n < (3 if a in cyclic else 5) for a, n in enumerate(features_on_grid.shape[:-1])):
+    if any(n < (3 if a in cyclic_dimensions else 5) for a, n in enumerate(features_on_grid.shape[:-1])):
         raise ValueError("Grid axes need five noncyclic or three cyclic samples.")
-    return range_sizes, cyclic, patches
 
 
 def _validate_reach_options(
-    subsample_points: int | None,
+    stride: int,
     batch_size: int,
     candidate_batch_size: int,
     n_directions: int,
     curvature_iterations: int,
     bottleneck_tolerance: float,
     min_pair_distance: float | None
-) -> tuple[int, int, int, int, int, np.ndarray, float | None]:
-    """Validate and normalize reach search controls.
+) -> None:
+    """Validate reach search controls.
 
     Batch sizes and an explicit stride must be positive integers. Direction and iteration counts must be nonnegative
     integers. The bottleneck sine tolerance must be a finite real scalar in [0, 1), and an explicit pair cutoff must be
     a finite nonnegative real scalar.
 
-    Return stride, batch sizes, direction/iteration counts, tolerance and cutoff in that order. The tolerance remains a
-    scalar NumPy array, as in the original code; accepted counts become Python ints.
-
     Args:
-        subsample_points: Optional stride along each grid axis; None uses every point.
+        stride: Stride along each grid axis.
         batch_size: Number of query points processed together.
         candidate_batch_size: Number of candidate points processed together.
         n_directions: Number of additional deterministic random search directions.
@@ -237,21 +233,15 @@ def _validate_reach_options(
         bottleneck_tolerance: Maximum tangential fraction of an accepted unit chord.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
     """
-    stride = integer_list([subsample_points if subsample_points is not None else 1], "subsample stride", minimum=1)[0]
-    batch_size = integer_list([batch_size], "batch size", minimum=1)[0]
-    candidate_batch_size = integer_list([candidate_batch_size], "candidate batch size", minimum=1)[0]
-    n_directions = integer_list([n_directions], "direction count")[0]
-    curvature_iterations = integer_list([curvature_iterations], "curvature iterations")[0]
-    tolerance = np.asarray(bottleneck_tolerance)
-    if (tolerance.ndim or tolerance.dtype.kind not in "iuf" or not np.isfinite(tolerance)
-            or tolerance < 0 or tolerance >= 1):
+    validate_integer_list([stride], "subsample stride", minimum=1)
+    validate_integer_list([batch_size], "batch size", minimum=1)
+    validate_integer_list([candidate_batch_size], "candidate batch size", minimum=1)
+    validate_integer_list([n_directions], "direction count")
+    validate_integer_list([curvature_iterations], "curvature iterations")
+    if not np.isfinite(bottleneck_tolerance) or not 0 <= bottleneck_tolerance < 1:
         raise ValueError("Bottleneck tolerance must be a finite sine in [0,1).")
-    if min_pair_distance is not None:
-        cutoff = np.asarray(min_pair_distance)
-        if cutoff.ndim or cutoff.dtype.kind not in "iuf" or not np.isfinite(cutoff) or cutoff < 0:
-            raise ValueError("Minimum pair distance must be finite and nonnegative.")
-        min_pair_distance = float(cutoff)
-    return stride, batch_size, candidate_batch_size, n_directions, curvature_iterations, tolerance, min_pair_distance
+    if min_pair_distance is not None and (not np.isfinite(min_pair_distance) or min_pair_distance < 0):
+        raise ValueError("Minimum pair distance must be finite and nonnegative.")
 
 
 def reach_per_point(
@@ -332,16 +322,17 @@ def reach_per_point(
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
         return_components: Return (reach, witnesses, radii); radii has shape (... 2).
     """
-    range_sizes, cyclic, patches = _validate_reach_grid(
+    cyclic = cyclic_dimensions if cyclic_dimensions is not None else []
+    _validate_reach_grid(
         features_on_grid,
         range_sizes,
         patch_sizes,
-        cyclic_dimensions
+        cyclic
     )
     dims = features_on_grid.ndim-1
-    (stride, batch_size, candidate_batch_size, n_directions,
-     curvature_iterations, tolerance, min_pair_distance) = _validate_reach_options(
-        subsample_points,
+    stride = subsample_points if subsample_points is not None else 1
+    _validate_reach_options(
+        stride,
         batch_size,
         candidate_batch_size,
         n_directions,
@@ -363,7 +354,7 @@ def reach_per_point(
     frames = np.empty((*sampled_shape, features_on_grid.shape[-1], dims), dtype=features_on_grid.dtype)
     curvatures = np.empty(sampled_shape, dtype=features_on_grid.dtype)
     with torch.no_grad():
-        for destination, patch in _iter_patches_with_halo(features_on_grid, patches, 2, cyclic):
+        for destination, patch in _iter_patches_with_halo(features_on_grid, patch_sizes, 2, cyclic):
             offsets = [(-s.start) % stride for s in destination]
             if any(first >= s.stop-s.start for first, s in zip(offsets, destination)):
                 continue
@@ -384,7 +375,7 @@ def reach_per_point(
             torch.from_numpy(frames.reshape(-1, *frames.shape[-2:])),
             batch_size,
             candidate_batch_size,
-            float(tolerance),
+            bottleneck_tolerance,
             min_pair_distance,
             device,
             return_per_point=True

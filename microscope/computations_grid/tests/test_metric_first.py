@@ -32,12 +32,23 @@ def immersion(shape, cyclic, dtype):
 ])
 def test_metric_first_matches_embedding_tiles(dtype, shape, cyclic, patches):
     points, intervals = immersion(shape, cyclic, dtype)
-    kwargs = dict(features_on_grid=points, difference_intervals=intervals,
-                  cyclic_dimensions=cyclic, patch_sizes=patches, device="cpu")
     for normalize in ([False, True] if len(shape) > 1 else [False]):
         previous = curvature._scalar_curvature_in_patches(
-            **kwargs, normalize=normalize, batch_computation=curvature.scalar_curvature_batch)
-        result = curvature.scalar_curvature(**kwargs, normalize=normalize)
+            features_on_grid=points,
+            difference_intervals=intervals,
+            cyclic_dimensions=cyclic,
+            patch_sizes=patches,
+            normalize=normalize,
+            device="cpu"
+        )
+        result = curvature.scalar_curvature(
+            features_on_grid=points,
+            difference_intervals=intervals,
+            cyclic_dimensions=cyclic,
+            patch_sizes=patches,
+            normalize=normalize,
+            device="cpu"
+        )
         assert result.dtype == dtype
         assert result.shape == tuple(n if a in cyclic else n-6 for a, n in enumerate(shape))
         np.testing.assert_allclose(result, previous, atol=3e-5 if dtype == np.float32 else 1e-12,
@@ -85,10 +96,21 @@ def test_tiled_metric_retains_qr_inverse(dtype, eps, monkeypatch):
 def test_metric_first_strided_views_match_contiguous(reverse):
     points, intervals = immersion((19, 21), [1], np.float64)
     view = points[::2, ::-1 if reverse else 1]
-    kwargs = dict(difference_intervals=[2*intervals[0], intervals[1]],
-                  cyclic_dimensions=[1], patch_sizes=[8, 9], device="cpu")
-    np.testing.assert_array_equal(curvature.scalar_curvature(view, **kwargs),
-                                  curvature.scalar_curvature(np.ascontiguousarray(view), **kwargs))
+    result = curvature.scalar_curvature(
+        features_on_grid=view,
+        difference_intervals=[2*intervals[0], intervals[1]],
+        cyclic_dimensions=[1],
+        patch_sizes=[8, 9],
+        device="cpu"
+    )
+    contiguous_result = curvature.scalar_curvature(
+        features_on_grid=np.ascontiguousarray(view),
+        difference_intervals=[2*intervals[0], intervals[1]],
+        cyclic_dimensions=[1],
+        patch_sizes=[8, 9],
+        device="cpu"
+    )
+    np.testing.assert_array_equal(result, contiguous_result)
 
 
 @pytest.mark.parametrize("bad", [np.nan, np.inf])

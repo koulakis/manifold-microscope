@@ -1,12 +1,12 @@
-from typing import Callable, Optional
+from typing import Optional, cast
 
 import numpy as np
 import torch
 from einops import einops
 
 from microscope.computations_grid.basic import partial_derivatives_across_all_dims, crop_dim_borders
-from microscope.patches import extract_patches, _iter_patches_with_halo
-from microscope._grid_validation import cyclic_axes, integer_list, spacings
+from microscope.patches import _iter_patches_with_halo
+from microscope._grid_validation import validate_cyclic_axes, validate_integer_list, validate_spacings
 from microscope.computations_grid._curvature_geometry import metric_and_inverse, validate_tensor
 
 
@@ -49,7 +49,7 @@ def riemannian_curvature_tensor(
     gamma_first_kind: torch.Tensor,
     gamma_second_kind: torch.Tensor,
     difference_intervals: list[float],
-    kinds: list[str] = ("first", "second")
+    kinds: list[str] | tuple[str, ...] = ("first", "second")
 ) -> dict[str, Optional[torch.Tensor]]:
     """Estimate Riemann tensors by differentiating Christoffel symbols.
 
@@ -79,9 +79,9 @@ def riemannian_curvature_tensor(
     gamma_first_kind = crop_dim_borders(gamma_first_kind, dim_idxs)
     gamma_second_kind = crop_dim_borders(gamma_second_kind, dim_idxs)
 
-    result = {"first": None, "second": None}
+    result: dict[str, Optional[torch.Tensor]] = {"first": None, "second": None}
 
-    if "first" in kinds:
+    if gamma_derivatives_first_kind is not None:
         riemannian_tensor_first_kind = (
             einops.rearrange(gamma_derivatives_first_kind, "... j l i k -> ... i j k l")
             - einops.rearrange(gamma_derivatives_first_kind, "... j k i l -> ... i j k l")
@@ -90,7 +90,7 @@ def riemannian_curvature_tensor(
         )
         result["first"] = riemannian_tensor_first_kind
 
-    if "second" in kinds:
+    if gamma_derivatives_second_kind is not None:
         riemannian_tensor_second_kind = (
             einops.rearrange(gamma_derivatives_second_kind, "... i j l k -> ... i j k l")
             - gamma_derivatives_second_kind
@@ -123,12 +123,14 @@ def _scalar_curvature_from_metric(
         difference_intervals=difference_intervals
     )
 
-    riemannian_tensor_first_kind = riemannian_curvature_tensor(
+    riemannian_tensors = riemannian_curvature_tensor(
         gamma_first_kind,
         gamma_second_kind,
         difference_intervals=difference_intervals,
         kinds=["first"]
-    )["first"]
+    )
+    # The first-kind entry is populated because it was explicitly requested.
+    riemannian_tensor_first_kind = cast(torch.Tensor, riemannian_tensors["first"])
 
     n_dims = set(np.arange(intrinsic_dim))
     metric_inv_cropped = crop_dim_borders(metric_inv, n_dims, crop=2)
@@ -150,9 +152,8 @@ def _validate_curvature_grid(
     features_on_grid: np.ndarray,
     difference_intervals: list[float],
     cyclic_dimensions: list[int],
-    patch_sizes: list[int],
-    device: str | torch.device | None
-) -> tuple[list[float], list[int], list[int], str | torch.device]:
+    patch_sizes: list[int]
+) -> None:
     """Shared NumPy-grid validation for the intrinsic and extrinsic wrappers.
 
     Require float32/float64 arrays with ambient dimension f >= d >= 1, one finite nonzero real spacing and one integer
@@ -165,92 +166,20 @@ def _validate_curvature_grid(
         difference_intervals: Coordinate spacing along each of the d grid axes.
         cyclic_dimensions: Zero-based periodic grid axes.
         patch_sizes: Patch size along each of the d grid axes.
-        device: Torch device; None selects CUDA when available, otherwise CPU.
     """
-    if device is None:
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
     if features_on_grid.dtype not in (np.dtype("float32"), np.dtype("float64")):
         raise TypeError("Curvature requires float32 or float64 inputs.")
     dims = features_on_grid.ndim - 1
     if dims < 1 or features_on_grid.shape[-1] < dims:
         raise ValueError("A grid needs ambient dimension >= intrinsic dimension >= 1.")
-    difference_intervals = spacings(difference_intervals, dims)
-    patch_sizes = integer_list(patch_sizes, "patch sizes", minimum=7)
+    validate_spacings(difference_intervals, dims)
+    validate_integer_list(patch_sizes, "patch sizes", minimum=7)
     if len(patch_sizes) != dims:
         raise ValueError("One patch size is required per grid axis.")
-    cyclic_dimensions = cyclic_axes(cyclic_dimensions, dims)
+    validate_cyclic_axes(cyclic_dimensions, dims)
     if any(n < (3 if axis in cyclic_dimensions else 7)
            for axis, n in enumerate(features_on_grid.shape[:-1])):
         raise ValueError("Grid axes need at least seven noncyclic or three cyclic samples.")
-    return difference_intervals, cyclic_dimensions, patch_sizes, device
-
-
-def _scalar_curvature_in_patches(
-    features_on_grid: np.ndarray,
-    difference_intervals: list[float],
-    cyclic_dimensions: list[int],
-    patch_sizes: list[int],
-    normalize: bool,
-    device: str | torch.device | None,
-    batch_computation: Callable[[torch.Tensor, list[float], bool], torch.Tensor]
-) -> np.ndarray:
-    """Share the six-point halo and output stitching between curvature methods.
-
-    Args:
-        features_on_grid: Embedding array, shape (s1 ... sd f).
-        difference_intervals: Coordinate spacing along each of the d grid axes.
-        cyclic_dimensions: Zero-based periodic grid axes.
-        patch_sizes: Patch size along each of the d grid axes.
-        normalize: Divide scalar curvature by d * (d - 1).
-        device: Torch device; None selects CUDA when available, otherwise CPU.
-        batch_computation: Tensor kernel mapping (p1 ... pd f) to cropped scalar values.
-    """
-    difference_intervals, cyclic_dimensions, patch_sizes, device = _validate_curvature_grid(
-        features_on_grid,
-        difference_intervals,
-        cyclic_dimensions,
-        patch_sizes,
-        device
-    )
-    dims = features_on_grid.ndim - 1
-    overlaps = dims * [6]
-
-    patches = extract_patches(
-        features_on_grid,
-        patch_sizes,
-        overlaps,
-        cyclic_dimensions=cyclic_dimensions
-    )
-
-    output_shape = tuple(
-        s if i in cyclic_dimensions else s - 6
-        for i, s in enumerate(features_on_grid.shape[:-1])
-    )
-    curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
-    steps = np.asarray(patch_sizes) - 6
-    # Flattening the strided patch grid copies every overlapping patch.
-    for index in np.ndindex(*patches.shape[:dims]):
-        starts = np.asarray(index) * steps
-        lengths = np.minimum(steps, np.asarray(output_shape) - starts)
-        if not np.all(lengths > 0):
-            continue
-        # Unused wrap padding can create rank loss. Compute only the genuine
-        # output extent plus its halo, including on a partial final patch.
-        patch = patches[index][tuple(slice(0, int(n + 6)) for n in lengths)]
-        if any(stride < 0 for stride in patch.strides):
-            patch = np.ascontiguousarray(patch)
-        points_pt_patch = torch.from_numpy(patch).to(device)
-
-        curvature_pred = batch_computation(
-            points_pt_patch,
-            difference_intervals=difference_intervals,
-            normalize=normalize
-        ).cpu().detach().numpy()
-        destination = tuple(slice(int(s), int(s + n)) for s, n in zip(starts, lengths))
-        curvature_array[destination] = curvature_pred
-
-    return curvature_array
 
 
 def scalar_curvature_batch(
@@ -279,7 +208,7 @@ def scalar_curvature_batch(
     factors instead. This cannot remove all sensitivity of metric differentiation in poorly conditioned coordinate
     charts; use float64 and appropriate scales.
     """
-    difference_intervals = validate_tensor(tensor, difference_intervals, border=3)
+    validate_tensor(tensor, difference_intervals, border=3)
     intrinsic_dim = len(tensor.shape[:-1])
     if normalize and intrinsic_dim < 2:
         raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")
@@ -289,6 +218,54 @@ def scalar_curvature_batch(
     del tangent
 
     return _scalar_curvature_from_metric(metric, metric_inv, difference_intervals, normalize)
+
+
+def _scalar_curvature_in_patches(
+    features_on_grid: np.ndarray,
+    difference_intervals: list[float],
+    cyclic_dimensions: list[int],
+    patch_sizes: list[int],
+    normalize: bool,
+    device: str | torch.device | None
+) -> np.ndarray:
+    """Estimate intrinsic curvature using embedding tiles with a three-point halo.
+
+    Args:
+        features_on_grid: Embedding array, shape (s1 ... sd f).
+        difference_intervals: Coordinate spacing along each of the d grid axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
+        patch_sizes: Patch size along each of the d grid axes.
+        normalize: Divide scalar curvature by d * (d - 1).
+        device: Torch device; None selects CUDA when available, otherwise CPU.
+    """
+    _validate_curvature_grid(
+        features_on_grid,
+        difference_intervals,
+        cyclic_dimensions,
+        patch_sizes
+    )
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    output_shape = tuple(
+        s if i in cyclic_dimensions else s - 6
+        for i, s in enumerate(features_on_grid.shape[:-1])
+    )
+    curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
+    for destination, patch in _iter_patches_with_halo(
+        features_on_grid,
+        patch_sizes,
+        3,
+        cyclic_dimensions
+    ):
+        if any(stride < 0 for stride in patch.strides):
+            patch = np.ascontiguousarray(patch)
+        points_pt_patch = torch.from_numpy(patch).to(device)
+        curvature_array[destination] = scalar_curvature_batch(
+            points_pt_patch,
+            difference_intervals=difference_intervals,
+            normalize=normalize
+        ).cpu().detach().numpy()
+    return curvature_array
 
 
 def scalar_curvature(
@@ -320,13 +297,14 @@ def scalar_curvature(
     independent of the number of embedding features. Image tiles alone move to the selected device; periodic boundaries
     are wrapped locally without padding the full embedding. The dense tensor API remains differentiable.
     """
-    difference_intervals, cyclic_dimensions, patch_sizes, device = _validate_curvature_grid(
+    _validate_curvature_grid(
         features_on_grid,
         difference_intervals,
         cyclic_dimensions,
-        patch_sizes,
-        device
+        patch_sizes
     )
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
     dims = features_on_grid.ndim - 1
     if normalize and dims < 2:
         raise ValueError("Normalized scalar curvature requires intrinsic dimension at least 2.")

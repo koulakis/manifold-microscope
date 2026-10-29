@@ -45,14 +45,31 @@ def test_sphere_codimension_normalization_and_periodic_patch_seams():
     sphere = 2*np.stack([np.cos(u)*np.cos(v), np.cos(u)*np.sin(v), np.sin(u)], axis=-1)
     points = np.concatenate([sphere, np.zeros((*sphere.shape[:-1], 2))], axis=-1)
     intervals = [latitude[1] - latitude[0], 2*np.pi/48]
-    kwargs = dict(cyclic_dimensions=[1], device="cpu")
-
-    raw = scalar_curvature(points, intervals, patch_sizes=[13, 17], **kwargs)
-    normalized = scalar_curvature(points, intervals, patch_sizes=[13, 17], normalize=True, **kwargs)
+    raw = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        device="cpu"
+    )
+    normalized = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        normalize=True,
+        device="cpu"
+    )
     direct = scalar_curvature_batch(
         torch.from_numpy(np.pad(points, ((0, 0), (3, 3), (0, 0)), mode="wrap")), intervals
     ).numpy()
-    intrinsic = intrinsic_curvature(points, intervals, patch_sizes=[13, 17], **kwargs)
+    intrinsic = intrinsic_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        device="cpu"
+    )
     assert raw.shape == (35, 48)
     np.testing.assert_allclose(raw, direct, atol=1e-12, rtol=0)
     np.testing.assert_allclose(raw, .5, atol=1e-12, rtol=0)

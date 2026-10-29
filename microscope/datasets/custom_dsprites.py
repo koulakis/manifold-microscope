@@ -131,7 +131,6 @@ def _validate_sprite_sizes(image_size: int, sprite_initial_size: int) -> None:
     """
     assert image_size % 2 == 0
     assert sprite_initial_size % 2 == 0
-    return None
 
 
 def dsprites(
@@ -149,7 +148,7 @@ def dsprites(
     flat: bool = False,
     scale: bool = False,
     dtype: np.dtype = np.float32,
-    processes: list[Optional[int]] = (None, None, None, None),
+    processes: list[Optional[int]] | tuple[Optional[int], ...] = (None, None, None, None),
     verbose: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     """Generate and return a version of the dsprites dataset. This contains images of a sprite with the following

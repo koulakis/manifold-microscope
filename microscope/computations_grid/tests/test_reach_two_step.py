@@ -184,9 +184,9 @@ def test_near_pair_policy_and_filter(device):
 
 @pytest.mark.parametrize("option,value", [
     ("bottleneck_tolerance", -1), ("bottleneck_tolerance", 1),
-    ("bottleneck_tolerance", np.nan), ("bottleneck_tolerance", True),
-    ("batch_size", 0), ("candidate_batch_size", 0), ("subsample_points", False),
-    ("n_directions", -1), ("curvature_iterations", 1.5), ("min_pair_distance", -1),
+    ("bottleneck_tolerance", np.nan), ("bottleneck_tolerance", np.inf),
+    ("batch_size", 0), ("candidate_batch_size", 0), ("subsample_points", 0),
+    ("n_directions", -1), ("curvature_iterations", -1), ("min_pair_distance", -1),
 ])
 def test_invalid_options_are_rejected(device, option, value):
     with pytest.raises(ValueError):

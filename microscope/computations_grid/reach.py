@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from microscope.computations_grid.basic import crop_dim_borders, partial_derivatives_across_all_dims_batched
 from microscope.computations_grid._curvature_geometry import tangent_geometry
-from microscope._grid_validation import cyclic_axes, integer_list, spacings
+from microscope._grid_validation import validate_cyclic_axes, validate_integer_list, validate_spacings
 from microscope.cyclic_dimensions import get_difference_intervals
 
 
@@ -97,36 +97,29 @@ def _validate_reach_grid(
     features_on_grid: np.ndarray,
     range_sizes: list[float],
     patch_sizes: list[int],
-    cyclic_dimensions: list[int] | None
-) -> tuple[list[int], list[float], list[int]]:
-    """Validate grid geometry and return normalized ranges, sizes and axes.
+    cyclic_dimensions: list[int]
+) -> None:
+    """Validate grid geometry.
 
     Require a NumPy float32/float64 array with ambient dimension f >= d >= 1. Provide one integer patch size >= 3 and
-    one finite nonzero real range per grid axis. Periodic axes must be unique valid indices; None becomes [].
+    one finite nonzero real range per grid axis. Periodic axes must be unique valid indices.
 
     Args:
         features_on_grid: Embedding array, shape (s1 ... sd f).
         range_sizes: Parameter-range length along each of the d grid axes.
         patch_sizes: Patch size along each of the d grid axes.
-        cyclic_dimensions: Zero-based periodic grid axes; None uses no periodic axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
     """
-    if cyclic_dimensions is None:
-        cyclic_dimensions = []
-    if not isinstance(features_on_grid, np.ndarray):
-        raise TypeError("Reach requires a NumPy float32 or float64 array.")
     if features_on_grid.dtype not in (np.float32, np.float64):
         raise TypeError("Reach requires float32 or float64 inputs.")
     n_dims = features_on_grid.ndim - 1
     if n_dims < 1 or features_on_grid.shape[-1] < n_dims:
         raise ValueError("A grid needs ambient dimension >= intrinsic dimension >= 1.")
-    patch_sizes = integer_list(patch_sizes, "patch sizes", minimum=3)
-    range_sizes = spacings(range_sizes, n_dims)
+    validate_integer_list(patch_sizes, "patch sizes", minimum=3)
+    validate_spacings(range_sizes, n_dims)
     if len(patch_sizes) != len(range_sizes):
         raise ValueError(f"Patch ({len(patch_sizes)}) and range ({len(range_sizes)}) should have same length.")
-    if len(patch_sizes) != n_dims:
-        raise ValueError("One patch size and range size is required per grid axis.")
-    cyclic_dimensions = cyclic_axes(cyclic_dimensions, n_dims)
-    return patch_sizes, range_sizes, cyclic_dimensions
+    validate_cyclic_axes(cyclic_dimensions, n_dims)
 
 
 def _validate_reach_options(
@@ -134,11 +127,11 @@ def _validate_reach_options(
     candidate_batch_size: int,
     subsample_points: int | None,
     min_pair_distance: float | None
-) -> tuple[int, int, int | None, float | None]:
-    """Validate and normalize reach search controls.
+) -> None:
+    """Validate reach search controls.
 
     Batch sizes and an explicit subsampling stride must be positive integers. An explicit pair cutoff must be a finite
-    nonnegative real scalar. Normalize accepted counts to Python ints and the cutoff to a float.
+    nonnegative scalar.
 
     Args:
         batch_size: Number of query points processed together.
@@ -146,17 +139,12 @@ def _validate_reach_options(
         subsample_points: Optional stride along each grid axis; None uses every point.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
     """
-    batch_size = integer_list([batch_size], "batch size", minimum=1)[0]
-    candidate_batch_size = integer_list([candidate_batch_size], "candidate batch size", minimum=1)[0]
+    validate_integer_list([batch_size], "batch size", minimum=1)
+    validate_integer_list([candidate_batch_size], "candidate batch size", minimum=1)
     if subsample_points is not None:
-        subsample_points = integer_list([subsample_points], "subsample stride", minimum=1)[0]
-    if min_pair_distance is not None:
-        cutoff = np.asarray(min_pair_distance)
-        if (cutoff.ndim != 0 or cutoff.dtype.kind not in "iuf"
-                or not np.isfinite(cutoff) or cutoff < 0):
-            raise ValueError("Minimum pair distance must be a finite nonnegative real scalar.")
-        min_pair_distance = float(cutoff)
-    return batch_size, candidate_batch_size, subsample_points, min_pair_distance
+        validate_integer_list([subsample_points], "subsample stride", minimum=1)
+    if min_pair_distance is not None and (not np.isfinite(min_pair_distance) or min_pair_distance < 0):
+        raise ValueError("Minimum pair distance must be a finite nonnegative real scalar.")
 
 
 def _validate_reach_samples(features_on_grid: np.ndarray) -> None:
@@ -173,7 +161,6 @@ def _validate_reach_samples(features_on_grid: np.ndarray) -> None:
         raise ValueError("Each grid axis needs at least three samples.")
     if not np.isfinite(features_on_grid).all():
         raise ValueError("Reach inputs must contain only finite values.")
-    return None
 
 
 def reach_per_point(
@@ -239,14 +226,16 @@ def reach_per_point(
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    patch_sizes, range_sizes, cyclic_dimensions = _validate_reach_grid(
+    if cyclic_dimensions is None:
+        cyclic_dimensions = []
+    _validate_reach_grid(
         features_on_grid,
         range_sizes,
         patch_sizes,
         cyclic_dimensions
     )
     n_dims = features_on_grid.ndim - 1
-    batch_size, candidate_batch_size, subsample_points, min_pair_distance = _validate_reach_options(
+    _validate_reach_options(
         batch_size,
         candidate_batch_size,
         subsample_points,

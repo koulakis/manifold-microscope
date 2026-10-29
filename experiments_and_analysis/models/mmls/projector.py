@@ -129,34 +129,34 @@ class ANNMMLSProjector:
             p_proj: [B,D]
         """
         if self.exact_nn_threshold is not None and len(p) <= self.exact_nn_threshold:
-            p = torch.from_numpy(p).to(self.device)
+            p_tensor = torch.from_numpy(p).to(self.device)
 
-            distances = torch.cdist(p, self.X)  # [B, N]
-            inds = torch.topk(
+            distances = torch.cdist(p_tensor, self.X)  # [B, N]
+            indices_tensor = torch.topk(
                 distances,
                 self.k,
                 largest=False,
                 dim=1
             ).indices
-            Dsq = torch.gather(distances, dim=1, index=inds)
+            distances_tensor = torch.gather(distances, dim=1, index=indices_tensor)
         else:
             if self.ann_index is None:
                 self.build_index()
-            inds, Dsq = self.query_nn(p)
+            indices_array, distances_array = self.query_nn(p)
 
-            Dsq = torch.from_numpy(Dsq).to(self.device)
-            inds = torch.from_numpy(inds).to(self.device)
-            p = torch.from_numpy(p).to(self.device)
+            distances_tensor = torch.from_numpy(distances_array).to(self.device)
+            indices_tensor = torch.from_numpy(indices_array).to(self.device)
+            p_tensor = torch.from_numpy(p).to(self.device)
 
         if self.projection_method == "thin_svd":
-            return self._project_thin_svd(p, inds, Dsq)
+            return self._project_thin_svd(p_tensor, indices_tensor, distances_tensor)
 
         # Historical covariance implementation is deliberately kept unchanged.
-        p_proj = torch.zeros_like(p)
-        for i in tqdm(list(range(p.shape[0])), disable=not self.verbose):
-            Xi = self.X[inds[i]]
-            pi = p[i:i+1]
-            wi = torch.exp(-Dsq[i] / (2 * self.sigma**2))
+        p_proj = torch.zeros_like(p_tensor)
+        for i in tqdm(list(range(p_tensor.shape[0])), disable=not self.verbose):
+            Xi = self.X[indices_tensor[i]]
+            pi = p_tensor[i:i+1]
+            wi = torch.exp(-distances_tensor[i] / (2 * self.sigma**2))
 
             mu = (wi.unsqueeze(1) * Xi).sum(0) / wi.sum()
             Xi0 = Xi - mu

@@ -66,7 +66,7 @@ def invert_integral(
 
 def uniform_to_parameter_space_dim_2(
     sample: np.ndarray,
-    measure_f: Callable,
+    measure_f: Callable[[float, float], float],
     limits: np.ndarray,
     quad_kwargs: dict,
     invert_integral_kwargs: dict
@@ -114,7 +114,7 @@ def uniform_to_parameter_space_dim_2(
 
 def uniform_to_parameter_space_dim_3(
     sample: np.ndarray,
-    measure_f: Callable,
+    measure_f: Callable[[float, float, float], float],
     limits: np.ndarray,
     quad_kwargs: dict,
     invert_integral_kwargs: dict
@@ -185,16 +185,16 @@ def uniform_to_parameter_space_dim_3(
 
 def sample_manifold_uniformly(
     n_samples: int,
-    measure_f: Callable,
+    measure_f: Callable[..., float],
     limits: np.ndarray,
-    parameter_to_ambient_coords_map: Callable,
+    parameter_to_ambient_coords_map: Callable[..., np.ndarray],
     ambient_space_dim: int | None = None,
     apply_random_isometry: bool = True,
     processes: int | None = None,
     quad_kwargs: dict | None = None,
     invert_integral_kwargs: dict | None = None,
     seed: int | None = None
-) -> tuple[np.ndarray | tuple, np.ndarray]:
+) -> tuple[np.ndarray | tuple[np.ndarray, tuple[np.ndarray, np.ndarray]], np.ndarray]:
     # Get optimization configuration.
     """Sample a manifold using inverse volume-weighted coordinate integrals.
 
@@ -261,7 +261,7 @@ def sample_ellipsoid_uniformly(
     quad_kwargs: dict | None = None,
     invert_integral_kwargs: dict | None = None,
     seed: int | None = None
-) -> tuple[np.ndarray | tuple, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray | tuple[np.ndarray, tuple[np.ndarray, np.ndarray]], np.ndarray, np.ndarray]:
     # Get the dims and symbols.
     """Sample an ellipsoid uniformly with respect to its volume.
 
@@ -275,11 +275,11 @@ def sample_ellipsoid_uniformly(
         invert_integral_kwargs: Options forwarded to invert_integral.
         seed: Optional random seed for the isometry.
     """
-    semi_axes = np.array(semi_axes)
-    dim = len(semi_axes) - 1
+    semi_axes_array = np.array(semi_axes)
+    dim = len(semi_axes_array) - 1
     axes_symbols = sp.symbols("a_1 a_2 a_3 a_4")[:dim+1]
     phi_symbols = sp.symbols("phi_1 phi_2 phi_3")[:dim]
-    subs = dict(zip(axes_symbols, semi_axes))
+    subs = dict(zip(axes_symbols, semi_axes_array))
 
     # Define the parameter limits.
     limits = (
@@ -316,7 +316,7 @@ def sample_ellipsoid_uniformly(
         seed=seed
     )
 
-    return points, semi_axes, parameters
+    return points, semi_axes_array, parameters
 
 
 def sample_hyperboloid_uniformly(
@@ -328,7 +328,7 @@ def sample_hyperboloid_uniformly(
     quad_kwargs: dict | None = None,
     invert_integral_kwargs: dict | None = None,
     seed: int | None = None
-) -> tuple[np.ndarray | tuple, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray | tuple[np.ndarray, tuple[np.ndarray, np.ndarray]], np.ndarray, np.ndarray]:
     # Get the dims and symbols.
     """Sample a bounded hyperboloid patch uniformly in volume.
 
@@ -342,11 +342,11 @@ def sample_hyperboloid_uniformly(
         invert_integral_kwargs: Options forwarded to invert_integral.
         seed: Optional random seed for the isometry.
     """
-    semi_axes = np.array(semi_axes)
-    dim = len(semi_axes) - 1
+    semi_axes_array = np.array(semi_axes)
+    dim = len(semi_axes_array) - 1
     axes_symbols = sp.symbols("a_1 a_2 a_3 a_4")[:dim + 1]
     phi_symbols = sp.symbols("phi_1 phi_2 phi_3")[:dim]
-    subs = dict(zip(axes_symbols, semi_axes))
+    subs = dict(zip(axes_symbols, semi_axes_array))
 
     # Define the parameter limits.
     limits = (
@@ -383,4 +383,4 @@ def sample_hyperboloid_uniformly(
         seed=seed
     )
 
-    return points, semi_axes, parameters
+    return points, semi_axes_array, parameters

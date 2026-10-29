@@ -111,27 +111,27 @@ def maximal_distance_selection_torch(
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    data = torch.from_numpy(data).to(device)
+    data_tensor = torch.from_numpy(data).to(device)
 
     selected_idxs = torch.zeros(size, dtype=torch.long, device=device)
-    selected_data = torch.empty((size, D), dtype=data.dtype, device=device)
+    selected_data = torch.empty((size, D), dtype=data_tensor.dtype, device=device)
 
     # pick first point
     selected_idxs[0] = 0
-    selected_data[0] = data[0]
+    selected_data[0] = data_tensor[0]
 
     # track nearest distances to selected set
-    min_distances = torch.norm(data - data[0], dim=1)
+    min_distances = torch.norm(data_tensor - data_tensor[0], dim=1)
     min_distances[0] = -torch.inf
 
     for i in tqdm(range(1, size), total=size, disable=not verbose):
         # pick the farthest point
         new_point_idx = torch.argmax(min_distances)
         selected_idxs[i] = new_point_idx
-        selected_data[i] = data[new_point_idx]
+        selected_data[i] = data_tensor[new_point_idx]
 
         # update nearest distances (only vs new point)
-        new_distances = torch.norm(data - data[new_point_idx], dim=1)
+        new_distances = torch.norm(data_tensor - data_tensor[new_point_idx], dim=1)
         min_distances = torch.minimum(min_distances, new_distances)
         min_distances[new_point_idx] = -torch.inf
 

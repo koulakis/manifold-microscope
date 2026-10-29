@@ -5,7 +5,7 @@ import numpy as np
 from einops import einops
 
 from microscope.cyclic_dimensions import pad_cyclic_dimensions
-from microscope._grid_validation import cyclic_axes, integer_list
+from microscope._grid_validation import validate_cyclic_axes, validate_integer_list
 
 
 def _iter_patches_with_halo(
@@ -64,9 +64,9 @@ def _validate_patch_inputs(
     array: np.ndarray,
     patch_sizes: list[int],
     overlaps: list[int],
-    cyclic_dimensions: list[int] | None
-) -> tuple[list[int], list[int], list[int]]:
-    """Validate patch geometry and return normalized size and axis lists.
+    cyclic_dimensions: list[int]
+) -> None:
+    """Validate patch geometry.
 
     Patch sizes must cover between one and all leading array axes. Sizes and overlaps must be integer sequences of equal
     length, with sizes > overlaps >= 0. Periodic axes must be unique valid indices. Every grid axis must be nonempty,
@@ -76,17 +76,14 @@ def _validate_patch_inputs(
         array: Input array, shape (s1 ... sd f1 ... fk).
         patch_sizes: Patch size along each of the d grid axes.
         overlaps: Overlap along each patched grid axis.
-        cyclic_dimensions: Zero-based periodic grid axes; None uses no periodic axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
     """
-    if cyclic_dimensions is None:
-        cyclic_dimensions = []
-
-    patch_sizes = integer_list(patch_sizes, "patch sizes", minimum=1)
-    overlaps = integer_list(overlaps, "patch overlaps")
+    validate_integer_list(patch_sizes, "patch sizes", minimum=1)
+    validate_integer_list(overlaps, "patch overlaps")
     n_dim = len(patch_sizes)
     if not 1 <= n_dim <= array.ndim:
         raise ValueError("patch sizes must cover between one and all array axes.")
-    cyclic_dimensions = cyclic_axes(cyclic_dimensions, n_dim)
+    validate_cyclic_axes(cyclic_dimensions, n_dim)
     if len(overlaps) != n_dim:
         raise ValueError(
             f"The shape dimensions of the patch sizes ({n_dim}) differ from the "
@@ -97,7 +94,6 @@ def _validate_patch_inputs(
     if any(n == 0 or (axis not in cyclic_dimensions and n <= overlaps[axis])
            for axis, n in enumerate(array.shape[:n_dim])):
         raise ValueError("Grid axes must have a nonempty patch interior.")
-    return patch_sizes, overlaps, cyclic_dimensions
 
 
 def extract_patches(
@@ -124,7 +120,9 @@ def extract_patches(
     Returns:
         A view of the overlapping patches, preserving their structure.
     """
-    patch_sizes, overlaps, cyclic_dimensions = _validate_patch_inputs(
+    if cyclic_dimensions is None:
+        cyclic_dimensions = []
+    _validate_patch_inputs(
         array,
         patch_sizes,
         overlaps,
@@ -140,14 +138,14 @@ def extract_patches(
         pad_sizes=[overlaps[dim] // 2 for dim in cyclic_dimensions]
     )
 
-    patch_sizes = np.array(patch_sizes)
-    overlaps = np.array(overlaps)
-    step_sizes = patch_sizes - overlaps
+    patch_sizes_array = np.array(patch_sizes)
+    overlaps_array = np.array(overlaps)
+    step_sizes = patch_sizes_array - overlaps_array
 
     array_shape = np.array(array.shape[:n_dim])
     feature_shape = array.shape[n_dim:]
 
-    residue = array_shape - overlaps - (step_sizes * ((array_shape - overlaps) // step_sizes))
+    residue = array_shape - overlaps_array - (step_sizes * ((array_shape - overlaps_array) // step_sizes))
     # noinspection PyUnresolvedReferences
     if (residue != 0).any():
         array_old_shape = array_shape
@@ -164,13 +162,14 @@ def extract_patches(
 
         if verbose:
             print(
-                f"WARNING: Array shape minus patch size {array_shape - patch_sizes} is not divisible by the step size "
+                f"WARNING: Array shape minus patch size {array_shape - patch_sizes_array} "
+                f"is not divisible by the step size "
                 f"{step_sizes} (patch_size - overlap) along all dimensions. Zero padding the array of size "
                 f"({array_old_shape}) to ({array_shape}) to compensate for that."
             )
 
     # Compute new shape and strides for patches
-    patch_shape = tuple((array_shape - overlaps) // step_sizes) + tuple(patch_sizes) + feature_shape
+    patch_shape = tuple((array_shape - overlaps_array) // step_sizes) + tuple(patch_sizes_array) + feature_shape
     strides = array.strides
     patch_strides = (
         tuple(
