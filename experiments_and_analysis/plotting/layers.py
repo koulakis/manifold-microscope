@@ -1,5 +1,12 @@
 """Paper layer styles, receiving explicitly selected in-memory analysis results."""
 
+from __future__ import annotations
+
+from pathlib import Path
+from matplotlib.axes import Axes
+from typing import TYPE_CHECKING
+
+
 import os
 
 import numpy as np
@@ -16,11 +23,18 @@ from microscope.computations_grid.data_analysis.data_analysis import (
     clip_results_multiclass,
 )
 
+if TYPE_CHECKING:
+    from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
-def format_two_decimals(y, _):
+
+def format_two_decimals(y: float, _: int | None) -> str:
     """Format y-axis values with at most 2 decimal places (or scientific notation for extremes).
 
     This ensures labels show at most 2 numbers behind the decimal point.
+
+    Args:
+        y: Axis value to format.
+        _: Tick position supplied by Matplotlib, unused.
     """
     if y == 0:
         return '0'
@@ -39,7 +53,13 @@ def format_two_decimals(y, _):
     return sign + s
 
 
-def format_three_decimals(y, _):
+def format_three_decimals(y: float, _: int | None) -> str:
+    """Format axis values with up to three decimal places.
+
+    Args:
+        y: Axis value to format.
+        _: Tick position supplied by Matplotlib, unused.
+    """
     if y == 0:
         return '0'
 
@@ -58,8 +78,17 @@ def format_three_decimals(y, _):
 class CustomLogFormatter(LogFormatterMathtext):
     """Custom log formatter with scientific notation for large values."""
 
-    def __call__(self, x, _=None):
-        """Format log scale values with proper scientific notation."""
+    def __call__(
+        self,
+        x: float,
+        _: int | None = None
+    ) -> str:
+        """Format log scale values with proper scientific notation.
+
+        Args:
+            x: Axis value to format.
+            _: Tick position supplied by Matplotlib, unused.
+        """
         # Log scale should only have positive values
         if x <= 0:
             return '0'
@@ -81,8 +110,12 @@ class CustomLogFormatter(LogFormatterMathtext):
             return formatted.rstrip('0').rstrip('.')
 
 
-def assign_colors_by_group(measure_names):
-    """Assign colors to measures, using consistent color scheme."""
+def assign_colors_by_group(measure_names: list[str]) -> dict[str, str]:
+    """Assign colors to measures, using consistent color scheme.
+
+    Args:
+        measure_names: Measure names in plotting order.
+    """
     colors = ['tab:blue', 'tab:green', 'tab:orange', 'tab:red', 'tab:purple',
               'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
@@ -93,8 +126,18 @@ def assign_colors_by_group(measure_names):
     return color_map
 
 
-def determine_scale(values, threshold_small=1e-3, threshold_large=1e3):
-    """Determine if log scale should be used based on value ranges."""
+def determine_scale(
+    values: list[float] | np.ndarray,
+    threshold_small: float = 1e-3,
+    threshold_large: float = 1e3
+) -> bool:
+    """Determine if log scale should be used based on value ranges.
+
+    Args:
+        values: Values of shape (n) to inspect for plotting scale.
+        threshold_small: Smallest positive value triggering a logarithmic axis.
+        threshold_large: Largest value triggering a logarithmic axis.
+    """
     if len(values) == 0:
         return False
 
@@ -117,30 +160,80 @@ ENCODER_TINT = '#ECF2F9'
 DECODER_TINT = '#FBF1EA'
 
 
-def shade_encoder_decoder(ax, layer_names, label=True, fontsize=None):
+def shade_encoder_decoder(
+    ax: Axes,
+    layer_names: list[str],
+    label: bool = True,
+    fontsize: float | None = None
+) -> None:
     """Tint the encoder vs decoder x-ranges and mark the bottleneck.
 
-    Encoder spans input..mu, decoder spans mu..output. The latent layer
-    ('mu') sits on the seam. Adds 'Encoder'/'Decoder' labels when requested.
+    Encoder spans input..mu, decoder spans mu..output. The latent layer ('mu') sits on the seam. Adds
+    'Encoder'/'Decoder' labels when requested.
+
+    Args:
+        ax: Matplotlib axes to update.
+        layer_names: Layer names in plotted order.
+        label: Add encoder and decoder text labels.
+        fontsize: Global font size; None keeps the default.
     """
     boundary = layer_names.index('mu') if 'mu' in layer_names else (len(layer_names) - 1) / 2
     xmin, xmax = ax.get_xlim()
 
-    ax.axvspan(xmin, boundary, color=ENCODER_TINT, zorder=0)
-    ax.axvspan(boundary, xmax, color=DECODER_TINT, zorder=0)
-    ax.axvline(boundary, color='gray', linestyle='--', linewidth=1.5, alpha=0.7, zorder=1)
+    ax.axvspan(
+        xmin,
+        boundary,
+        color=ENCODER_TINT,
+        zorder=0
+    )
+    ax.axvspan(
+        boundary,
+        xmax,
+        color=DECODER_TINT,
+        zorder=0
+    )
+    ax.axvline(
+        boundary,
+        color='gray',
+        linestyle='--',
+        linewidth=1.5,
+        alpha=0.7,
+        zorder=1
+    )
 
     if label:
         trans = ax.get_xaxis_transform()  # x in data coords, y in axes fraction
         label_fontsize = fontsize if fontsize is not None else 16
-        ax.text((xmin + boundary) / 2, 0.97, 'Encoder', transform=trans,
-                ha='center', va='top', fontsize=label_fontsize, fontstyle='italic', color='dimgray')
-        ax.text((boundary + xmax) / 2, 0.97, 'Decoder', transform=trans,
-                ha='center', va='top', fontsize=label_fontsize, fontstyle='italic', color='dimgray')
+        ax.text(
+            (xmin + boundary) / 2,
+            0.97,
+            'Encoder',
+            transform=trans,
+            ha='center',
+            va='top',
+            fontsize=label_fontsize,
+            fontstyle='italic',
+            color='dimgray'
+        )
+        ax.text(
+            (boundary + xmax) / 2,
+            0.97,
+            'Decoder',
+            transform=trans,
+            ha='center',
+            va='top',
+            fontsize=label_fontsize,
+            fontstyle='italic',
+            color='dimgray'
+        )
 
 
-def prettify_layer_name(name):
-    """Short x-tick labels so rotated ticks don't collide with the legend."""
+def prettify_layer_name(name: str) -> str:
+    """Short x-tick labels so rotated ticks don't collide with the legend.
+
+    Args:
+        name: Name used for labels or output files.
+    """
     if name.startswith('encoder_relu_'):
         return f"enc {name.split('_')[-1]}"
     if name.startswith('decoder_relu_'):
@@ -161,21 +254,39 @@ measure_names_fns = {
     }
 
 
-def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', aggregate=False,
-                       output_suffix='', legend_title=None, suptitle=None,
-                       sample_classes=None, omit_positive_negative_curvature=False,
-                       fontsize=None, title_fontsize=None, text_fontsize=None,
-                       plot_height_percentage=None, legend_y=None):
+def create_layer_plots(
+    layer_results: dict[str, AnalysisResults],
+    dataset_type: str = 'dsprites',
+    output_dir: str | Path = '.',
+    aggregate: bool = False,
+    output_suffix: str = '',
+    legend_title: str | None = None,
+    suptitle: str | None = None,
+    sample_classes: int | None = None,
+    omit_positive_negative_curvature: bool = False,
+    fontsize: float | None = None,
+    title_fontsize: float | None = None,
+    text_fontsize: float | None = None,
+    plot_height_percentage: float | None = None,
+    legend_y: float | None = None
+) -> None:
     """Create layer analysis plots for the specified dataset.
 
-    aggregate=False: one line per class (full class-wise view, e.g. appendix).
-    aggregate=True:  a single median line + interquartile band over all classes
-                     (simplified summary, e.g. COIL-20 in the main paper).
-    sample_classes:  if set to an int N, keep only N evenly-spaced classes
-                     (deterministic) before plotting. Ignored when aggregate.
-    legend_y:       y-position of the shared legend in figure coordinates.
-                    More negative values move it farther down. None preserves
-                    the original value, -0.11.
+    Args:
+        layer_results: Layer names mapped to full-grid analysis results.
+        dataset_type: Dataset label used in the output filename.
+        output_dir: Directory for generated outputs.
+        aggregate: Plot a class mean and standard-deviation band instead of class-wise lines.
+        output_suffix: Suffix appended to output filenames.
+        legend_title: Shared legend title, if supplied.
+        suptitle: Overall figure title, if supplied.
+        sample_classes: Number of evenly spaced classes to show; ignored for aggregate plots.
+        omit_positive_negative_curvature: Omit the separate positive and negative curvature panels.
+        fontsize: Global font size; None keeps the default.
+        title_fontsize: Title font size, overriding the global setting.
+        text_fontsize: Axis, tick and legend font size, overriding the global setting.
+        plot_height_percentage: Figure height as a positive percentage of the default, or None for the default.
+        legend_y: Vertical legend position in figure coordinates; None uses the default.
     """
     print(f"Processing {dataset_type} dataset (aggregate={aggregate})...")
 
@@ -233,8 +344,13 @@ def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', a
     all_handles = []
     all_labels = []
 
-    def axis_coord_to_data_y(ax, y_axis_coord):
-        """Convert a y coordinate in axes fraction (0..1) to data coordinate using transforms."""
+    def axis_coord_to_data_y(ax: Axes, y_axis_coord: float) -> float:
+        """Convert a y coordinate in axes fraction (0..1) to data coordinate using transforms.
+
+        Args:
+            ax: Matplotlib axes to update.
+            y_axis_coord: Vertical position in axes coordinates, from zero to one.
+        """
         disp = ax.transAxes.transform([(0, y_axis_coord)])
         data = ax.transData.inverted().transform(disp)
         return data[0][1]
@@ -255,13 +371,33 @@ def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', a
             use_log = determine_scale(all_values)
 
             x = range(len(layer_names))
-            axes[i].fill_between(x, lower, upper, color='tab:blue', alpha=0.25, zorder=2)
-            axes[i].plot(x, mean, color='tab:blue',
-                         marker='o', linewidth=3, markersize=8, zorder=3)
+            axes[i].fill_between(
+                x,
+                lower,
+                upper,
+                color='tab:blue',
+                alpha=0.25,
+                zorder=2
+            )
+            axes[i].plot(
+                x,
+                mean,
+                color='tab:blue',
+                marker='o',
+                linewidth=3,
+                markersize=8,
+                zorder=3
+            )
 
             if i == 0:
-                all_handles.append(Line2D([0], [0], color='tab:blue', lw=3,
-                                          marker='o', markersize=8))
+                all_handles.append(Line2D(
+                    [0],
+                    [0],
+                    color='tab:blue',
+                    lw=3,
+                    marker='o',
+                    markersize=8
+                ))
                 all_labels.append(f'Mean over {len(classes_to_plot)} classes')
                 all_handles.append(Patch(facecolor='tab:blue', alpha=0.25))
                 all_labels.append(r'$\pm\,1$ std. dev. ($\sigma$)')
@@ -285,10 +421,15 @@ def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', a
                              'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
                     color_map[color_key] = colors[j % len(colors)]
 
-                line = axes[i].plot(range(len(layer_names)), values,
-                                   color=color_map[color_key],
-                                   marker='o', linewidth=3, markersize=8,
-                                   label=str(sprite) if i == 0 else "")
+                line = axes[i].plot(
+                    range(len(layer_names)),
+                    values,
+                    color=color_map[color_key],
+                    marker='o',
+                    linewidth=3,
+                    markersize=8,
+                    label=str(sprite) if i == 0 else ""
+                )
 
                 # Collect handles and labels from first subplot only
                 if i == 0:
@@ -296,15 +437,26 @@ def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', a
                     all_labels.append(str(sprite))
 
         # Configure axes
-        axes[i].set_title(measure_name, fontsize=effective_title_fontsize if effective_title_fontsize is not None else 28,
-                          # fontweight='bold',
-                          pad=15)
+        axes[i].set_title(
+            measure_name,
+            fontsize=effective_title_fontsize if effective_title_fontsize is not None else 28,
+            # fontweight='bold',
+            pad=15
+        )
 
         if i == 0:
-            axes[i].set_ylabel('Measure Value', fontsize=effective_text_fontsize if effective_text_fontsize is not None else 24, labelpad=8)
+            axes[i].set_ylabel(
+                'Measure Value',
+                fontsize=effective_text_fontsize if effective_text_fontsize is not None else 24,
+                labelpad=8
+            )
 
         axes[i].grid(True, alpha=0.3)
-        axes[i].tick_params(axis='both', which='major', labelsize=effective_text_fontsize if effective_text_fontsize is not None else 20)
+        axes[i].tick_params(
+            axis='both',
+            which='major',
+            labelsize=effective_text_fontsize if effective_text_fontsize is not None else 20
+        )
         axes[i].set_xticks(range(len(layer_names)))
         axes[i].set_xticklabels([prettify_layer_name(n) for n in layer_names],
                                 rotation=45, ha='right')
@@ -381,14 +533,19 @@ def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', a
             optimal_cols = (max_cols + 2) // 3  # Three rows
 
         effective_legend_y = -0.11 if legend_y is None else legend_y
-        legend = fig.legend(all_handles, all_labels, loc='lower center',
-                           ncol=optimal_cols,
-                           bbox_to_anchor=(0.5, effective_legend_y),  # Just below the rotated x-axis labels
-                           fontsize=effective_text_fontsize if effective_text_fontsize is not None else 18, markerscale=1.8,
-                           columnspacing=0.8,  # Reduced space between columns
-                           handletextpad=0.4,  # Reduced space between marker and text
-                           title=legend_title,
-                           frameon=True)       # Keep legend frame
+        legend = fig.legend(
+            all_handles,
+            all_labels,
+            loc='lower center',
+            ncol=optimal_cols,
+            bbox_to_anchor=(0.5, effective_legend_y),  # Just below the rotated x-axis labels
+            fontsize=effective_text_fontsize if effective_text_fontsize is not None else 18,
+            markerscale=1.8,
+            columnspacing=0.8,  # Reduced space between columns
+            handletextpad=0.4,  # Reduced space between marker and text
+            title=legend_title,
+            frameon=True  # Keep legend frame
+        )
         if legend_title:
             legend.get_title().set_fontsize(effective_text_fontsize if effective_text_fontsize is not None else 18)
 
@@ -403,14 +560,24 @@ def create_layer_plots(layer_results, dataset_type='dsprites', output_dir='.', a
     if suptitle:
         # Reserve headroom so the suptitle clears the per-panel titles.
         plt.subplots_adjust(top=0.84)
-        fig.suptitle(suptitle, fontsize=effective_title_fontsize if effective_title_fontsize is not None else 26, fontweight='bold', y=0.97)
+        fig.suptitle(
+            suptitle,
+            fontsize=effective_title_fontsize if effective_title_fontsize is not None else 26,
+            fontweight='bold',
+            y=0.97
+        )
 
     # Save the plot
     os.makedirs(output_dir, exist_ok=True)
     output_filename = f"layers_{dataset_type}{output_suffix}.png"
     output_path = os.path.join(output_dir, output_filename)
 
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig(
+        output_path,
+        dpi=300,
+        bbox_inches='tight',
+        facecolor='white'
+    )
     print(f"Saved plot: {output_path}")
 
     # Also save as PDF

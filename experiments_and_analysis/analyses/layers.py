@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pickle
 from pathlib import Path
 
@@ -17,7 +19,6 @@ from microscope.computations_grid.data_analysis.data_analysis import (
 )
 
 
-
 def run_single_output(
     name: str,
     features_on_grid: np.ndarray,
@@ -35,6 +36,25 @@ def run_single_output(
     n_samples_for_plots: int = 50_000,
     device: str | None = None
 ) -> MeasureAggregates:
+    """Compute, save and optionally plot geometry for one representation.
+
+    Args:
+        name: Name used for labels or output files.
+        features_on_grid: Feature grid of shape (c n1 ... nd f), with classes first and features last.
+        range_sizes: Parameter-domain lengths, one per grid axis.
+        cyclic_dimensions: Indices of periodic parameter axes.
+        patch_sizes: Patch widths along the parameter axes.
+        class_names: Class names in the first grid-axis order.
+        distributions_dir: Directory for geometry distribution plots.
+        projection_measures_dir: Directory for measure-colored projection plots.
+        projection_classes_dir: Directory for class-colored projection plots.
+        measures_dir: Directory for saved geometry results.
+        normalize_for_volume: Rescale features to unit total volume before computing geometry.
+        dpi: Resolution of saved plots in dots per inch.
+        export_plots: Save distribution and projection plots.
+        n_samples_for_plots: Maximum number of samples used in plots.
+        device: Device used for tensor computations.
+    """
     measures = compute_measures_multiclass(
         data=features_on_grid,
         class_names=class_names,

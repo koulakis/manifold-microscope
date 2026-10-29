@@ -1,7 +1,16 @@
 """Paper power-law aggregation, independent of result storage."""
+
+from __future__ import annotations
+
 from collections import defaultdict
 
-def _curve(rows, dimension):
+def _curve(rows: list[dict], dimension: int) -> tuple[dict, dict]:
+    """Fit an empirical power law and scale the paper reference bounds.
+
+    Args:
+        rows: Error summaries containing training counts and maximum reconstruction errors.
+        dimension: Intrinsic manifold dimension.
+    """
     import numpy as np
     from sklearn.linear_model import LinearRegression
 
@@ -21,12 +30,20 @@ def _curve(rows, dimension):
     upper = (np.log(x) / x) ** (2 / (2 + dimension))
     fefferman = (np.log(x) / x) ** (1 / dimension)
     # These are the active notebook formulas; its unused reach loads are omitted.
-    exported = dict(x=x, empirical=empirical, empirical_all_repetitions=repetitions,
-                    lower_genovese=np.quantile(fitted / lower, 0.01) * lower,
-                    upper_genovese=np.quantile(fitted / upper, 0.99) * upper,
-                    upper_fefferman=np.quantile(fitted / fefferman, 0.99) * fefferman)
-    summary = dict(dimension=dimension, training_counts=x.tolist(),
-                   repetition_counts=list(map(len, repetitions)),
-                   alpha=float(-regression.coef_[0]), coefficient=float(np.exp(regression.intercept_)))
+    exported = dict(
+        x=x,
+        empirical=empirical,
+        empirical_all_repetitions=repetitions,
+        lower_genovese=np.quantile(fitted / lower, 0.01) * lower,
+        upper_genovese=np.quantile(fitted / upper, 0.99) * upper,
+        upper_fefferman=np.quantile(fitted / fefferman, 0.99) * fefferman
+    )
+    summary = dict(
+        dimension=dimension,
+        training_counts=x.tolist(),
+        repetition_counts=list(map(len, repetitions)),
+        alpha=float(-regression.coef_[0]),
+        coefficient=float(np.exp(regression.intercept_))
+    )
     return exported, summary
 

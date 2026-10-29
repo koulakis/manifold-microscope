@@ -1,4 +1,8 @@
 """Checkpoint loading and functional beta-VAE inference."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Optional
 
@@ -13,8 +17,20 @@ from experiments_and_analysis.models.beta_vae.dataset import CustomTensorDataset
 from experiments_and_analysis.models.beta_vae.model import reparametrize, BetaVAE_B, BetaVAE_H
 
 
+def get_dataloader(
+    data: np.ndarray,
+    batch_size: int,
+    num_workers: int,
+    device: str = "cuda:0"
+) -> DataLoader:
+    """Build a deterministic-order image loader.
 
-def get_dataloader(data, batch_size, num_workers, device="cuda:0"):
+    Args:
+        data: Grayscale images of shape (n h w).
+        batch_size: Number of points or images per batch.
+        num_workers: Number of data-loader workers.
+        device: Device used for tensor computations.
+    """
     data = torch.from_numpy(data).unsqueeze(1).float()
     train_kwargs = {'data_tensor': data}
 
@@ -36,10 +52,19 @@ def get_dataloader(data, batch_size, num_workers, device="cuda:0"):
 def load_autoencoder_from_checkpoint(
     model_type: str,
     checkpoint_path: Path,
-    random_model=False,
-    latent_dim=10,
-    device="cuda:0"
+    random_model: bool = False,
+    latent_dim: int = 10,
+    device: str = "cuda:0"
 ) -> BetaVAE_B | BetaVAE_H:
+    """Load a beta-VAE checkpoint or initialize random weights.
+
+    Args:
+        model_type: Beta-VAE architecture identifier, B or H.
+        checkpoint_path: Checkpoint file to load unless random_model is enabled.
+        random_model: Use newly initialized model weights.
+        latent_dim: Number of latent coordinates.
+        device: Device used for tensor computations.
+    """
     if model_type == "B":
         autoencoder = BetaVAE_B(z_dim=latent_dim, nc=1)
     elif model_type == "H":
@@ -56,8 +81,22 @@ def load_autoencoder_from_checkpoint(
     return autoencoder
 
 
-def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_output: bool,
-                                     decoder_sampling: bool = True, representations=None):
+def get_intermediate_from_autoencoder(
+    autoencoder: BetaVAE_H,
+    images: torch.Tensor,
+    only_latent_and_output: bool,
+    decoder_sampling: bool = True,
+    representations: list[str] | None = None
+) -> tuple[np.ndarray | None, dict[str, np.ndarray]]:
+    """Collect selected activations from an image batch.
+
+    Args:
+        autoencoder: Autoencoder whose activations or reconstructions are collected.
+        images: Image batch of shape (b c h w).
+        only_latent_and_output: Collect the latent mean and reconstruction without hidden layers.
+        decoder_sampling: Sample latent codes instead of decoding the latent mean.
+        representations: Activation names to collect, or None for all eligible layers.
+    """
     intermediate_outputs = {}
     requested = set(representations) if representations is not None else None
     x = images
@@ -95,12 +134,21 @@ def get_intermediate_from_autoencoder(autoencoder, images, only_latent_and_outpu
 
 
 def gather_intermediate_outputs(
-    autoencoder,
-    data_loader,
+    autoencoder: BetaVAE_H,
+    data_loader: DataLoader,
     only_latent_and_output: bool,
-    device="cuda:0",
+    device: str = "cuda:0",
     decoder_sampling: bool = True
 ) -> dict[str, np.ndarray]:
+    """Collect image, latent, layer and reconstruction arrays over a loader.
+
+    Args:
+        autoencoder: Autoencoder whose activations or reconstructions are collected.
+        data_loader: Loader yielding image batches of shape (b c h w).
+        only_latent_and_output: Collect the latent mean and reconstruction without hidden layers.
+        device: Device used for tensor computations.
+        decoder_sampling: Sample latent codes instead of decoding the latent mean.
+    """
     autoencoder.to(device)
     autoencoder.eval()
 
@@ -136,15 +184,40 @@ def gather_intermediate_outputs(
 
     return intermediate_outputs
 
-def representation_names(model):
+def representation_names(model: BetaVAE_H) -> list[str]:
+    """List the available input, hidden, latent and output representations.
+
+    Args:
+        model: Autoencoder used for inference.
+    """
     return (['input'] + [f'encoder_relu_{i}' for i, layer in enumerate(model.encoder)
                          if isinstance(layer, nn.ReLU) and i > 3] + ['mu'] +
             [f'decoder_relu_{i}' for i, layer in enumerate(model.decoder)
              if isinstance(layer, nn.ReLU) and i < 7] + ['output'])
 
 
-def batches(model, data, representations, *, batch_size=64, device='cpu',
-            num_workers=0, seed=42, decoder_sampling=True):
+def batches(
+    model: BetaVAE_H,
+    data: np.ndarray,
+    representations: list[str],
+    batch_size: int = 64,
+    device: str = 'cpu',
+    num_workers: int = 0,
+    seed: int = 42,
+    decoder_sampling: bool = True
+) -> Iterator[tuple[int, dict[str, np.ndarray]]]:
+    """Yield selected representation arrays and their starting sample indices.
+
+    Args:
+        model: Autoencoder used for inference.
+        data: Grayscale images of shape (n h w).
+        representations: Names of the representations to collect.
+        batch_size: Number of points or images per batch.
+        device: Device used for tensor computations.
+        num_workers: Number of data-loader workers.
+        seed: Random seed.
+        decoder_sampling: Sample latent codes instead of decoding the latent mean.
+    """
     unknown = set(representations) - set(representation_names(model))
     if unknown:
         raise ValueError(f'Unknown beta-VAE representations: {sorted(unknown)}')
@@ -158,7 +231,12 @@ def batches(model, data, representations, *, batch_size=64, device='cpu',
             selected = [name for name in representations if name != 'input']
             if selected:
                 reconstruction, outputs = get_intermediate_from_autoencoder(
-                    model, images.to(device), False, decoder_sampling, selected)
+                    model,
+                    images.to(device),
+                    False,
+                    decoder_sampling,
+                    selected
+                )
                 if 'output' in selected:
                     outputs['output'] = reconstruction
             if 'input' in representations:
