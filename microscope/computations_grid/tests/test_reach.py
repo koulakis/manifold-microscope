@@ -1,5 +1,7 @@
 import unittest
 
+from typing import cast
+
 import numpy as np
 import pytest
 
@@ -38,12 +40,15 @@ class TestEllipsoids(unittest.TestCase):
             cyclic_dimensions = [1]
             range_sizes = [(2 * fraction_of_angles - 1) * np.pi, 2 * np.pi]
 
-            reach_pred = reach_per_point(
-                points,
-                cyclic_dimensions=cyclic_dimensions,
-                range_sizes=range_sizes,
-                patch_sizes=len(range_sizes)*[52],
-                device=self.device
+            reach_pred = cast(
+                np.ndarray,
+                reach_per_point(
+                    points,
+                    cyclic_dimensions=cyclic_dimensions,
+                    range_sizes=range_sizes,
+                    patch_sizes=len(range_sizes)*[52],
+                    device=self.device
+                )
             ).min()
 
             np.testing.assert_almost_equal(
@@ -78,13 +83,16 @@ class TestEllipsoids(unittest.TestCase):
             cyclic_dimensions = [1]
             range_sizes = [(2 * fraction_of_angles - 1) * np.pi, 2 * np.pi]
 
-            reach_pred = reach_per_point(
-                points,
-                cyclic_dimensions=cyclic_dimensions,
-                range_sizes=range_sizes,
-                patch_sizes=len(range_sizes)*[47],
-                batch_size=11,
-                device=self.device
+            reach_pred = cast(
+                np.ndarray,
+                reach_per_point(
+                    points,
+                    cyclic_dimensions=cyclic_dimensions,
+                    range_sizes=range_sizes,
+                    patch_sizes=len(range_sizes)*[47],
+                    batch_size=11,
+                    device=self.device
+                )
             ).min()
 
             np.testing.assert_almost_equal(
@@ -117,13 +125,16 @@ class TestEllipsoids(unittest.TestCase):
             cyclic_dimensions = [2]
             range_sizes = [(2*fraction_of_angles - 1) * np.pi, (2*fraction_of_angles - 1) * np.pi, 2 * np.pi]
 
-            reach_pred = reach_per_point(
-                points,
-                cyclic_dimensions=cyclic_dimensions,
-                range_sizes=range_sizes,
-                patch_sizes=len(range_sizes) * [62],
-                batch_size=50,
-                device=self.device
+            reach_pred = cast(
+                np.ndarray,
+                reach_per_point(
+                    points,
+                    cyclic_dimensions=cyclic_dimensions,
+                    range_sizes=range_sizes,
+                    patch_sizes=len(range_sizes) * [62],
+                    batch_size=50,
+                    device=self.device
+                )
             ).min()
 
             np.testing.assert_almost_equal(
@@ -150,12 +161,15 @@ class TestEllipsoids(unittest.TestCase):
             # Estimate the reach.
             cyclic_dimensions = [3]
             range_sizes = 3*[(2*fraction_of_angles - 1) * np.pi] + [2 * np.pi]
-            reach_pred = reach_per_point(
-                points,
-                cyclic_dimensions=cyclic_dimensions,
-                range_sizes=range_sizes,
-                patch_sizes=len(range_sizes) * [12],
-                device=self.device
+            reach_pred = cast(
+                np.ndarray,
+                reach_per_point(
+                    points,
+                    cyclic_dimensions=cyclic_dimensions,
+                    range_sizes=range_sizes,
+                    patch_sizes=len(range_sizes) * [12],
+                    device=self.device
+                )
             ).min()
 
             np.testing.assert_almost_equal(
@@ -192,13 +206,16 @@ class TestHyperboloids(unittest.TestCase):
             # Estimate the reach.
             cyclic_dimensions = [1]
             range_sizes = [2, 2 * np.pi]
-            reach_pred = reach_per_point(
-                points,
-                cyclic_dimensions=cyclic_dimensions,
-                range_sizes=range_sizes,
-                patch_sizes=len(range_sizes) * [52],
-                batch_size=50,
-                device=self.device
+            reach_pred = cast(
+                np.ndarray,
+                reach_per_point(
+                    points,
+                    cyclic_dimensions=cyclic_dimensions,
+                    range_sizes=range_sizes,
+                    patch_sizes=len(range_sizes) * [52],
+                    batch_size=50,
+                    device=self.device
+                )
             ).min()
 
             np.testing.assert_almost_equal(
@@ -228,13 +245,16 @@ class TestHyperboloids(unittest.TestCase):
         # Estimate the reach.
         cyclic_dimensions = [2]
         range_sizes = [2, 2, 2 * np.pi]
-        reach_pred = reach_per_point(
-            points,
-            cyclic_dimensions=cyclic_dimensions,
-            range_sizes=range_sizes,
-            patch_sizes=len(range_sizes) * [52],
-            batch_size=50,
-            device=self.device
+        reach_pred = cast(
+            np.ndarray,
+            reach_per_point(
+                points,
+                cyclic_dimensions=cyclic_dimensions,
+                range_sizes=range_sizes,
+                patch_sizes=len(range_sizes) * [52],
+                batch_size=50,
+                device=self.device
+            )
         ).min()
 
         np.testing.assert_almost_equal(

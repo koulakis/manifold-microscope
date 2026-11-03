@@ -84,6 +84,8 @@ class DenoisingAutoencoderPL(pl.LightningModule):
             Perturbed-point tensor with the same shape (b f) as points.
         """
         if self.noise_along_normals:
+            if normals is None:
+                raise ValueError('Normal-directed noise requires unit normals.')
             noise_norm = torch.normal(
                 mean=0,
                 std=self.noise_std,

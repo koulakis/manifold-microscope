@@ -13,8 +13,8 @@ repos:
         require_serial: true
       - id: pyright
         name: Pyright
-        entry: python tools/check_types.py
+        entry: python -m pyright --project pyproject.toml --warnings
         language: system
-        files: '^(microscope/|experiments_and_analysis/|tools/|pyproject\.toml$|pyright-baseline\.json$|\.pre-commit-config\.yaml$)'
+        always_run: true
         pass_filenames: false
         require_serial: true

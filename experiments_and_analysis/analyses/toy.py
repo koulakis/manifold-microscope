@@ -3,6 +3,7 @@ from __future__ import annotations
 import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import typer
@@ -41,11 +42,9 @@ def compute_distances(
     Returns:
         (distances, maximum_distance), with distances an array of shape (n) containing paired Euclidean errors.
     """
-    if fitting_method.startswith("denoising_autoencoder_"):
-        from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
     match fitting_method:
         case "MMLS":
-            samples = manifold.sample(N, normalized=normalized)
+            samples = cast(np.ndarray, manifold.sample(N, normalized=normalized))
 
             d = manifold.dimension
             k = 5
@@ -58,24 +57,29 @@ def compute_distances(
             )
             prediction = projector.project(ground_truth)
         case "denoising_autoencoder_normal_noise":
-            samples, unitary_normals = manifold.sample(
-                N,
-                normalized=normalized,
-                return_unitary_normal=True
+            from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
+
+            samples, unitary_normals = cast(
+                tuple[np.ndarray, np.ndarray],
+                manifold.sample(
+                    N,
+                    normalized=normalized,
+                    return_unitary_normal=True
+                )
             )
 
             match manifold.__class__:
                 case toy_manifolds.Circle | toy_manifolds.Sphere:
-                    manifold: toy_manifolds.Circle | toy_manifolds.Sphere
-                    R = manifold.R
+                    spherical_manifold = cast(toy_manifolds.Circle | toy_manifolds.Sphere, manifold)
+                    R = spherical_manifold.R
                     noise_std = 0.2*R
                 case toy_manifolds.Moons:
-                    manifold: toy_manifolds.Moons
-                    R = manifold.R
+                    moons = cast(toy_manifolds.Moons, manifold)
+                    R = moons.R
                     noise_std = 0.1 * R
                 case toy_manifolds.Torus:
-                    manifold: toy_manifolds.Torus
-                    R, r = manifold.R, manifold.r
+                    torus = cast(toy_manifolds.Torus, manifold)
+                    R, r = torus.R, torus.r
                     noise_std = 0.2 * min(R - r, r)
                 case _:
                     raise ValueError(f"Unknown manifold class: {manifold.__class__}")
@@ -94,24 +98,29 @@ def compute_distances(
             )
             prediction = denoising_ae.predict(ground_truth)
         case "denoising_autoencoder_random_noise":
-            samples = manifold.sample(
-                N,
-                normalized=normalized,
-                return_unitary_normal=False
+            from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
+
+            samples = cast(
+                np.ndarray,
+                manifold.sample(
+                    N,
+                    normalized=normalized,
+                    return_unitary_normal=False
+                )
             )
 
             match manifold.__class__:
                 case toy_manifolds.Circle | toy_manifolds.Sphere:
-                    manifold: toy_manifolds.Circle | toy_manifolds.Sphere
-                    R = manifold.R
+                    spherical_manifold = cast(toy_manifolds.Circle | toy_manifolds.Sphere, manifold)
+                    R = spherical_manifold.R
                     noise_std = 0.1 * R
                 case toy_manifolds.Moons:
-                    manifold: toy_manifolds.Moons
-                    R = manifold.R
+                    moons = cast(toy_manifolds.Moons, manifold)
+                    R = moons.R
                     noise_std = 0.1 * R
                 case toy_manifolds.Torus:
-                    manifold: toy_manifolds.Torus
-                    R, r = manifold.R, manifold.r
+                    torus = cast(toy_manifolds.Torus, manifold)
+                    R, r = torus.R, torus.r
                     noise_std = 0.1 * min(R - r, r)
                 case _:
                     raise ValueError(f"Unknown manifold class: {manifold.__class__}")

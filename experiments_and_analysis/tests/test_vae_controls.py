@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
+from experiments_and_analysis.models.beta_vae.model import BetaVAE_H
 
 from experiments_and_analysis.models.config import BetaVAEConfig
 from experiments_and_analysis.models.beta_vae import solver as solver_module
@@ -70,15 +71,18 @@ def test_full_checkpoint_with_numpy_metadata(make_solver):
 
 
 def test_mean_decoder_uses_mu_without_consuming_sampling_rng():
-    class IdentityAutoencoder:
-        z_dim = 1
-        encoder = [nn.Identity()]
-        decoder = [nn.Identity()]
+    class IdentityAutoencoder(BetaVAE_H):
+        def __init__(self):
+            nn.Module.__init__(self)
+            self.z_dim = 1
+            self.encoder = nn.Sequential(nn.Identity())
+            self.decoder = nn.Sequential(nn.Identity())
 
     images = torch.tensor([[2., 0.], [2., 0.]])
     before = torch.random.get_rng_state()
     reconstruction, outputs = get_intermediate_from_autoencoder(
         IdentityAutoencoder(), images, True, decoder_sampling=False)
+    assert reconstruction is not None
     np.testing.assert_allclose(reconstruction, 1 / (1 + np.exp(-2)), rtol=1e-6)
     np.testing.assert_array_equal(outputs["mu"], [[2.], [2.]])
     assert torch.equal(torch.random.get_rng_state(), before)

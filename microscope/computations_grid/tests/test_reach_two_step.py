@@ -1,4 +1,6 @@
 """Independent normal-curvature and double-normal bottleneck references."""
+from typing import cast
+
 import numpy as np
 import pytest
 import torch
@@ -22,9 +24,19 @@ def circle(n=64, radius=2., dtype=np.float64, covers=1):
     return (radius*np.column_stack([np.cos(t), np.sin(t)])).astype(dtype)
 
 
-def estimate(points, device, **kwargs):
-    return reach_curvature_bottleneck(points, [2*np.pi], [9], [0],
-                                      device=device, return_components=True, **kwargs)
+def estimate(points, device, **kwargs) -> ReachComponents:
+    return cast(
+        ReachComponents,
+        reach_curvature_bottleneck(
+            points,
+            [2*np.pi],
+            [9],
+            [0],
+            device=device,
+            return_components=True,
+            **kwargs
+        )
+    )
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -45,8 +57,18 @@ def test_three_sphere_uses_operator_norm_not_scalar_or_frobenius(device, ambient
     sizes, fraction = [7, 7, 12], .8
     points, _, _, _ = sample_ellipsoid_on_grid([2]*4, sizes, ambient,
         apply_random_isometry=False, fraction_of_angles=fraction)
-    result = reach_curvature_bottleneck(points, [(2*fraction-1)*np.pi]*2+[2*np.pi],
-        [7]*3, [2], subsample_points=2, device=device, return_components=True)
+    result = cast(
+        ReachComponents,
+        reach_curvature_bottleneck(
+            points,
+            [(2*fraction-1)*np.pi]*2+[2*np.pi],
+            [7]*3,
+            [2],
+            subsample_points=2,
+            device=device,
+            return_components=True
+        )
+    )
     assert result.curvature_radius == pytest.approx(2., abs=1e-10)
     assert result.reach == pytest.approx(2., abs=1e-10)
 
@@ -97,6 +119,7 @@ def test_connected_fold_is_bottleneck_limited(device):
     assert result.reach == pytest.approx(gap, abs=1e-10)
     assert result.bottleneck_radius == pytest.approx(gap, abs=1e-10)
     assert result.curvature_radius > 5*gap
+    assert result.bottleneck_pair is not None
     a, b = result.bottleneck_pair
     assert np.linalg.norm(points[a]-points[b])/2 == pytest.approx(gap, abs=1e-10)
 
@@ -117,8 +140,18 @@ def test_curvature_radius_converges_for_nonlinear_parameterization(device):
 def test_partial_tiles_subsampled_centers_and_product_normal_spaces(device, patches, stride):
     u, v = np.meshgrid(2*np.pi*np.arange(13)/13, 2*np.pi*np.arange(17)/17, indexing="ij")
     points = np.stack([2*np.cos(u), 2*np.sin(u), .5*np.cos(v), .5*np.sin(v)], axis=-1)
-    result = reach_curvature_bottleneck(points, [2*np.pi]*2, patches, [0, 1],
-        subsample_points=stride, device=device, return_components=True)
+    result = cast(
+        ReachComponents,
+        reach_curvature_bottleneck(
+            points,
+            [2*np.pi]*2,
+            patches,
+            [0, 1],
+            subsample_points=stride,
+            device=device,
+            return_components=True
+        )
+    )
     assert result.curvature_radius == pytest.approx(.5, abs=1e-11)
     assert result.reach == pytest.approx(.5, abs=1e-11)
 
@@ -127,8 +160,17 @@ def test_open_grid_curvature_matches_parabola_reference_and_handles_reverse(devi
     t = np.linspace(-1, 1, 17)
     points = np.column_stack([t, t*t])
     for array in [points, points[::-1]]:
-        result = reach_curvature_bottleneck(array, [2.], [7], subsample_points=2,
-            device=device, return_components=True)
+        result = cast(
+            ReachComponents,
+            reach_curvature_bottleneck(
+                array,
+                [2.],
+                [7],
+                subsample_points=2,
+                device=device,
+                return_components=True
+            )
+        )
         # Curvature2 at t=0 gives radius1/2; the sampled center set includes0.
         assert result.curvature_radius == pytest.approx(.5, abs=1e-12)
 
@@ -136,7 +178,16 @@ def test_open_grid_curvature_matches_parabola_reference_and_handles_reverse(devi
 def test_flat_affine_grid_has_infinite_components(device):
     t = np.arange(11.)
     points = np.column_stack([t, 2*t, -.5*t])
-    result = reach_curvature_bottleneck(points, [10.], [7], device=device, return_components=True)
+    result = cast(
+        ReachComponents,
+        reach_curvature_bottleneck(
+            points,
+            [10.],
+            [7],
+            device=device,
+            return_components=True
+        )
+    )
     assert np.isposinf(result.reach) and np.isposinf(result.curvature_radius)
     assert np.isposinf(result.bottleneck_radius) and result.bottleneck_pair is None
 

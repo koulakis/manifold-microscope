@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+from typing import cast
 
 from microscope.computations_grid.volume import volume_element, compute_total_volume
 from microscope.cyclic_dimensions import get_difference_intervals
@@ -193,7 +194,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            volume_gt = sphere_volume_element(2., phis)
+            volume_gt = cast(np.ndarray, sphere_volume_element(2., phis))
 
             # Estimate the metric.
             patch_sizes = 4 * [12]

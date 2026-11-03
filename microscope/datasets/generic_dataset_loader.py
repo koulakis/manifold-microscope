@@ -118,6 +118,7 @@ def load_dataset_no_split(
 
     # If applicable, reduce the dimension of the data.
     if slices is not None:
+        assert indices is not None and cyclic_dimensions is not None
         data = data[slices]
         target = target[slices]
 
@@ -274,6 +275,8 @@ def load_dataset(
     )
 
     if save_train_idx:
+        if output_dir is None:
+            raise ValueError('Saving training indices requires an output directory.')
         np.savez(output_dir / "train_idx.npz", train_idx=train_idx)
 
     # Add Gaussian noise.

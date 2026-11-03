@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 
 import numpy as np
+from numpy.typing import DTypeLike
 from PIL import Image
 
 from microscope.datasets.image_transforms import apply_transform, statistical_scaling, shrink_image, rotate_image, \
@@ -82,7 +83,7 @@ def extended_coil20(
     flat: bool = False,
     scale: bool = False,
     buffer_for_measure_estimation: int = 3,
-    dtype: np.dtype = np.float32,
+    dtype: DTypeLike = np.float32,
     verbose: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     """Augment COIL-20 object views with scaling and in-plane rotation.

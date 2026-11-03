@@ -95,8 +95,8 @@ def shrink_image(
 
 def translate_image(
     image: np.ndarray,
-    dx: int,
-    dy: int
+    dx: float,
+    dy: float
 ) -> np.ndarray:
     """Translate a 2D image given in a numpy array.
 

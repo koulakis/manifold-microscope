@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
+from typing import TypeVar, cast
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -28,6 +29,8 @@ from experiments_and_analysis.models.beta_vae.model import BetaVAE_H, BetaVAE_B
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+DeviceValue = TypeVar('DeviceValue', bound=torch.Tensor | torch.nn.Module)
 
 
 def reconstruction_loss(
@@ -160,7 +163,7 @@ def visualize_reconstructions(
     output_dir: Path,
     step: int,
     autoencoder: torch.nn.Module,
-    data_loader: DataLoader,
+    data_loader: DataLoader | list[torch.Tensor],
     device: str,
     num_images: int = 8
 ) -> None:
@@ -218,7 +221,7 @@ def visualize_reconstructions(
 
 
 class Solver(object):
-    def _to_device(self, tensor_or_module: torch.Tensor | torch.nn.Module) -> torch.Tensor | torch.nn.Module:
+    def _to_device(self, tensor_or_module: DeviceValue) -> DeviceValue:
         """Move tensor or module to the configured device.
 
         Args:
@@ -227,7 +230,7 @@ class Solver(object):
         Returns:
             Tensor with unchanged shape (...) or the same module, placed on the configured device.
         """
-        return tensor_or_module.to(self.device)
+        return cast(DeviceValue, tensor_or_module.to(self.device))
 
     def load_checkpoint(self, filename: str) -> None:
         """Restore solver state when the checkpoint file exists.
@@ -256,7 +259,7 @@ class Solver(object):
     def __init__(
         self,
         args: BetaVAEConfig,
-        data_loader: DataLoader | None = None
+        data_loader: DataLoader | list[torch.Tensor] | None = None
     ) -> None:
         """Initialize model, optimizer, checkpoint settings and training data.
 
@@ -397,6 +400,8 @@ class Solver(object):
         plots_dir = self.output_dir / "plots"
         plots_dir.mkdir(exist_ok=True)
 
+        if self.data_loader is None:
+            raise ValueError('Reconstruction plots require an image data loader.')
         visualize_reconstructions(
             plots_dir,
             step=self.global_iter,
@@ -427,13 +432,16 @@ class Solver(object):
             if self.global_iter >= self.max_iter:
                 print("Training budget already reached by the loaded checkpoint.")
                 return
+        if self.data_loader is None:
+            raise ValueError('Training requires an image data loader.')
         # print(
         #     f"Train size: {len(self.data_loader.dataset)}, train perc: {self.args.training_ratio}, "
         #     f"dataset: {self.args.dataset}, dim: {self.args.number_of_dims}"
         # )
         # return
         self.net_mode(train=True)
-        self.C_max = self._to_device(torch.FloatTensor([self.C_max]))
+        C_max = self._to_device(torch.FloatTensor([self.C_max]))
+        self.C_max = C_max
         out = False
 
         pbar = tqdm(total=self.max_iter)
@@ -463,17 +471,21 @@ class Solver(object):
                 x = self._to_device(x)
                 x_recon, mu, logvar = self.net(x)
                 # noinspection PyTypeChecker
-                recon_loss = reconstruction_loss(x, x_recon, self.decoder_dist)
+                recon_loss = cast(torch.Tensor, reconstruction_loss(x, x_recon, self.decoder_dist))
                 total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
 
+                C: torch.Tensor | None = None
                 if self.objective == 'H':
                     beta_vae_loss = recon_loss + self.beta*total_kld
                 elif self.objective == 'B':
                     # PyTorch supports scalar min with tensor max; its overloads omit mixed bounds.
-                    C = torch.clamp(  # pyright: ignore[reportCallIssue]
-                        self.C_max / self.C_stop_iter * self.global_iter,
-                        min=0,
-                        max=self.C_max.data[0]  # pyright: ignore[reportArgumentType]
+                    C = cast(
+                        torch.Tensor,
+                        torch.clamp(  # pyright: ignore[reportCallIssue]
+                            C_max / self.C_stop_iter * self.global_iter,
+                            min=0,
+                            max=C_max.data[0]  # pyright: ignore[reportArgumentType]
+                        )
                     )
                     beta_vae_loss = recon_loss + self.gamma*(total_kld-C).abs()
                 else:
@@ -520,7 +532,7 @@ class Solver(object):
                     # pbar.write(var_str)
 
                     if self.objective == 'B':
-                        # noinspection PyUnboundLocalVariable
+                        assert C is not None
                         pbar.write('C:{:.3f}'.format(C.data[0]))
 
                 if (self.global_iter % 50000 == 0) or epoch_save:

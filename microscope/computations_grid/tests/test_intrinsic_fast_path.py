@@ -97,5 +97,8 @@ def test_adaptive_inverse_values_and_gradients_match_qr(mode):
     torch.testing.assert_close(actual, expected, rtol=1e-6, atol=1e-10)
     actual.square().sum().backward()
     expected.square().sum().backward()
-    assert torch.isfinite(tangent.grad).all()
-    torch.testing.assert_close(tangent.grad, reference.grad, rtol=1e-6, atol=1e-8)
+    gradient = tangent.grad
+    reference_gradient = reference.grad
+    assert gradient is not None and reference_gradient is not None
+    assert torch.isfinite(gradient).all()
+    torch.testing.assert_close(gradient, reference_gradient, rtol=1e-6, atol=1e-8)

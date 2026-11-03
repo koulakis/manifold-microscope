@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def sphere_volume_element(radius: float, coordinates: np.ndarray) -> float:
+def sphere_volume_element(radius: float, coordinates: np.ndarray) -> np.ndarray | np.floating:
     """Compute the volume element of an n-sphere. We simply use the formula
 
     dV = R^n sin^{n-1}(phi_1) sin^{n-2}(phi_2) ... sin(phi_{n-1})

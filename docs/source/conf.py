@@ -5,9 +5,13 @@ import re
 project = "Manifold Microscope"
 author = "Marios Koulakis and Constantin Seibold"
 copyright = "2026, Marios Koulakis and Constantin Seibold"
-release = re.search(r'^version = "([^"]+)"',
-                    (Path(__file__).parents[2] / "pyproject.toml").read_text(),
-                    re.MULTILINE).group(1)
+version_match = re.search(
+    r'^version = "([^"]+)"',
+    (Path(__file__).parents[2] / "pyproject.toml").read_text(),
+    re.MULTILINE
+)
+assert version_match is not None
+release = version_match.group(1)
 
 extensions = []
 source_suffix = ".rst"

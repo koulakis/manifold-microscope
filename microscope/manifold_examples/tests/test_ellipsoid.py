@@ -80,7 +80,13 @@ class TestScalarCurvature(unittest.TestCase):
                 np.random.uniform(0, 2 * np.pi, size=(n_samples, 1))
             ])
 
-            gt_curvatures = ellipsoid_2d_curvature(*sample_as, phis)
+            a, b, c = sample_as
+            gt_curvatures = ellipsoid_2d_curvature(
+                a,
+                b,
+                c,
+                phis
+            )
             pred_curvatures = ellipsoid_scalar_curvature(sample_as, phis)
 
             np.testing.assert_almost_equal(

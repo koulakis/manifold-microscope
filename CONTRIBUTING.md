@@ -9,13 +9,13 @@ python -m pre_commit install
 python -m pre_commit run --all-files
 ```
 
-The hooks run Ruff and Pyright across the two Python packages. They use the active environment so Pyright can resolve
-the same scientific dependencies used to run the code. They do not create separate environments or install packages
-when a commit is made. Run the same checks directly with:
+The hooks run Ruff and Pyright across the maintained Python code, including tests. They use the active environment so
+Pyright can resolve the same scientific dependencies used to run the code. They do not create separate environments
+or install packages when a commit is made. Run the same checks directly with:
 
 ```sh
 python -m ruff check .
-python tools/check_types.py
+python -m pyright --project pyproject.toml --warnings
 ```
 
 In the shared maintenance workspace, select the existing `microscope` pyenv environment. For a noninteractive check:
@@ -26,8 +26,9 @@ PYENV_VERSION=microscope pyenv exec python -m pre_commit run --all-files
 
 Ruff checks common Python errors, 120-character lines, function annotations, function docstrings and documented
 arguments in Google-style `Args` sections. Tests are exempt from annotation/docstring and line-length rules; generated
-symbolic formulas are exempt from line-length checks. Pyright uses its basic mode for production code and the check
-runner. The solver retains a narrow import-order exemption because it configures warning filtering before importing
+symbolic formulas are exempt from line-length checks. Pyright uses standard mode for all maintained Python files,
+including tests, the root test configuration and the Sphinx configuration. Generated build outputs are excluded.
+The solver retains a narrow import-order exemption because it configures warning filtering before importing
 training dependencies.
 
 ## Dense grid reference tests
@@ -68,34 +69,20 @@ The analytic grids use float64, as they have historically; their dense finite di
 Runtime and memory use depend on the selected device and method. Small tests with an explicit CPU device and tests
 parameterized over CPU/CUDA retain their declared device coverage.
 
-## Existing typing issues
+## Type checking
 
-`pyright-baseline.json` records the remaining existing diagnostics; 176 were present when checks were introduced.
-The runner passes the current Python interpreter explicitly to Pyright, compares diagnostic paths/rules/messages and
-counts against that file, and fails on new diagnostics. Source line movement does not change a diagnostic's identity.
-Missing dependencies always fail, including when refreshing the baseline. Resolved diagnostics also require a baseline
-refresh so the recorded debt stays current.
+Pyright checks every maintained Python file, including tests, on every commit. The hook always runs the entire project
+and does not limit analysis to staged files. Errors and warnings fail the hook directly; there is no accepted-error
+baseline. Missing dependencies also fail, so activate the development environment before checking or committing.
 
-Tests are excluded from the project's Pyright configuration. To check them independently of the TOML settings on
-Linux/macOS, run this from the repository root with the development environment active:
+Run the full check from the repository root:
 
 ```sh
-PYTHONPATH="$PWD" python -m pyright --project /dev/null microscope/computations_grid/tests
+python -m pyright --project pyproject.toml --warnings
 ```
 
-`/dev/null` supplies an empty configuration. `PYTHONPATH` keeps local package imports resolvable when the project
-configuration is bypassed. This reports all test diagnostics, including existing issues outside the production baseline.
-
-Review raw Pyright output before accepting any baseline changes. To run the underlying checker directly in an activated
-environment, use `python -m pyright --project pyproject.toml`. After reviewing its output, refresh with:
-
-```sh
-python tools/check_types.py --update-baseline
-```
-
-Review the resulting JSON diff and commit it with the corresponding fix or deliberate tooling/dependency upgrade.
-Do not regenerate the baseline merely to make a new type error pass. Diagnostic details can change with scientific
-dependency versions, so use the same development environment when comparing results.
+Notebooks remain outside the command-line check. Diagnostic details can change with scientific dependency versions,
+so use the same development environment when comparing results.
 
 ## VS Code diagnostics
 
@@ -106,14 +93,14 @@ For inline diagnostics and Problems entries throughout the workspace, use these 
 ```json
 {
   "python.languageServer": "Pylance",
-  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.typeCheckingMode": "standard",
   "python.analysis.diagnosticMode": "workspace"
 }
 ```
 
 After changing the interpreter or configuration, run **Python: Restart Language Server**. Open **View: Toggle Problems**
-from the Command Palette to inspect diagnostics. Pylance reports existing issues as well as new ones; the custom
-`pyright-baseline.json` comparison applies only to `tools/check_types.py` and the pre-commit hook.
+from the Command Palette to inspect diagnostics. Both the editor and the pre-commit hook check tests as well as library
+code.
 Pylance bundles its own checker version, so editor diagnostics can differ slightly from the pinned command-line version.
 See the [Python settings reference](https://code.visualstudio.com/docs/python/settings-reference).
 
@@ -124,8 +111,8 @@ short signatures/calls would undo the chosen multiline layouts. Keep signatures 
 separate lines, expand crowded calls, include abstract tensor/array shapes in argument docs, and put helpers before
 callers. These layout, shape-description and ordering conventions still need review.
 
-Tool versions are pinned in the `dev` extra in `pyproject.toml`; update that extra and reinstall the tools together when
-upgrading. pre-commit 4.6.2 supports the project's Python 3.10 baseline. The Pyright `nodejs` extra supplies its Node.js
+Ruff, Pyright and pre-commit versions are pinned in the `dev` extra in `pyproject.toml`; update that extra when upgrading
+these tools. pre-commit 4.6.2 supports the project's Python 3.10 baseline. The Pyright `nodejs` extra supplies its Node.js
 runtime within the Python environment without requiring a separate system installation. See the [Ruff configuration documentation](https://docs.astral.sh/ruff/configuration/),
 [Pyright configuration documentation](https://github.com/microsoft/pyright/blob/main/docs/configuration.md) and
 [pre-commit local-hook documentation](https://pre-commit.com/#repository-local-hooks) for the supported settings.

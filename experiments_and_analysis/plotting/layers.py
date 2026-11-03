@@ -547,18 +547,17 @@ def create_layer_plots(
     all_handles.append(Patch(facecolor=DECODER_TINT))
     all_labels.append('Decoder (latent → output)')
 
-    # Add shared legend below the plots, aligned horizontally with the plot area
-    if all_handles:
-        # Calculate optimal number of columns to make legend span the plot width
-        max_cols = len(all_labels)
-        # Try to fit legend in 2-3 rows maximum for better horizontal alignment
-        if max_cols <= 6:
-            optimal_cols = max_cols  # Single row if 6 or fewer items
-        elif max_cols <= 12:
-            optimal_cols = (max_cols + 1) // 2  # Two rows
-        else:
-            optimal_cols = (max_cols + 2) // 3  # Three rows
+    # Calculate columns before the separate legend and layout branches.
+    max_cols = len(all_labels)
+    if max_cols <= 6:
+        optimal_cols = max_cols
+    elif max_cols <= 12:
+        optimal_cols = (max_cols + 1) // 2
+    else:
+        optimal_cols = (max_cols + 2) // 3
 
+    # Add shared legend below the plots, aligned horizontally with the plot area.
+    if all_handles:
         effective_legend_y = -0.11 if legend_y is None else legend_y
         legend = fig.legend(
             all_handles,

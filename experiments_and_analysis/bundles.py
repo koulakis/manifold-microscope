@@ -489,7 +489,9 @@ class BundlePath:
             yield stream
             if writing:
                 value = stream.getvalue()
-                self.bundle.pending[self.relative] = value if binary else value.encode('utf-8')
+                self.bundle.pending[self.relative] = (
+                    cast(bytes, value) if binary else cast(str, value).encode('utf-8')
+                )
 
 
 def output_root(config: dict, root: str | Path) -> Path | BundlePath:
@@ -506,7 +508,7 @@ def output_root(config: dict, root: str | Path) -> Path | BundlePath:
         return Path(root)
     family = bundle_family(config)
     key = identity(dict(format=FORMAT_VERSION, family=family))
-    directory = stage_directory(Path(root) / 'experiment-bundles', key, model_label(family))
+    directory = cast(Path, stage_directory(Path(root) / 'experiment-bundles', key, model_label(family)))
     return BundlePath(get_bundle(directory, family))
 
 

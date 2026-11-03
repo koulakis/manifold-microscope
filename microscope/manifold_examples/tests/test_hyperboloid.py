@@ -35,7 +35,13 @@ class TestScalarCurvature(unittest.TestCase):
                 np.random.uniform(0, 2 * np.pi, size=(n_samples, 1))
             ])
 
-            gt_curvatures = _2_hyperboloid_curvature(*sample_as, phis)
+            a, b, c = sample_as
+            gt_curvatures = _2_hyperboloid_curvature(
+                a,
+                b,
+                c,
+                phis
+            )
             pred_curvatures = hyperboloid_scalar_curvature(sample_as, phis)
 
             np.testing.assert_almost_equal(
@@ -62,7 +68,13 @@ class TestScalarCurvature(unittest.TestCase):
             # have a negligible contribution to the curvature.
             sample_as[0] = 1_000_000
 
-            gt_curvatures = _2_hyperboloid_curvature(*sample_as[1:], phis[:, 1:])
+            a, b, c = sample_as[1:]
+            gt_curvatures = _2_hyperboloid_curvature(
+                a,
+                b,
+                c,
+                phis[:, 1:]
+            )
             pred_curvatures = hyperboloid_scalar_curvature(sample_as, phis)
 
             np.testing.assert_almost_equal(

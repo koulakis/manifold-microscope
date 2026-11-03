@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import partial
 from types import FrameType, TracebackType
-from typing import Any
+from typing import Any, cast
 
 import sympy as sp
 from sympy import sin, cos, sinh, cosh, Matrix
@@ -95,7 +95,7 @@ def time_limit(seconds: int, message: str | None = None) -> Iterator[None]:
 
 def _time_limited_simplify(
     formula: sp.Expr,
-    limit_seconds: float = 10 * 60,
+    limit_seconds: int = 10 * 60,
     *args: Any,
     **kwargs: Any
 ) -> sp.Expr:
@@ -218,7 +218,7 @@ def scalar_curvature_formula(
         if normalize:
             scalar_curvature = 1 / dim * scalar_curvature
 
-    return scalar_curvature, ricci, r_first_kind
+    return cast(sp.Expr, scalar_curvature), ricci, r_first_kind
 
 
 def volume_element_formula(u: sp.Matrix, coordinate_variables: sp.Matrix) -> sp.Expr:

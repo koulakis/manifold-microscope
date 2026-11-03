@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO, cast
 
 from dataclasses import asdict
 import pickle
@@ -72,7 +72,7 @@ def save_projector(
         save_array(directory / 'training_points.npy', projector.X.detach().cpu().numpy())
     if projector.ann_index is not None:
         with (directory / 'neighbors.pkl').open('wb') as stream:
-            pickle.dump(projector.ann_index, stream, -1)
+            pickle.dump(projector.ann_index, cast(BinaryIO, stream), -1)
 
 
 def load_projector(
@@ -99,5 +99,5 @@ def load_projector(
     projector = fit(training_points, MMLSConfig(**state['parameters']), device)
     if (directory / 'neighbors.pkl').is_file():
         with (directory / 'neighbors.pkl').open('rb') as stream:
-            projector.ann_index = pickle.load(stream)
+            projector.ann_index = pickle.load(cast(BinaryIO, stream))
     return projector

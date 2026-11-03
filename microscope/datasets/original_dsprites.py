@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import DTypeLike
 
 from microscope.datasets.image_transforms import statistical_scaling
 
@@ -6,7 +7,7 @@ from microscope.datasets.image_transforms import statistical_scaling
 def dsprites_original(
     flat: bool = False,
     scale: bool = False,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> tuple[np.ndarray, np.ndarray]:
     """Load the original dsprites dataset.
 
@@ -45,7 +46,7 @@ def dsprites_original(
 def dsprites_original_single_size(
     flat: bool = False,
     scale: bool = False,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> tuple[np.ndarray, np.ndarray]:
     """The original dsprites selecting only the largest sprite size in order to remove one dimension
 

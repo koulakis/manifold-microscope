@@ -2,6 +2,7 @@ from functools import partial
 from typing import Optional
 
 import numpy as np
+from numpy.typing import DTypeLike
 import cv2
 from scipy.ndimage import gaussian_filter
 
@@ -25,7 +26,7 @@ DEFAULT_BLUR_SIGMA = 0.8
 def create_square_sprite(
     image_size: int,
     square_size: int,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> np.ndarray:
     """Create a square sprite of a given size in the center of a black image.
 
@@ -46,7 +47,7 @@ def create_square_sprite(
 def create_heart_sprite(
     image_size: int,
     heart_size: int,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> np.ndarray:
     """Create a heart sprite of a given size in the center of a black image. Using the third equation of this blog:
     https://blogs.lcps.org/academiesonline/2021/02/13/the-equation-of-the-heart
@@ -83,7 +84,7 @@ def create_heart_sprite(
 def create_ellipse_sprite(
     image_size: int,
     ellipse_size: int,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> np.ndarray:
     """Create an ellipse sprite of a given size in the center of a black image.
 
@@ -150,7 +151,7 @@ def dsprites(
     blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA,
     flat: bool = False,
     scale: bool = False,
-    dtype: np.dtype = np.float32,
+    dtype: DTypeLike = np.float32,
     processes: list[Optional[int]] | tuple[Optional[int], ...] = (None, None, None, None),
     verbose: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:

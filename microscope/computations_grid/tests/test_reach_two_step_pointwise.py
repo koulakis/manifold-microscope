@@ -1,10 +1,12 @@
 """Pointwise component references, output compatibility and filter false negatives."""
+from typing import cast
+
 import numpy as np
 import pytest
 import torch
 
 from microscope.computations_grid.reach_two_step import (
-    _bottleneck_radius, reach_curvature_bottleneck, reach_per_point,
+    ReachComponents, _bottleneck_radius, reach_curvature_bottleneck, reach_per_point,
 )
 
 
@@ -26,6 +28,7 @@ def circle(n=24, dtype=np.float64):
 def test_return_conventions_and_component_axis(device, dtype, return_witnesses, return_components):
     output = reach_per_point(circle(dtype=dtype), [2*np.pi], [8], [0], 3, 5,
         return_witnesses, device, candidate_batch_size=7, return_components=return_components)
+    witnesses: np.ndarray | None = None
     if return_components:
         assert isinstance(output, tuple) and len(output) == 3
         values, witnesses, components = output
@@ -41,6 +44,7 @@ def test_return_conventions_and_component_axis(device, dtype, return_witnesses, 
     assert values.shape == (24,) and values.dtype == dtype
     np.testing.assert_allclose(values, 2., atol=3e-5)
     if return_components or return_witnesses:
+        assert witnesses is not None
         assert witnesses.shape == (8,) and witnesses.dtype == np.int64
         # Candidate indices refer to sampled coordinates, not repeated values.
         assert np.all((witnesses >= 0) & (witnesses < 8))
@@ -87,8 +91,19 @@ def test_fold_has_local_bottleneck_at_both_endpoints_and_global_compatibility(de
     assert witnesses[0] == 48 and witnesses[48] == 0
     assert np.all(components[[0, 48], 0] > .05)
     np.testing.assert_array_equal(values, components.min(axis=-1))
-    summary = reach_curvature_bottleneck(points, [2*np.pi], [9], [0],
-        batch_size=query_batch, candidate_batch_size=candidate_batch, device=device, return_components=True)
+    summary = cast(
+        ReachComponents,
+        reach_curvature_bottleneck(
+            points,
+            [2*np.pi],
+            [9],
+            [0],
+            batch_size=query_batch,
+            candidate_batch_size=candidate_batch,
+            device=device,
+            return_components=True
+        )
+    )
     assert summary.reach == pytest.approx(values.min(), abs=1e-12)
     assert summary.curvature_radius == pytest.approx(components[..., 0].min(), abs=1e-12)
     assert summary.bottleneck_radius == pytest.approx(components[..., 1].min(), abs=1e-12)

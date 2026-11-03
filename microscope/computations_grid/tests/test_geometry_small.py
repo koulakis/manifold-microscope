@@ -89,9 +89,11 @@ def test_flat_polar_metric_has_zero_riemann_tensor(polar_metric, kind):
     _, first, second = polar_metric
     result = riemannian_curvature_tensor(first, second, [.02, .1], kinds=[kind])
     assert result["second" if kind == "first" else "first"] is None
-    assert result[kind].shape == (47, 3, 2, 2, 2, 2)
+    curvature = result[kind]
+    assert curvature is not None
+    assert curvature.shape == (47, 3, 2, 2, 2, 2)
     # Differentiating 1/r introduces O(h**2) error; h=.02, r>=1.
-    torch.testing.assert_close(result[kind], torch.zeros_like(result[kind]), rtol=0, atol=1e-3)
+    torch.testing.assert_close(curvature, torch.zeros_like(curvature), rtol=0, atol=1e-3)
 
 
 def test_sphere_curvature_normalization_and_patch_seams():

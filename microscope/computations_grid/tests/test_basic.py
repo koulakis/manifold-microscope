@@ -1,4 +1,5 @@
 import unittest
+from typing import cast
 
 import numpy as np
 import pytest
@@ -32,13 +33,14 @@ class TestEllipsoids(unittest.TestCase):
             cyclic_dimensions = [1]
             n_samples_per_dim = [1_000, 1_000]
 
-            points, sampled_semi_axes, phis, [rotation, _] = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, isometry = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
                 apply_random_isometry=True,
                 fraction_of_angles=fraction_of_angles
             )
+            rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
             shape = tangent_vectors_formula_arr.shape
@@ -98,13 +100,14 @@ class TestEllipsoids(unittest.TestCase):
             cyclic_dimensions = [2]
             n_samples_per_dim = [102, 102, 100]
 
-            points, sampled_semi_axes, phis, [rotation, _] = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, isometry = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=ambient_dim,
                 apply_random_isometry=True,
                 fraction_of_angles=fraction_of_angles
             )
+            rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
             shape = tangent_vectors_formula_arr.shape
@@ -387,12 +390,13 @@ class TestHyperboloids(unittest.TestCase):
             n_samples_per_dim = [1_000, 1_000]
             cyclic_dimensions = [1]
 
-            points, sampled_semi_axes, phis, [rotation, _] = sample_hyperboloid_on_grid(
+            points, sampled_semi_axes, phis, isometry = sample_hyperboloid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
                 apply_random_isometry=True
             )
+            rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
             shape = tangent_vectors_formula_arr.shape
@@ -451,12 +455,13 @@ class TestHyperboloids(unittest.TestCase):
             n_samples_per_dim = [100, 100, 100]
             cyclic_dimensions = [2]
 
-            points, sampled_semi_axes, phis, [rotation, _] = sample_hyperboloid_on_grid(
+            points, sampled_semi_axes, phis, isometry = sample_hyperboloid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=ambient_dim,
                 apply_random_isometry=True
             )
+            rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
             shape = tangent_vectors_formula_arr.shape

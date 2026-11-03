@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 from scipy.optimize import root_scalar
@@ -65,7 +65,7 @@ class MeasuresLocal:
 class Manifold(ABC):
     @staticmethod
     @abstractmethod
-    def normalize_parameters(*args: float, **kwargs: float) -> float | tuple[float, ...]:
+    def normalize_parameters(*args: Any, **kwargs: Any) -> float | tuple[float, ...]:
         """Given the parameters defining the manifold, it updates them so that they correspond to a manifold of d-volume
         1.
 
@@ -102,16 +102,20 @@ class Manifold(ABC):
     def tesselation(
         self,
         N: int,
+        *args: Any,
         normalized: bool = False,
-        device: str = "cuda:0"
+        device: str = "cuda:0",
+        **kwargs: Any
     ) -> np.ndarray:
         """Get samples of the manifold which have local density close to the d-volume element of the manifold, i.e. they
         are as spread as possible.
 
         Args:
             N: The number of points to sample.
+            *args: Class-specific positional sampling options.
             normalized: If true, the manifold is scaled to have d-volume 1 before being sampled.
             device: Torch device used by surface relaxation; unused by analytic curves.
+            **kwargs: Class-specific named sampling options.
 
         Returns:
             Spread-out point array of shape (n_points, f), with sample count determined by the concrete manifold
@@ -1089,7 +1093,7 @@ def plot_manifold(
         case "tesselation":
             points = measured_manifold.tesselation(N, normalized=normalized)
         case "uniform":
-            points = measured_manifold.sample(N, normalized=normalized)
+            points = cast(np.ndarray, measured_manifold.sample(N, normalized=normalized))
         case _:
             raise ValueError(
                 f"Unknown sampling method: {sampling_type}, please select one of: 'tesselation', 'uniform'."

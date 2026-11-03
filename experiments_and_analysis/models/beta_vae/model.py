@@ -11,6 +11,7 @@ import torch.nn as nn
 #import torch.nn.functional as F
 import torch.nn.init as init
 from torch.autograd import Variable
+from typing import cast
 
 
 def reparametrize(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
@@ -89,11 +90,11 @@ def normal_init(
     """
     if isinstance(m, (nn.Linear, nn.Conv2d)):
         m.weight.data.normal_(mean, std)
-        if m.bias.data is not None:
+        if m.bias is not None:
             m.bias.data.zero_()
     elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
         m.weight.data.fill_(1)
-        if m.bias.data is not None:
+        if m.bias is not None:
             m.bias.data.zero_()
 
 
@@ -108,7 +109,7 @@ class BetaVAE_H(nn.Module):
             None.
         """
         for block in self._modules:
-            for m in self._modules[block]:
+            for m in cast(nn.Sequential, self._modules[block]):
                 kaiming_init(m)
 
     def __init__(
@@ -209,7 +210,7 @@ class BetaVAE_B(BetaVAE_H):
             None.
         """
         for block in self._modules:
-            for m in self._modules[block]:
+            for m in cast(nn.Sequential, self._modules[block]):
                 kaiming_init(m)
 
     def __init__(

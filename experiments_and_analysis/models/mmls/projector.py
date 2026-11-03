@@ -96,6 +96,8 @@ class ANNMMLSProjector:
             (indices, distances), arrays of shape (b k) for the nearest training points.
         """
         # p: [B,D]
+        if self.ann_index is None:
+            raise ValueError('Build the neighbor index before querying it.')
         return self.ann_index.query(p, k=self.k)
 
     def _project_thin_svd(

@@ -1,5 +1,8 @@
 """Reach edge cases and independent geometric references, on CUDA and CPU."""
+from typing import cast
+
 import numpy as np
+from numpy.typing import DTypeLike
 import pytest
 import torch
 
@@ -13,7 +16,7 @@ def device(request):
     return request.param
 
 
-def circle(n=24, radius=2., dtype=np.float64, covers=1, warp=0.):
+def circle(n=24, radius=2., dtype: DTypeLike = np.float64, covers=1, warp=0.):
     t = np.linspace(0, covers*2*np.pi, n, endpoint=False)
     theta = t + warp*np.sin(t)
     return (radius*np.column_stack([np.cos(theta), np.sin(theta)])).astype(dtype)
@@ -107,7 +110,7 @@ def test_near_duplicate_diagnostic_and_explicit_distance_filter(device, dtype):
     with pytest.raises(ValueError, match="candidate|distinct"):
         reach(points, device, min_pair_distance=5.)
     # Zero deliberately opts out of the automatic unresolved-pair diagnostic.
-    unguarded = reach(points, device, min_pair_distance=0.)
+    unguarded = cast(np.ndarray, reach(points, device, min_pair_distance=0.))
     if dtype == np.float64:
         assert unguarded.min() < 1e-12
 
@@ -211,8 +214,18 @@ def test_global_bottleneck_is_not_lost_to_candidate_chunking(device):
     major, minor = .75, .5
     points = np.stack([(major+minor*np.cos(v))*np.cos(u),
                        (major+minor*np.cos(v))*np.sin(u), minor*np.sin(v)], axis=-1)
-    result = reach_per_point(points, [2*np.pi]*2, [8]*2, [0, 1], device=device,
-                             batch_size=32, candidate_batch_size=37)
+    result = cast(
+        np.ndarray,
+        reach_per_point(
+            points,
+            [2*np.pi]*2,
+            [8]*2,
+            [0, 1],
+            device=device,
+            batch_size=32,
+            candidate_batch_size=37
+        )
+    )
     assert result.min() == pytest.approx(.25, abs=1e-11)
 
 
@@ -222,8 +235,18 @@ def test_automatic_diagnostic_preserves_resolved_narrow_bottleneck(device):
     major = minor+gap
     points = np.stack([(major+minor*np.cos(v))*np.cos(u),
                        (major+minor*np.cos(v))*np.sin(u), minor*np.sin(v)], axis=-1)
-    result = reach_per_point(points, [2*np.pi]*2, [8]*2, [0, 1], device=device,
-                             batch_size=32, candidate_batch_size=37)
+    result = cast(
+        np.ndarray,
+        reach_per_point(
+            points,
+            [2*np.pi]*2,
+            [8]*2,
+            [0, 1],
+            device=device,
+            batch_size=32,
+            candidate_batch_size=37
+        )
+    )
     assert result.min() == pytest.approx(gap, rel=1e-9)
 
 
@@ -237,6 +260,6 @@ def test_nonlinear_parameterization_converges_against_exact_tangents(device):
         ratios = np.sum(differences**2, axis=-1)/(2*normal)
         np.fill_diagonal(ratios, np.inf)
         assert ratios.min() == pytest.approx(1., abs=1e-10)
-        errors.append(abs(float(reach(points, device).min())-1.))
+        errors.append(abs(float(cast(np.ndarray, reach(points, device)).min())-1.))
     assert errors[0] > errors[1] > errors[2]
     assert errors[-1] < .07

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, Optional, cast
 
 from pathlib import Path
 import pickle
@@ -95,9 +95,15 @@ def load_dataset(
         reference_config = dict(name=spec['name'], ground_truth_size=spec.get('ground_truth_size', 500),
                                 reference_seed=spec.get('reference_seed', 0))
         reference_id = identity(reference_config)
-        directory = stage_directory(Path(root) / 'splits', reference_id,
-                                    f"reference__{spec['name']}__n{reference_config['ground_truth_size']}"
-                                    f"__seed{reference_config['reference_seed']}")
+        directory = cast(
+            Path,
+            stage_directory(
+                Path(root) / 'splits',
+                reference_id,
+                f"reference__{spec['name']}__n{reference_config['ground_truth_size']}"
+                f"__seed{reference_config['reference_seed']}"
+            )
+        )
         if begin(directory, reference_config):
             np.save(directory / 'points.npy', toy_reference(spec, device))
             finish(directory, ['points.npy'])
@@ -128,8 +134,14 @@ def prepare_indices(
         return prepare_split(dataset, spec, config['device'])
     weight_config = dict(dataset=source, weighted=spec['weighted'])
     weight_id = identity(weight_config)
-    weight_dir = stage_directory(root / 'splits', weight_id,
-                                 f"weights__{dataset_label(source)}__{'volume' if spec['weighted'] else 'uniform'}")
+    weight_dir = cast(
+        Path,
+        stage_directory(
+            root / 'splits',
+            weight_id,
+            f"weights__{dataset_label(source)}__{'volume' if spec['weighted'] else 'uniform'}"
+        )
+    )
     if begin(weight_dir, weight_config):
         weights = sampling_weights(dataset, spec['weighted'], config['device'])
         np.save(weight_dir / 'weights.npy', weights)
@@ -140,8 +152,14 @@ def prepare_indices(
         from microscope.datasets.dataset_split import maximal_distance_selection_torch
         test_config = dict(dataset=source, max_test_size=spec['max_test_size'])
         test_id = identity(test_config)
-        test_dir = stage_directory(root / 'splits', test_id,
-                                   f"test__{dataset_label(source)}__max{spec['max_test_size']}")
+        test_dir = cast(
+            Path,
+            stage_directory(
+                root / 'splits',
+                test_id,
+                f"test__{dataset_label(source)}__max{spec['max_test_size']}"
+            )
+        )
         if begin(test_dir, test_config):
             available = candidates(dataset)
             points = dataset.flat[available].reshape(len(available), -1)
@@ -185,7 +203,7 @@ def fit_model(
         case 'beta_vae':
             vae.fit(
                 data,
-                directory,
+                cast(Path, directory),
                 parameters,
                 seed=config['training']['seed'],
                 device=config['device'],
@@ -249,7 +267,7 @@ def load_model(
             parameters = read_json(directory / 'model.json')
             return load_autoencoder_from_checkpoint(
                 parameters['model'],
-                directory / 'checkpoints/last.pth',
+                cast(Path, directory / 'checkpoints/last.pth'),
                 latent_dim=parameters['z_dim'],
                 device=config['device']
             )
@@ -284,7 +302,7 @@ def predictions(
         case 'beta_vae':
             options = config['inference']
             for start, output in batches(
-                model,
+                cast('BetaVAE_H', model),
                 data,
                 [representation],
                 batch_size=options['batch_size'],
@@ -299,7 +317,7 @@ def predictions(
                 raise ValueError('MMLS exposes input and output only.')
             # Preserve the original neighbor branch, which depends on query count.
             np.random.seed(config['inference']['seed'])
-            yield 0, predict(model, data)
+            yield 0, predict(cast('ANNMMLSProjector', model), data)
         case _:
             raise ValueError('Inference requires a model.')
 
@@ -337,7 +355,7 @@ def analyze(
                          representations=config['inference']['representations'])]
     for analysis in requests:
         names = analysis['representations']
-        available = (representation_names(model) if config['model']['name'] == 'beta_vae'
+        available = (representation_names(cast('BetaVAE_H', model)) if config['model']['name'] == 'beta_vae'
                      else ['input', 'output'] if model is not None else ['input'])
         names = available if names == 'all' else names
         if not set(names).issubset(available):
@@ -391,6 +409,7 @@ def analyze(
             persist = config['inference']['persist'] and representation != 'input'
             temporary = inference_dir / 'working.npy'
             values = None
+            batch: np.ndarray | None = None
             distances = []
             try:
                 inference_started = perf_counter()
@@ -423,9 +442,12 @@ def analyze(
                 if isinstance(values, np.memmap):
                     values.flush()
                 if persist and not isinstance(saved, Path) and not reused_values:
+                    assert values is not None
                     save_array(saved, values)
                 inference_seconds = perf_counter() - inference_started
                 if inference_new:
+                    if batch is None:
+                        raise ValueError('Inference produced no batches for the selected data.')
                     write_json(inference_dir / 'summary.json', dict(
                         number_of_points=len(data),
                         representation=representation,
@@ -445,6 +467,7 @@ def analyze(
                         save_array(directory / 'pointwise_distances.npy', distances)
                         files = ['metrics.json', 'pointwise_distances.npy']
                     case 'geometry':
+                        assert values is not None
                         # resolve() validates that only geometry keyword arguments remain here.
                         options = cast(GeometryOptions, {
                             k: v for k, v in analysis.items()
@@ -457,11 +480,13 @@ def analyze(
                             **options
                         )
                         with (directory / 'measures.pkl').open('wb') as stream:
-                            pickle.dump(measures, stream, -1)
+                            pickle.dump(measures, cast(BinaryIO, stream), -1)
                         files = ['measures.pkl']
                     case 'inference':
                         write_json(directory / 'inference.json', dict(directory=str(inference_dir)))
                         files = ['inference.json']
+                    case _:
+                        raise ValueError(f"Unknown analysis: {analysis['name']}")
                 write_json(directory / 'result.json', record)
                 finish(directory, files + ['result.json'],
                        elapsed_seconds=perf_counter() - analysis_started - inference_seconds)
@@ -540,9 +565,9 @@ def _run(
     if begin(split_dir, dict(dataset=source, split=config['split'])):
         train, test = prepare_indices(dataset, config, root, source)
         with (split_dir / 'indices.npz').open('wb') as stream:
-            np.savez(stream, train=train, test=test)
+            np.savez(cast(BinaryIO, stream), train=train, test=test)
         finish(split_dir, ['indices.npz'])
-    with (split_dir / 'indices.npz').open('rb') as stream, np.load(stream) as split:
+    with (split_dir / 'indices.npz').open('rb') as stream, np.load(cast(BinaryIO, stream)) as split:
         train, test = split['train'], split['test']
     if (config['model']['name'] == 'mmls'
             and len(train) < config['model']['parameters']['number_of_neighbors']):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pathlib import Path
 import pickle
@@ -107,14 +107,20 @@ def render(
     root = Path(output_dir)
     config = dict(request=request, results=sorted({r['id'] for r in records}))
     plot_id = identity(config)
-    directory = stage_directory(root / 'plots', plot_id, request['filename'])
+    directory = cast(Path, stage_directory(root / 'plots', plot_id, request['filename']))
     if not begin(directory, config):
         return directory
     match request['name']:
         case 'bounds':
             curves, summaries = bound_data(records, request['panels'])
-            aggregate_dir = stage_directory(root / 'analysis-outputs', plot_id,
-                                            f"aggregate__{request['filename']}__bounds")
+            aggregate_dir = cast(
+                Path,
+                stage_directory(
+                    root / 'analysis-outputs',
+                    plot_id,
+                    f"aggregate__{request['filename']}__bounds"
+                )
+            )
             if begin(aggregate_dir, config):
                 np.savez(aggregate_dir / 'curves.npz', **curves)
                 write_json(aggregate_dir / 'regression.json', summaries)

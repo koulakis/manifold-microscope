@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, TypeVar, cast
 
 import numpy as np
 import torch
@@ -13,6 +13,8 @@ from microscope.computations_grid.curvature import scalar_curvature, compute_tot
 from microscope.computations_grid.reach import reach_per_point
 from microscope.computations_grid.volume import volume_element, compute_total_volume
 from microscope.cyclic_dimensions import get_difference_intervals
+
+MeasureKey = TypeVar('MeasureKey', bound=str | tuple[str, str])
 
 
 @dataclass
@@ -145,9 +147,9 @@ def compute_measure_aggregates_multiclass(
 
 
 def clip_measure_multiclass(
-    measure: dict[Union[str, tuple[str, str]], np.ndarray],
+    measure: dict[MeasureKey, np.ndarray],
     quantile_margin: float = 0.05
-) -> dict[Union[str, tuple[str, str]], np.ndarray]:
+) -> dict[MeasureKey, np.ndarray]:
     """Clip each named measure to its central quantile interval.
 
     Args:
@@ -157,7 +159,7 @@ def clip_measure_multiclass(
     Returns:
         Dictionary with the same keys and array shapes (s1 ... sd), with each field clipped to its quantile interval.
     """
-    clipped_measure = {}
+    clipped_measure: dict[MeasureKey, np.ndarray] = {}
 
     for k, v in measure.items():
         q_left, q_right = np.quantile(v, [quantile_margin, 1 - quantile_margin])
@@ -262,7 +264,7 @@ def _plot_feature_measure_pairs(
     Returns:
         None.
     """
-    n_classes = len(np.unique(classes))
+    n_classes = len(np.unique(classes)) if classes is not None else 1
     rotations, x_translations, y_translations = np.meshgrid(*[np.arange(n) for n in data.shape[1:-1]])
     rotations = 360 * rotations / rotations.max()
     rotations = rotations.flatten()
@@ -467,15 +469,18 @@ def compute_measures_multiclass(
         )
         normalized_volume_elements[name] = normalized_volume_elements[name][trim_slices_volume]
 
-        normalized_reaches[name] = reach_per_point(
-            features_on_grid=normalized_data[i],
-            range_sizes=range_sizes,
-            patch_sizes=patch_sizes,
-            cyclic_dimensions=cyclic_dimensions,
-            subsample_points=reach_subsample,
-            batch_size=reach_batch_size,
-            return_witnesses=False,
-            device=device
+        normalized_reaches[name] = cast(
+            np.ndarray,
+            reach_per_point(
+                features_on_grid=normalized_data[i],
+                range_sizes=range_sizes,
+                patch_sizes=patch_sizes,
+                cyclic_dimensions=cyclic_dimensions,
+                subsample_points=reach_subsample,
+                batch_size=reach_batch_size,
+                return_witnesses=False,
+                device=device
+            )
         )
         # Create slices to trim the reach to the area of the curvature which shrinks the most.
         trim_slices_reach = tuple(

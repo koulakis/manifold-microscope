@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO, Literal, cast
 
 from datetime import datetime, timezone
 from hashlib import sha256
@@ -77,8 +77,8 @@ def artifact_path(path: str | Path | BundlePath) -> Path | BundlePath:
         from .bundles import bundled_path
         return bundled_path(str(path))
     if hasattr(path, 'read_text'):
-        return path
-    return Path(path)
+        return cast('Path | BundlePath', path)
+    return Path(cast(str, path))
 
 
 def save_array(path: str | Path | BundlePath, value: np.ndarray) -> None:
@@ -93,10 +93,13 @@ def save_array(path: str | Path | BundlePath, value: np.ndarray) -> None:
     """
     import numpy as np
     with artifact_path(path).open('wb') as stream:
-        np.save(stream, value, allow_pickle=False)
+        np.save(cast(BinaryIO, stream), value, allow_pickle=False)
 
 
-def load_array(path: str | Path | BundlePath, mmap_mode: str | None = None) -> np.ndarray:
+def load_array(
+    path: str | Path | BundlePath,
+    mmap_mode: Literal['r+', 'r', 'w+', 'c'] | None = None
+) -> np.ndarray:
     """Load an array from a filesystem or bundle path.
 
     Args:
@@ -111,7 +114,7 @@ def load_array(path: str | Path | BundlePath, mmap_mode: str | None = None) -> n
     if isinstance(path, Path):
         return np.load(path, mmap_mode=mmap_mode, allow_pickle=False)
     with path.open('rb') as stream:
-        return np.load(stream, allow_pickle=False)
+        return np.load(cast(BinaryIO, stream), allow_pickle=False)
 
 
 def stage_directory(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import torch
@@ -258,7 +259,7 @@ def batches(
                     selected
                 )
                 if 'output' in selected:
-                    outputs['output'] = reconstruction
+                    outputs['output'] = cast(np.ndarray, reconstruction)
             if 'input' in representations:
                 outputs['input'] = images.numpy()
             yield start, outputs

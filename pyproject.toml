@@ -66,6 +66,7 @@ benchmark = [
     "pandas"
 ]
 dev = [
+    "pytest",
     "ruff == 0.17.3",
     "pyright[nodejs] == 1.1.414",
     "pre-commit == 4.6.2"
@@ -107,10 +108,10 @@ convention = "google"
 "microscope/manifold_examples/hyperboloid.py" = ["E501"]
 
 [tool.pyright]
-include = ["microscope", "experiments_and_analysis", "tools"]
-exclude = ["**/tests", "**/__pycache__"]
+include = ["."]
+exclude = ["**/__pycache__", "build", "dist", "docs/build"]
 pythonVersion = "3.10"
-typeCheckingMode = "basic"
+typeCheckingMode = "standard"
 
 [tool.black]
 line-length = 120
