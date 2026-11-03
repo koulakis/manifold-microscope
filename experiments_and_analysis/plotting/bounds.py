@@ -562,7 +562,7 @@ def create_repetitions_shaded_plot(
             axes[i].tick_params(axis='both', which='major', labelsize=tick_size)
             axes[i].tick_params(axis='x', rotation=45)
             # Format x-axis to show integer values only
-            axes[i].xaxis.set_major_formatter(plt.FuncFormatter(lambda xx, p: f'{int(xx)}'))
+            axes[i].xaxis.set_major_formatter(FuncFormatter(lambda xx, p: f'{int(xx)}'))
 
         if log_scale:
             axes[i].set_yscale('log')

@@ -148,14 +148,22 @@ def test_reversed_numpy_view_preserves_reach(device):
 def test_true_rank_loss_reports_grid_location(device):
     u, v = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
     points = np.stack([u+v, np.zeros_like(u), np.zeros_like(u)], axis=-1)
-    with pytest.raises(torch.linalg.LinAlgError, match="rank.*grid|grid.*rank"):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError,  # pyright: ignore[reportPrivateImportUsage]
+        match="rank.*grid|grid.*rank"
+    ):
         reach_per_point(points, [8., 8.], [5, 5], device=device)
 
 
 def test_rank_diagnostic_maps_later_batch_to_input_grid(device):
     t = np.arange(9.)-4
     points = np.column_stack([t*t, np.zeros_like(t)])
-    with pytest.raises(torch.linalg.LinAlgError, match=r"grid index \(4,\)"):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError,  # pyright: ignore[reportPrivateImportUsage]
+        match=r"grid index \(4,\)"
+    ):
         reach_per_point(points, [8.], [5], batch_size=2, device=device)
 
 

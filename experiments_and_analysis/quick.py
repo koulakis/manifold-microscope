@@ -3,11 +3,26 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 from .config import resolve
 
 
-QUICK_RUN = dict(
+class QuickRunProfile(TypedDict):
+    """Independent budgets used by the shared quick-run profile."""
+
+    vae_max_iter: int
+    train_fractions: list[float]
+    repetitions: int
+    evaluation_size: int
+    toy_sample_sizes: list[int]
+    toy_repetitions: int
+    toy_reference_points: int
+    reach_subsample: int
+
+
+QUICK_RUN = QuickRunProfile(
     vae_max_iter=10_000,
     train_fractions=[0.2, 0.5, 1.0],  # Three sizes for curve fitting.
     repetitions=1,
@@ -40,7 +55,7 @@ def quick_grid(grid: dict) -> dict:
     return grid
 
 
-def apply_quick_run(config: dict) -> dict:
+def apply_quick_run(config: Mapping[str, Any]) -> dict:
     """Return a resolved experiment with capped budgets and unchanged grids/layers.
 
     Args:

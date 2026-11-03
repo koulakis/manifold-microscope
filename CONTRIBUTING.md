@@ -76,6 +76,16 @@ counts against that file, and fails on new diagnostics. Source line movement doe
 Missing dependencies always fail, including when refreshing the baseline. Resolved diagnostics also require a baseline
 refresh so the recorded debt stays current.
 
+Tests are excluded from the project's Pyright configuration. To check them independently of the TOML settings on
+Linux/macOS, run this from the repository root with the development environment active:
+
+```sh
+PYTHONPATH="$PWD" python -m pyright --project /dev/null microscope/computations_grid/tests
+```
+
+`/dev/null` supplies an empty configuration. `PYTHONPATH` keeps local package imports resolvable when the project
+configuration is bypassed. This reports all test diagnostics, including existing issues outside the production baseline.
+
 Review raw Pyright output before accepting any baseline changes. To run the underlying checker directly in an activated
 environment, use `python -m pyright --project pyproject.toml`. After reviewing its output, refresh with:
 

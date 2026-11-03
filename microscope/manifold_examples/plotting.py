@@ -62,11 +62,12 @@ def plot_points(
     limits = (-limit, limit)
 
     ax: mplot3d.axes3d.Axes3D = axes[0]
+    # Axes3D.scatter supports array z coordinates and float sizes; its unannotated defaults infer int types.
     ax.scatter(
         xs,
         ys,
-        zs,
-        s=s,
+        zs,  # pyright: ignore[reportArgumentType]
+        s=s,  # pyright: ignore[reportArgumentType]
         alpha=alpha
     )
     ax.set_xlim(limits)
@@ -79,8 +80,8 @@ def plot_points(
         plot = ax.scatter(
             xs,
             ys,
-            zs,
-            s=s,
+            zs,  # pyright: ignore[reportArgumentType]
+            s=s,  # pyright: ignore[reportArgumentType]
             c=curvature,
             cmap=cmap,
             label="curvature",
@@ -98,8 +99,8 @@ def plot_points(
         plot = ax.scatter(
             xs,
             ys,
-            zs,
-            s=s,
+            zs,  # pyright: ignore[reportArgumentType]
+            s=s,  # pyright: ignore[reportArgumentType]
             c=volume_element,
             cmap=cmap,
             label="volume element",

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from decimal import Decimal
 from pathlib import Path
@@ -169,7 +170,7 @@ def experiment_paths(
         model=stage_directory(root / 'trained-models', model_id, model_label(config)))
 
 
-def sweep_label(config: dict, experiments: list[dict]) -> str:
+def sweep_label(config: Mapping[str, Any], experiments: list[dict]) -> str:
     """Build a readable sweep label from its outputs or experiment choices.
 
     Args:

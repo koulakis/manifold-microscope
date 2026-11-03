@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -117,7 +118,7 @@ def toy_manifold(name: str) -> Manifold:
             raise ValueError(f'Unknown toy manifold: {name}')
 
 
-def toy_reference(spec: dict, device: str = 'cpu') -> np.ndarray:
+def toy_reference(spec: Mapping[str, Any], device: str = 'cpu') -> np.ndarray:
     """Generate a fixed reference tessellation while preserving the caller's RNG state.
 
     Args:
@@ -136,7 +137,7 @@ def toy_reference(spec: dict, device: str = 'cpu') -> np.ndarray:
         np.random.set_state(state)
 
 
-def load_source(spec: dict, reference: np.ndarray | None = None) -> Dataset:
+def load_source(spec: Mapping[str, Any], reference: np.ndarray | None = None) -> Dataset:
     """IO boundary: load a package dataset or an explicitly described NPZ grid.
 
     Args:

@@ -123,7 +123,11 @@ def test_metric_first_rejects_nonfinite_original_border(bad):
 
 def test_metric_first_rejects_rank_loss():
     points = np.zeros((9, 9, 3), dtype=np.float64)
-    with pytest.raises(torch.linalg.LinAlgError, match="rank.*grid"):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError,  # pyright: ignore[reportPrivateImportUsage]
+        match="rank.*grid"
+    ):
         curvature.scalar_curvature(points, [1., 1.], [], [8, 8], device="cpu")
 
 

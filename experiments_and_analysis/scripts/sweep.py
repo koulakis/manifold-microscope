@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from itertools import product
@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 import sys
 from time import perf_counter
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from tqdm import tqdm
@@ -44,7 +44,8 @@ def experiment_output(quiet: bool) -> Iterator[None]:
     else:
         # Inner tqdm instances must write directly to stderr. Wrapping their
         # refreshes in tqdm.write clears/repaints every active bar each time.
-        with redirect_stdout(DummyTqdmFile(sys.stdout)):
+        # The proxy forwards flush; its write returns None, which redirect_stdout also supports at runtime.
+        with redirect_stdout(DummyTqdmFile(sys.stdout)):  # pyright: ignore[reportArgumentType]
             yield
 
 
@@ -71,7 +72,7 @@ def set_choice(
 
 
 def expand(
-    config: dict,
+    config: Mapping[str, Any],
     quick_run: bool = False,
     device: str | None = None
 ) -> list[dict]:
@@ -115,7 +116,7 @@ def expand(
 
 
 def run(
-    config: dict,
+    config: Mapping[str, Any],
     output_dir: str | Path,
     dry_run: bool = False,
     quick_run: bool = False,

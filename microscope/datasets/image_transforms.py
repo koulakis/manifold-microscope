@@ -35,7 +35,7 @@ def rotate_image(
     Returns:
         Rotated image array with the same shape (h w) as image.
     """
-    center = np.array(image.shape) / 2
+    center = (image.shape[0] / 2, image.shape[1] / 2)
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
     rotated_image = cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 

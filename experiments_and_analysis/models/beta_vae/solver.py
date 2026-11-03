@@ -469,11 +469,11 @@ class Solver(object):
                 if self.objective == 'H':
                     beta_vae_loss = recon_loss + self.beta*total_kld
                 elif self.objective == 'B':
-                    # noinspection PyTypeChecker
-                    C = torch.clamp(
+                    # PyTorch supports scalar min with tensor max; its overloads omit mixed bounds.
+                    C = torch.clamp(  # pyright: ignore[reportCallIssue]
                         self.C_max / self.C_stop_iter * self.global_iter,
                         min=0,
-                        max=self.C_max.data[0]
+                        max=self.C_max.data[0]  # pyright: ignore[reportArgumentType]
                     )
                     beta_vae_loss = recon_loss + self.gamma*(total_kld-C).abs()
                 else:

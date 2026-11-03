@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from microscope.computations_grid.reach_two_step import (
-    ReachComponents, _bottleneck_radius, _max_normal_curvature,
+    ReachComponents, _max_normal_curvature,
     reach_curvature_bottleneck,
 )
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid
@@ -87,27 +87,6 @@ def test_general_codimension_refines_toward_independent_analytic_maximum(device)
     refined = _max_normal_curvature(form, n_directions=32, iterations=16).item()
     assert sampled <= refined <= np.sqrt(6.4)*(1+1e-12)
     assert refined == pytest.approx(np.sqrt(6.4), rel=1e-6)
-
-
-def test_parallel_components_have_independent_bottleneck_scale(device):
-    theta = np.linspace(0, 2*np.pi, 24, endpoint=False)
-    gap = .01
-    base = np.column_stack([2*np.cos(theta), 2*np.sin(theta)])
-    points = np.concatenate([np.column_stack([base, np.full(24, -gap)]),
-                             np.column_stack([base, np.full(24, gap)])])
-    tangent = np.column_stack([-np.sin(theta), np.cos(theta), np.zeros(24)])
-    frames = np.tile(tangent, (2, 1))[:, :, None]
-    radius, pair = _bottleneck_radius(torch.from_numpy(points), torch.from_numpy(frames),
-        7, 11, .1, None, device)
-    assert radius == pytest.approx(gap, abs=1e-12)
-    assert (pair[0] < 24) != (pair[1] < 24)
-
-
-def test_bottleneck_filter_checks_both_endpoint_tangents(device):
-    points = torch.tensor([[0., 0.], [1., 0.]], dtype=torch.float64)
-    frames = torch.tensor([[[0.], [1.]], [[1.], [0.]]], dtype=torch.float64)
-    radius, pair = _bottleneck_radius(points, frames, 1, 1, .1, None, device)
-    assert np.isposinf(radius) and pair is None
 
 
 def test_connected_fold_is_bottleneck_limited(device):
@@ -206,5 +185,9 @@ def test_nonfinite_rank_and_undersampling_errors(device):
         estimate(points, device)
     with pytest.raises(ValueError, match="two sampled"):
         estimate(circle(), device, subsample_points=64)
-    with pytest.raises(torch.linalg.LinAlgError, match="rank"):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError,  # pyright: ignore[reportPrivateImportUsage]
+        match="rank"
+    ):
         estimate(np.ones((12, 2)), device)

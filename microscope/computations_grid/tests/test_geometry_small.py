@@ -126,7 +126,10 @@ def test_sphere_curvature_normalization_and_patch_seams():
 def test_rank_deficient_grid_cannot_compute_curvature():
     u, _ = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
     points = torch.from_numpy(np.stack([u, np.zeros_like(u)], axis=-1))
-    with pytest.raises(torch.linalg.LinAlgError):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError  # pyright: ignore[reportPrivateImportUsage]
+    ):
         scalar_curvature_batch(points, [1., 1.])
 
 

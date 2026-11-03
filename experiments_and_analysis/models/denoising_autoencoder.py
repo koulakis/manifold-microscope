@@ -4,6 +4,7 @@ from typing import Optional
 
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.ops import MLP
 from torch import nn
@@ -52,7 +53,7 @@ class DenoisingAutoencoderPL(pl.LightningModule):
         self.noise_std = noise_std
         self.noise_along_normals = noise_along_normals
 
-        self.encoder = MLP(in_channels=input_dim, hidden_channels=hidden_channels)
+        self.encoder = MLP(in_channels=input_dim, hidden_channels=list(hidden_channels))
         self.decoder = MLP(in_channels=hidden_channels[-1], hidden_channels=[*hidden_channels[-2::-1], input_dim])
 
         self.criterion = nn.MSELoss()
@@ -212,7 +213,7 @@ class DenoisingAutoencoder:
             shuffle=True,
             num_workers=num_workers
         )
-        early_stopping_callback = pl.callbacks.early_stopping.EarlyStopping(
+        early_stopping_callback = EarlyStopping(
             monitor="train_loss",
             mode="min",
             min_delta=-1,

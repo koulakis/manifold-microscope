@@ -7,6 +7,7 @@ import pytest
 from typer.testing import CliRunner
 
 from experiments_and_analysis.config import load_config, resolve
+from experiments_and_analysis.config_types import ExperimentOptions
 from experiments_and_analysis.outputs import read_json, stage_ids
 from experiments_and_analysis.quick import QUICK_RUN, apply_quick_run
 from experiments_and_analysis.scripts import run as single
@@ -96,12 +97,22 @@ def test_quick_random_evaluation_caps_predictions_preserving_train_and_grid(tmp_
     data = np.stack([np.cos(angle), np.sin(angle), .2 * np.cos(2 * angle)], axis=-1)[None]
     path = tmp_path / 'circle.npz'
     np.savez(path, data=data)
-    config = dict(dataset=dict(name='circle_grid', path=str(path), dimension=1,
-                                range_sizes=[2 * np.pi], cyclic_dimensions=[0],
-                                patch_sizes=[12], class_names=['circle'], feature_ndim=1),
-                  split=dict(method='random', weighted=False, test_fraction=.75),
-                  model=dict(name='mmls', parameters=dict(number_of_neighbors=4, verbose=False)),
-                  inference=dict(persist=True), analyses=['errors'])
+    config: ExperimentOptions = {
+        'dataset': {
+            'name': 'circle_grid',
+            'path': str(path),
+            'dimension': 1,
+            'range_sizes': [2 * np.pi],
+            'cyclic_dimensions': [0],
+            'patch_sizes': [12],
+            'class_names': ['circle'],
+            'feature_ndim': 1,
+        },
+        'split': {'method': 'random', 'weighted': False, 'test_fraction': .75},
+        'model': {'name': 'mmls', 'parameters': {'number_of_neighbors': 4, 'verbose': False}},
+        'inference': {'persist': True},
+        'analyses': ['errors'],
+    }
     root = tmp_path / 'outputs'
     result = single.run(config, root, quick_run=True)
     split_dir = next((root / 'splits').glob(f"*__{result['split_id']}"))

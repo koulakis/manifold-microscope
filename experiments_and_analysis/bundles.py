@@ -7,7 +7,7 @@ entire experiment at a time; results.pkl is the normal, single-pickle export for
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import BinaryIO
+from typing import BinaryIO, cast
 from contextlib import contextmanager
 from copy import deepcopy
 import csv
@@ -24,6 +24,7 @@ import numpy as np
 
 from .outputs import canonical, identity, stage_directory
 from .paths import model_label
+from .config_types import ExportConfiguration, ExportResult
 
 FORMAT_VERSION = 1
 _bundles = {}
@@ -251,12 +252,15 @@ class Bundle:
                 stages=stages,
                 elapsed_seconds=event['elapsed_seconds']
             )
+            # Committed runner artifacts contain these JSON records; decoding leaves their types unknown.
+            configuration = cast(ExportConfiguration, config)
+            experiment_result = cast(ExportResult, result)
             base = dict(
                 experiment_id=key,
-                sample_size=config['dataset']['sample_size'],
-                seed=config['training']['seed'],
-                trial=config['training']['trial'],
-                status=result.get('status', 'completed'),
+                sample_size=configuration['dataset']['sample_size'],
+                seed=configuration['training']['seed'],
+                trial=configuration['training']['trial'],
+                status=experiment_result.get('status', 'completed'),
                 elapsed_seconds=event['elapsed_seconds']
             )
             count = len(rows)

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from collections.abc import Mapping
 from pathlib import Path
 from dataclasses import asdict
+from typing import Any
 import json
 
 import yaml
@@ -27,7 +29,7 @@ def load_config(path: str | Path) -> dict:
     return value
 
 
-def merge(base: dict, changes: dict) -> dict:
+def merge(base: dict, changes: Mapping[str, Any]) -> dict:
     """Recursively merge configuration dictionaries without changing either input.
 
     Args:
@@ -182,7 +184,7 @@ def _validate_output_options(
         raise ValueError('Bundled outputs require a toy MMLS experiment with provided splits and error analyses.')
 
 
-def resolve(config: dict) -> dict:
+def resolve(config: Mapping[str, Any]) -> dict:
     """Fill defaults without changing the caller's dictionary.
 
     Args:

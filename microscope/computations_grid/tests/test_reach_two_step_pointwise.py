@@ -123,11 +123,25 @@ def test_staggered_sampled_branches_can_be_rejected_at_both_ends(device):
     points = torch.from_numpy(np.concatenate([bottom, top]))
     frames = torch.zeros((10, 2, 1), dtype=torch.float64)
     frames[:, 0, 0] = 1
-    strict, strict_witness = _bottleneck_radius(points, frames, 3, 4, .1, None,
-        device, return_per_point=True)
+    strict, strict_witness = _bottleneck_radius(
+        points,
+        frames,
+        3,
+        4,
+        .1,
+        None,
+        device
+    )
     assert np.isposinf(strict).all() and np.all(strict_witness == -1)
-    relaxed, witnesses = _bottleneck_radius(points, frames, 3, 4, .3, None,
-        device, return_per_point=True)
+    relaxed, witnesses = _bottleneck_radius(
+        points,
+        frames,
+        3,
+        4,
+        .3,
+        None,
+        device
+    )
     # Exact endpoint tangent ratio; exhaustive search sees this near-bottleneck
     # even with the stricter normality filter failing. True parallel-line reach
     # is .05, whereas the sampled ratio is .053125 (6.25% high).
@@ -139,6 +153,13 @@ def test_staggered_sampled_branches_can_be_rejected_at_both_ends(device):
 def test_bad_tangent_at_one_end_rejects_pair_in_both_directions(device):
     points = torch.tensor([[0., 0.], [1., 0.]], dtype=torch.float64)
     frames = torch.tensor([[[0.], [1.]], [[1.], [0.]]], dtype=torch.float64)
-    values, witnesses = _bottleneck_radius(points, frames, 1, 1, .1, None,
-        device, return_per_point=True)
+    values, witnesses = _bottleneck_radius(
+        points,
+        frames,
+        1,
+        1,
+        .1,
+        None,
+        device
+    )
     assert np.isposinf(values).all() and np.all(witnesses == -1)

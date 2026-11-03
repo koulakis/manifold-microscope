@@ -10,6 +10,7 @@ from PIL import Image
 from tqdm import tqdm
 import typer
 import matplotlib
+from matplotlib.colors import LinearSegmentedColormap
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -61,7 +62,7 @@ def merge_distributions(
     n_measures: int = 3,
     alpha: float = 0.1,
     quantile_margin: float = 0.1,
-    cmap: matplotlib.colors.LinearSegmentedColormap = matplotlib.colors.LinearSegmentedColormap.from_list(
+    cmap: LinearSegmentedColormap = LinearSegmentedColormap.from_list(
         "red_to_blue",
         ["b", "r"]
     )

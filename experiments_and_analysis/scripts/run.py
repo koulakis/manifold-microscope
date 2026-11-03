@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from typing import TYPE_CHECKING, Optional
+from collections.abc import Iterator, Mapping
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from pathlib import Path
 import pickle
@@ -13,6 +13,7 @@ import numpy as np
 import typer
 
 from ..config import load_config, resolve
+from ..config_types import GeometryOptions
 from ..bundles import output_root
 from ..data.preparation import (
     candidates,
@@ -444,8 +445,11 @@ def analyze(
                         save_array(directory / 'pointwise_distances.npy', distances)
                         files = ['metrics.json', 'pointwise_distances.npy']
                     case 'geometry':
-                        options = {k: v for k, v in analysis.items()
-                                   if k not in ('name', 'domain', 'representations')}
+                        # resolve() validates that only geometry keyword arguments remain here.
+                        options = cast(GeometryOptions, {
+                            k: v for k, v in analysis.items()
+                            if k not in ('name', 'domain', 'representations')
+                        })
                         measures = compute(
                             values,
                             dataset,
@@ -591,7 +595,7 @@ def _run(
 
 
 def run(
-    config: dict,
+    config: Mapping[str, Any],
     output_dir: str | Path,
     dataset: Dataset | None = None,
     quick_run: bool = False

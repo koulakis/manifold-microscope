@@ -99,7 +99,11 @@ def test_full_rank_plane_survives_gram_matrix_precision_loss(batch, dtype, eps):
 def test_true_rank_loss_has_grid_diagnostic(batch):
     u, _ = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
     points = torch.from_numpy(np.stack([u, np.zeros_like(u)], axis=-1))
-    with pytest.raises(torch.linalg.LinAlgError, match="rank.*grid|grid.*rank"):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError,  # pyright: ignore[reportPrivateImportUsage]
+        match="rank.*grid|grid.*rank"
+    ):
         batch(points, [1., 1.])
 
 

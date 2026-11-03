@@ -130,7 +130,10 @@ def test_flat_product_of_circles_has_two_nonzero_normal_curvatures():
 def test_rank_failure_and_normalization_dimension_match_intrinsic():
     u, _ = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
     singular = torch.from_numpy(np.stack([u, np.zeros_like(u)], axis=-1))
-    with pytest.raises(torch.linalg.LinAlgError):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError  # pyright: ignore[reportPrivateImportUsage]
+    ):
         scalar_curvature_batch(singular, [1., 1.])
     curve = torch.arange(9., dtype=torch.float64)[:, None]
     with pytest.raises(ValueError, match="dimension|normaliz"):
@@ -140,10 +143,14 @@ def test_rank_failure_and_normalization_dimension_match_intrinsic():
 def test_coarse_ellipsoid_cancels_stencil_bias_against_implicit_reference():
     # For x.T A x = 1 in R^3, scalar curvature = 2 det(A) / ||Ax||^4.
     # This reference avoids the sampler's symbolic coordinate formula.
-    radii = np.array([1., 1.5, 3.])
+    semi_axes: list[float] = [1., 1.5, 3.]
+    radii = np.array(semi_axes)
     points, _, _, _ = sample_ellipsoid_on_grid(
-        semi_axes=radii, n_samples_per_dim=[16, 19], ambient_space_dim=3,
-        fraction_of_angles=.8, apply_random_isometry=False,
+        semi_axes=semi_axes,
+        n_samples_per_dim=[16, 19],
+        ambient_space_dim=3,
+        fraction_of_angles=.8,
+        apply_random_isometry=False
     )
     normal = points[3:-3, 3:-3] / radii**2
     truth = 2 / np.prod(radii**2) / np.sum(normal**2, axis=-1)**2
@@ -179,13 +186,14 @@ class TestEllipsoids(unittest.TestCase):
         np.random.seed(0)
 
     def test_scalar_curvature_2d_ellipsoids(self):
-        for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
             # Keep the QR-based CUDA computation small.
             fraction_of_angles = 0.8
             n_samples_per_dim = [106, 100]
             cyclic_dimensions = [1]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
@@ -195,7 +203,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            curvature_gt = ellipsoid_scalar_curvature(semi_axes, phis)
+            curvature_gt = ellipsoid_scalar_curvature(sampled_semi_axes, phis)
 
             # Estimate the curvature.
             patch_sizes = [56, 56]
@@ -214,17 +222,18 @@ class TestEllipsoids(unittest.TestCase):
                 curvature_gt[3:-3, ...],
                 curvature_pred,
                 decimal=11,
-                err_msg=f"{scalar_curvature.__module__}: ellipsoid {semi_axes}."
+                err_msg=f"{scalar_curvature.__module__}: ellipsoid {sampled_semi_axes}."
             )
 
     def test_scalar_curvature_2d_ellipsoids_irregular_grid(self):
-        for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
             # Keep the QR-based CUDA computation small.
             fraction_of_angles = 0.8
             n_samples_per_dim = [123, 144]
             cyclic_dimensions = [1]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
@@ -234,7 +243,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            curvature_gt = ellipsoid_scalar_curvature(semi_axes, phis)
+            curvature_gt = ellipsoid_scalar_curvature(sampled_semi_axes, phis)
 
             # Estimate the curvature.
             patch_sizes = [34, 42]
@@ -253,17 +262,18 @@ class TestEllipsoids(unittest.TestCase):
                 curvature_gt[3:-3, ...],
                 curvature_pred,
                 decimal=11,
-                err_msg=f"{scalar_curvature.__module__}: ellipsoid {semi_axes}."
+                err_msg=f"{scalar_curvature.__module__}: ellipsoid {sampled_semi_axes}."
             )
 
     def test_total_scalar_curvature_2d_ellipsoids(self):
-        for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
             # Keep the QR-based CUDA computation small.
             fraction_of_angles = 0.9999
-            n_samples_per_dim = [223, 244]
+            n_samples_per_dim = [1024, 1024]
             cyclic_dimensions = [1]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
@@ -314,8 +324,8 @@ class TestEllipsoids(unittest.TestCase):
             np.testing.assert_almost_equal(
                 total_curvature_gt,
                 total_curvature_pred,
-                decimal=1,
-                err_msg=f"{scalar_curvature.__module__}: ellipsoid {semi_axes}."
+                decimal=3,
+                err_msg=f"{scalar_curvature.__module__}: ellipsoid {sampled_semi_axes}."
             )
 
 
@@ -330,13 +340,13 @@ class TestHyperboloids(unittest.TestCase):
         np.random.seed(0)
 
     def test_scalar_curvature_2d_hyperboloid(self):
-        semi_axes = [5, 1, 3]
+        semi_axes: list[float] = [5, 1, 3]
 
         # Keep the QR-based CUDA computation small.
         n_samples_per_dim = [106, 100]
         cyclic_dimensions = [1]
 
-        points, semi_axes, phis, _ = sample_hyperboloid_on_grid(
+        points, sampled_semi_axes, phis, _ = sample_hyperboloid_on_grid(
             semi_axes=semi_axes,
             n_samples_per_dim=n_samples_per_dim,
             ambient_space_dim=3,
@@ -345,7 +355,7 @@ class TestHyperboloids(unittest.TestCase):
         )
 
         # Compute the ground truth values.
-        curvature_gt = hyperboloid_scalar_curvature(semi_axes, phis)
+        curvature_gt = hyperboloid_scalar_curvature(sampled_semi_axes, phis)
 
         # Estimate the metric.
         patch_sizes = 2 * [56]
@@ -364,5 +374,5 @@ class TestHyperboloids(unittest.TestCase):
             curvature_gt[3:-3, ...],
             curvature_pred,
             decimal=12,
-            err_msg=f"{scalar_curvature.__module__}: hyperboloid {semi_axes}."
+            err_msg=f"{scalar_curvature.__module__}: hyperboloid {sampled_semi_axes}."
         )

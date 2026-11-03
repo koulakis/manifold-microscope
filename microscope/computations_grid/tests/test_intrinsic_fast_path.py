@@ -65,7 +65,11 @@ def test_fallback_rank_error_uses_original_grid_coordinates():
     identity = torch.eye(2, dtype=torch.float64)
     tangent = identity.expand(2, 2, 2, 2).clone()
     tangent[1, 0] = torch.tensor([[1., 1.], [0., 0.]])
-    with pytest.raises(torch.linalg.LinAlgError, match=r"grid index \(1, 0\)"):
+    # Torch exposes this alias but does not mark its re-export as public.
+    with pytest.raises(
+        torch.linalg.LinAlgError,  # pyright: ignore[reportPrivateImportUsage]
+        match=r"grid index \(1, 0\)"
+    ):
         geometry.metric_and_inverse(tangent)
 
 

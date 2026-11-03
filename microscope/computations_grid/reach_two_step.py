@@ -81,9 +81,8 @@ def _bottleneck_radius(
     candidate_batch_size: int,
     tolerance: float,
     min_pair_distance: float | None,
-    device: str | torch.device,
-    return_per_point: bool = False
-) -> tuple[float, tuple[int, int] | None] | tuple[np.ndarray, np.ndarray]:
+    device: str | torch.device
+) -> tuple[np.ndarray, np.ndarray]:
     """Search all sampled pairs for chords approximately normal at both ends.
 
     Args:
@@ -94,11 +93,10 @@ def _bottleneck_radius(
         tolerance: Maximum tangential fraction of an accepted unit chord.
         min_pair_distance: Pair-separation cutoff; None diagnoses unresolved near pairs.
         device: Torch device used for tensor computation.
-        return_per_point: Return arrays of local radii and witnesses instead of a global pair.
 
     Returns:
-        (minimum_radius, index_pair), with index_pair=None if no partner is accepted. With return_per_point=True,
-        returns (radii, witnesses), arrays of shape (n); witnesses are int64 indices or -1.
+        (radii, witnesses), arrays of shape (n,). Radii retain the points dtype and are infinite when no partner is
+        accepted; witnesses are int64 partner indices or -1 for those points.
     """
     coordinates = points.numpy()
     maxima = np.maximum(np.abs(coordinates.min(axis=0)), np.abs(coordinates.max(axis=0)))
@@ -159,11 +157,7 @@ def _bottleneck_radius(
         witnesses[start:start+len(x)] = partners.cpu().numpy()
     if not has_distinct:
         raise ValueError("No distinct eligible sampled coordinates remain.")
-    if return_per_point:
-        return estimates, witnesses
-    query = int(estimates.argmin())
-    pair = (query, int(witnesses[query])) if witnesses[query] >= 0 else None
-    return float(estimates[query]), pair
+    return estimates, witnesses
 
 
 def _repeat_to_grid(
@@ -398,8 +392,7 @@ def reach_per_point(
             candidate_batch_size,
             bottleneck_tolerance,
             min_pair_distance,
-            device,
-            return_per_point=True
+            device
         )
     radii = np.full_like(curvatures, np.inf)
     with np.errstate(over="ignore", divide="ignore"):

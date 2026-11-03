@@ -10,22 +10,30 @@ import pytest
 
 from experiments_and_analysis import bundles
 from experiments_and_analysis.config import load_config, resolve
+from experiments_and_analysis.config_types import ExperimentOptions, SweepOptions
 from experiments_and_analysis.outputs import identity, read_json
 from experiments_and_analysis.scripts import run as single, sweep
 
 
-def toy_config():
-    return dict(dataset=dict(name='Circle', dimension=1, sample_size=8, ground_truth_size=12),
-                split=dict(method='provided', weighted=False),
-                model=dict(name='mmls', parameters=dict(number_of_neighbors=4, verbose=False)),
-                analyses=['errors'])
+def toy_config() -> ExperimentOptions:
+    return {
+        'dataset': {'name': 'Circle', 'dimension': 1, 'sample_size': 8, 'ground_truth_size': 12},
+        'split': {'method': 'provided', 'weighted': False},
+        'model': {'name': 'mmls', 'parameters': {'number_of_neighbors': 4, 'verbose': False}},
+        'analyses': ['errors'],
+    }
 
 
-def small_sweep():
+def small_sweep() -> SweepOptions:
     base = toy_config()
     base['output_layout'] = 'bundled'
-    return dict(base=base, grid={'dataset.sample_size': [8, 12, 16], 'repetition': [
-        dict(index=0, seed=7), dict(index=1, seed=8)]})
+    return {
+        'base': base,
+        'grid': {
+            'dataset.sample_size': [8, 12, 16],
+            'repetition': [{'index': 0, 'seed': 7}, {'index': 1, 'seed': 8}],
+        },
+    }
 
 
 def export(directory):
@@ -41,7 +49,8 @@ def stage(row, name):
 @pytest.mark.parametrize('persist', [False, True])
 def test_real_bundled_run_matches_directory_artifacts(tmp_path, persist):
     config = toy_config()
-    config['inference'] = dict(persist=persist, evaluation_size=7, buffer='temporary')
+    config['inference'] = {'persist': persist, 'evaluation_size': 7, 'buffer': 'temporary'}
+    assert 'parameters' in config['model']
     config['model']['parameters']['export_points'] = True
     ordinary = single.run(config, tmp_path / 'ordinary')
     config['output_layout'] = 'bundled'
@@ -155,7 +164,7 @@ def test_committed_journal_corruption_is_reported(tmp_path):
 
 
 def test_stale_export_after_hard_stop_is_refreshed_without_rerunning(tmp_path, monkeypatch):
-    config = dict(toy_config(), output_layout='bundled')
+    config: ExperimentOptions = {**toy_config(), 'output_layout': 'bundled'}
     with bundles.bundle_session(tmp_path):
         single.run(config, tmp_path)
         directory, = (tmp_path / 'experiment-bundles').iterdir()
