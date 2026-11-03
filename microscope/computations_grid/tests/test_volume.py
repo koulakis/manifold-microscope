@@ -1,7 +1,6 @@
 import unittest
 
 import numpy as np
-import torch
 
 from microscope.computations_grid.volume import volume_element, compute_total_volume
 from microscope.cyclic_dimensions import get_difference_intervals
@@ -10,12 +9,13 @@ from microscope.manifold_examples.hyperboloid import hyperboloid_volume_element
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 from microscope.manifold_examples.sphere import sphere_volume_element
 from microscope.manifold_examples.tests.test_ellipsoid import ellipsoid_2d_surface_area
+from microscope.computations_grid.tests._device import get_test_device
 
 
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_volume_element_2d_ellipsoids(self):
         for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
@@ -216,7 +216,7 @@ class TestEllipsoids(unittest.TestCase):
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_volume_element_2d_hyperboloid(self):
         semi_axes = [5, 1, 3]

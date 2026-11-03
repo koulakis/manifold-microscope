@@ -2,16 +2,16 @@ import unittest
 
 import numpy as np
 import pytest
-import torch
 
 from microscope.computations_grid.reach import reach_per_point
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
+from microscope.computations_grid.tests._device import get_test_device
 
 
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_reach_2d_ellipsoids(self):
         for semi_axes in [
@@ -166,7 +166,7 @@ class TestEllipsoids(unittest.TestCase):
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_reach_2d_hyperboloid(self):
         for semi_axes in [

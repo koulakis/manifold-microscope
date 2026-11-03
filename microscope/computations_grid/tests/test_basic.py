@@ -9,12 +9,13 @@ from microscope.computations_grid.basic import partial_derivatives_across_all_di
 from microscope.cyclic_dimensions import get_difference_intervals, pad_cyclic_dimensions
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 from microscope.manifold_examples.symbolic_computations import ellipsoid_parametrization, hyperboloid_parametrization
+from microscope.computations_grid.tests._device import get_test_device
 
 
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_partial_derivatives_across_all_dims_2d_ellipsoids(self):
         for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
@@ -368,7 +369,7 @@ class TestEllipsoids(unittest.TestCase):
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_partial_derivatives_across_all_dims_2d_hyperboloid(self):
         for semi_axes in [[5, 1, 3]]:

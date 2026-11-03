@@ -30,6 +30,44 @@ symbolic formulas are exempt from line-length checks. Pyright uses its basic mod
 runner. The solver retains a narrow import-order exemption because it configures warning filtering before importing
 training dependencies.
 
+## Dense grid reference tests
+
+The dense basic, volume, curvature and reach reference tests require CUDA by default. They fail during setup if CUDA
+is unavailable, before generating large input grids. Use `MICROSCOPE_TEST_DEVICE` to select another CUDA device or opt
+into CPU execution:
+
+```sh
+MICROSCOPE_TEST_DEVICE=cpu python -m pytest microscope/computations_grid/tests/test_curvature.py -vv --durations=10
+```
+
+With CUDA available, run the same tests without the override:
+
+```sh
+python -m pytest microscope/computations_grid/tests/test_curvature.py -vv --durations=10
+```
+
+`test_curvature.py` runs intrinsic curvature only. The marked 3D/4D tests are skipped unless `--runslow` is supplied.
+The full-grid total-curvature integral remains in the default selection and uses a 10,223 by 10,344 grid. To select
+that integral explicitly:
+
+```sh
+python -m pytest microscope/computations_grid/tests/test_curvature.py -k total_scalar_curvature -vv
+```
+
+The separate extrinsic file contains reduced 2D analytic grids and the focused geometry regressions, without the
+large slow 3D/4D cases. Its analytic grid tests target at most five seconds each on the development RTX 4090:
+
+```sh
+python -m pytest microscope/computations_grid/tests/test_curvature_extrinsic.py -vv --durations=10
+```
+
+The same `MICROSCOPE_TEST_DEVICE=cpu` override selects CPU for its analytic grid tests. Their fixed isometry seeds
+make the calibrated decimal assertions reproducible; the integral uses fewer decimals to allow for coarse quadrature.
+
+The analytic grids use float64, as they have historically; their dense finite differences need that precision.
+Runtime and memory use depend on the selected device and method. Small tests with an explicit CPU device and tests
+parameterized over CPU/CUDA retain their declared device coverage.
+
 ## Existing typing issues
 
 `pyright-baseline.json` records the remaining existing diagnostics; 176 were present when checks were introduced.

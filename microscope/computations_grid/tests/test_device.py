@@ -8,6 +8,45 @@ from microscope.computations_grid.basic import partial_derivatives_across_all_di
 from microscope.computations_grid.curvature import scalar_curvature
 from microscope.computations_grid.reach import reach_per_point
 from microscope.computations_grid.volume import volume_element
+from microscope.computations_grid.tests._device import get_test_device
+
+
+@pytest.mark.parametrize("available", [False, True])
+def test_dense_grid_default_requires_cuda(monkeypatch, available):
+    monkeypatch.delenv("MICROSCOPE_TEST_DEVICE", raising=False)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: available)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+    if available:
+        assert get_test_device() == "cuda:0"
+    else:
+        with pytest.raises(RuntimeError, match="MICROSCOPE_TEST_DEVICE=cpu"):
+            get_test_device()
+
+
+@pytest.mark.parametrize("available", [False, True])
+def test_dense_grid_cpu_override_is_explicit(monkeypatch, available):
+    monkeypatch.setenv("MICROSCOPE_TEST_DEVICE", "cpu")
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: available)
+    assert get_test_device() == "cpu"
+
+
+@pytest.mark.parametrize("device", ["mps", "meta"])
+def test_dense_grid_rejects_unsupported_device(monkeypatch, device):
+    monkeypatch.setenv("MICROSCOPE_TEST_DEVICE", device)
+    with pytest.raises(ValueError, match="MICROSCOPE_TEST_DEVICE"):
+        get_test_device()
+
+
+@pytest.mark.parametrize("index", [1, 2])
+def test_dense_grid_checks_requested_cuda_index(monkeypatch, index):
+    monkeypatch.setenv("MICROSCOPE_TEST_DEVICE", f"cuda:{index}")
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    if index == 1:
+        assert get_test_device() == "cuda:1"
+    else:
+        with pytest.raises(ValueError, match="unavailable CUDA device"):
+            get_test_device()
 
 
 @pytest.mark.parametrize("device", [None, "cpu", torch.device("cpu")])
