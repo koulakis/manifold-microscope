@@ -13,13 +13,6 @@ from microscope.computations_grid.reach_two_step import (
 )
 
 
-@pytest.fixture(params=["cuda:0", "cpu"])
-def device(request):
-    if request.param.startswith("cuda") and not torch.cuda.is_available():
-        pytest.skip("CUDA unavailable")
-    return request.param
-
-
 def circle(n=24, dtype=np.float64):
     t = np.arange(n)*2*np.pi/n
     return (2*np.column_stack([np.cos(t), np.sin(t)])).astype(dtype)

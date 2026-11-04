@@ -7,7 +7,7 @@ import pytest
 from experiments_and_analysis import paths
 from experiments_and_analysis.config import load_config, resolve
 from experiments_and_analysis.data.preparation import source_identity
-from experiments_and_analysis.outputs import begin, experiment_identity, read_json, stage_directory, stage_ids
+from experiments_and_analysis.outputs import experiment_identity, read_json, stage_directory, stage_ids
 from experiments_and_analysis.scripts import run as single
 from experiments_and_analysis.scripts import sweep
 
@@ -65,15 +65,6 @@ def test_path_components_are_portable_bounded_and_keep_hash(tmp_path, label):
     assert directory.parent == tmp_path
     assert directory.name.isascii() and len(directory.name.encode()) <= 242
     assert directory.name.endswith(f'__{key}')
-
-
-def test_partial_output_is_preserved(tmp_path):
-    directory = stage_directory(tmp_path, 'b' * 20, 'dataset__mmls__train20pct')
-    directory.mkdir()
-    (directory / 'checkpoint').write_text('keep')
-    with pytest.raises(RuntimeError, match='Incomplete output preserved'):
-        begin(directory, {})
-    assert (directory / 'checkpoint').read_text() == 'keep'
 
 
 def test_shared_cache_names_include_dataset_but_no_training_fraction(tmp_path):

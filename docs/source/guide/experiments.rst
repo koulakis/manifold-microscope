@@ -5,6 +5,8 @@ Each experiment loads data, selects a split, fits a model, runs inference and
 computes the requested analyses. A sweep resolves a list of experiments and
 runs them sequentially. Matching completed stages are reused.
 
+.. _experiment-run-preview:
+
 Run and preview
 ---------------
 
@@ -35,12 +37,9 @@ output. ``--quiet-experiments`` keeps only the overall bar;
 in their presets. Python callers can pass ``quiet_experiments=True`` to the
 sweep runner. Display settings do not change cache identities.
 
-Paper presets explicitly request ``base.device: cuda:0`` for training,
-inference and the volume/curvature/reach kernels. Initialization failures stop
-new computation before data loading or stage creation. Pass ``--device cpu``
-to run on CPU. Dry runs and fully cached runs need no accelerator. NumPy
-preparation, aggregation, interclass distances and plotting still use CPU.
-Geometry reports its device, including in the reach progress bar.
+Paper presets request ``base.device: cuda:0``; pass ``--device cpu`` to override.
+See :ref:`device-selection` for initialization and cache behavior. Geometry
+reports its device, including in the reach progress bar.
 
 Quick runs
 ----------

@@ -8,6 +8,58 @@ from microscope.computations_grid import curvature
 from microscope.patches import iter_patches_with_halo
 
 
+def embedding_tiled_reference(
+    features_on_grid: np.ndarray,
+    difference_intervals: list[float],
+    cyclic_dimensions: list[int],
+    patch_sizes: list[int],
+    normalize: bool,
+    device: str | torch.device | None
+) -> np.ndarray:
+    """Estimate intrinsic curvature using embedding tiles with a three-point halo.
+
+    Args:
+        features_on_grid: Embedding array, shape (s1 ... sd f).
+        difference_intervals: Coordinate spacing along each of the d grid axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
+        patch_sizes: Patch size along each of the d grid axes.
+        normalize: Divide scalar curvature by d * (d - 1).
+        device: Torch device; None selects CUDA when available, otherwise CPU.
+
+    Returns:
+        Curvature array of shape (t1, ..., td), where ti = si on cyclic axes and si - 6 otherwise; dtype matches the
+        input.
+    """
+    curvature.validate_curvature_grid(
+        features_on_grid,
+        difference_intervals,
+        cyclic_dimensions,
+        patch_sizes
+    )
+    if device is None:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    output_shape = tuple(
+        s if i in cyclic_dimensions else s - 6
+        for i, s in enumerate(features_on_grid.shape[:-1])
+    )
+    curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
+    for destination, patch in iter_patches_with_halo(
+        features_on_grid,
+        patch_sizes,
+        3,
+        cyclic_dimensions
+    ):
+        if any(stride < 0 for stride in patch.strides):
+            patch = np.ascontiguousarray(patch)
+        points_pt_patch = torch.from_numpy(patch).to(device)
+        curvature_array[destination] = curvature.scalar_curvature_batch(
+            points_pt_patch,
+            difference_intervals=difference_intervals,
+            normalize=normalize
+        ).cpu().detach().numpy()
+    return curvature_array
+
+
 def immersion(shape, cyclic, dtype):
     coordinates = [np.arange(n)*(2*np.pi/n if a in cyclic else .2)
                    for a, n in enumerate(shape)]
@@ -33,7 +85,7 @@ def immersion(shape, cyclic, dtype):
 def test_metric_first_matches_embedding_tiles(dtype, shape, cyclic, patches):
     points, intervals = immersion(shape, cyclic, dtype)
     for normalize in ([False, True] if len(shape) > 1 else [False]):
-        previous = curvature._scalar_curvature_in_patches(
+        previous = embedding_tiled_reference(
             features_on_grid=points,
             difference_intervals=intervals,
             cyclic_dimensions=cyclic,

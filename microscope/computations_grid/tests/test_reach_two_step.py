@@ -13,13 +13,6 @@ from microscope.computations_grid.reach_two_step import (
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid
 
 
-@pytest.fixture(params=["cuda:0", "cpu"])
-def device(request):
-    if request.param.startswith("cuda") and not torch.cuda.is_available():
-        pytest.skip("CUDA unavailable")
-    return request.param
-
-
 def circle(n=64, radius=2., dtype=np.float64, covers=1):
     t = np.linspace(0, covers*2*np.pi, n, endpoint=False)
     return (radius*np.column_stack([np.cos(t), np.sin(t)])).astype(dtype)

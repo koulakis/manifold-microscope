@@ -48,7 +48,7 @@ Curvature
 Reach
 -----
 
-.. py:function:: reach_per_point(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, return_witnesses=False, device=None, *, candidate_batch_size=1024, min_pair_distance=None)
+.. py:function:: reach_per_point(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, return_witnesses=False, device=None, candidate_batch_size=1024, min_pair_distance=None)
    :module: microscope.computations_grid.reach
 
    Returns local-reach estimates shaped ``(s1_out, ..., sd_out)``, with
@@ -91,7 +91,7 @@ Reach
    projection's roundoff scale (eight times dtype epsilon times intrinsic
    dimension) are treated as zero, preserving infinite flat ratios.
 
-.. py:function:: reach_per_point(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, return_witnesses=False, device=None, *, candidate_batch_size=1024, bottleneck_tolerance=0.1, n_directions=32, curvature_iterations=4, min_pair_distance=None, return_components=False)
+.. py:function:: reach_per_point(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, return_witnesses=False, device=None, candidate_batch_size=1024, bottleneck_tolerance=0.1, n_directions=32, curvature_iterations=4, min_pair_distance=None, return_components=False)
    :module: microscope.computations_grid.reach_two_step
 
    Experimental **pointwise array** of the minimum of curvature and bottleneck
@@ -169,7 +169,7 @@ Reach
       bottleneck_radius = components[..., 1]
       global_reach = reach.min()
 
-.. py:function:: reach_curvature_bottleneck(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, device=None, *, candidate_batch_size=1024, bottleneck_tolerance=0.1, n_directions=32, curvature_iterations=4, min_pair_distance=None, return_components=False)
+.. py:function:: reach_curvature_bottleneck(features_on_grid, range_sizes, patch_sizes, cyclic_dimensions=None, subsample_points=None, batch_size=10, device=None, candidate_batch_size=1024, bottleneck_tolerance=0.1, n_directions=32, curvature_iterations=4, min_pair_distance=None, return_components=False)
    :module: microscope.computations_grid.reach_two_step
 
    Compatibility wrapper for the initial global scalar API, using the same

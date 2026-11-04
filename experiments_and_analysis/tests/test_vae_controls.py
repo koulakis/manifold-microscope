@@ -1,4 +1,4 @@
-"""Focused budget, checkpoint and decoder regressions; not yet executed."""
+"""Focused budget, checkpoint and decoder regressions."""
 import numpy as np
 import pytest
 import torch

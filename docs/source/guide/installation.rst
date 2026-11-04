@@ -25,6 +25,8 @@ the repository root instead:
 
    python -m pip install -e ".[benchmark]"
 
+.. _device-selection:
+
 Device selection
 ----------------
 
@@ -34,7 +36,9 @@ an error if CUDA cannot initialize.
 
 Custom experiment configurations default to CPU. All paper presets request
 ``cuda:0``; pass ``--device cpu`` to the runner for an intentional CPU run.
-NumPy preparation, aggregation and plotting use CPU. MPS is unvalidated.
+The runners initialize the requested device before loading data or creating new
+stages. Dry runs and fully cached runs need no accelerator. NumPy preparation,
+aggregation, interclass distances and plotting use CPU. MPS is unvalidated.
 
 Datasets
 --------

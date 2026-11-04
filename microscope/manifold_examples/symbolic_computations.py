@@ -104,8 +104,6 @@ def _time_limited_simplify(
     Args:
         formula: The formula to simplify.
         limit_seconds: The maximum time for the simplification attempt.
-        *args: Additional positional arguments forwarded to sympy.simplify.
-        **kwargs: Additional keyword arguments forwarded to sympy.simplify.
 
     Returns:
         If the simplification succeeds inside the time limit, then the simplified formula, else the original input

@@ -9,13 +9,6 @@ from numpy.typing import DTypeLike
 from microscope.computations_grid.reach import reach_per_point
 
 
-@pytest.fixture(params=["cuda:0", "cpu"])
-def device(request):
-    if request.param.startswith("cuda") and not torch.cuda.is_available():
-        pytest.skip("CUDA unavailable")
-    return request.param
-
-
 def circle(n=24, radius=2., dtype: DTypeLike = np.float64, covers=1, warp=0.):
     t = np.linspace(0, covers*2*np.pi, n, endpoint=False)
     theta = t + warp*np.sin(t)

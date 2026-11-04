@@ -38,12 +38,13 @@ def test_spacing_errors_are_rejected_before_computation(method, intervals):
         method(paraboloid(), intervals, [], [9, 9], device="cpu")
 
 
-@pytest.mark.parametrize("batch", BATCHES)
-def test_batch_and_form_validate_spacing_count(batch):
+@pytest.mark.parametrize(
+    "method",
+    [*BATCHES, curvature_extrinsic.second_fundamental_form]
+)
+def test_batch_and_form_validate_spacing_count(method):
     with pytest.raises(ValueError, match="spacing|interval"):
-        batch(torch.from_numpy(paraboloid()), [1.])
-    with pytest.raises(ValueError, match="spacing|interval"):
-        curvature_extrinsic.second_fundamental_form(torch.from_numpy(paraboloid()), [1.])
+        method(torch.from_numpy(paraboloid()), [1.])
 
 
 @pytest.mark.parametrize("dtype,k", [(np.float32, 1e4), (np.float64, 1e8)])

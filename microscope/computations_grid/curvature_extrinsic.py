@@ -8,7 +8,7 @@ from microscope.computations_grid.basic import (
     crop_dim_borders,
     partial_derivatives_across_all_dims,
 )
-from microscope.computations_grid.curvature import _validate_curvature_grid
+from microscope.computations_grid.curvature import validate_curvature_grid
 from microscope.patches import iter_patches_with_halo
 
 
@@ -157,7 +157,7 @@ def scalar_curvature(
         Curvature array of shape (t1, ..., td), where ti = si on cyclic axes and si - 6 otherwise; dtype matches the
         input.
     """
-    _validate_curvature_grid(
+    validate_curvature_grid(
         features_on_grid,
         difference_intervals,
         cyclic_dimensions,

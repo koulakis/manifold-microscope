@@ -13,6 +13,20 @@ from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid,
 from microscope.manifold_examples.symbolic_computations import ellipsoid_parametrization, hyperboloid_parametrization
 
 
+def evaluate_symbolic_array(expressions, coordinates, phis):
+    coordinate_arrays = np.moveaxis(phis, -1, 0)
+    values = [
+        np.ones_like(phis[..., 0]) * float(expression)
+        if expression.is_constant()
+        else sp.lambdify(coordinates, expression)(*coordinate_arrays)
+        for expression in expressions.flat
+    ]
+    return np.stack(values, axis=-1).reshape(
+        *phis.shape[:-1],
+        *expressions.shape
+    )
+
+
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -43,16 +57,7 @@ class TestEllipsoids(unittest.TestCase):
             rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
-            shape = tangent_vectors_formula_arr.shape
-            tangent_vectors_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1]),
-                np.array(tangent_vectors_formula_arr.flatten())
-            ))
-
-            tangent_vectors_gt = np.stack(tangent_vectors_gt, axis=-1).reshape((*phis.shape[:-1], *shape))
+            tangent_vectors_gt = evaluate_symbolic_array(tangent_vectors_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(tangent_vectors_gt, axis=-1), axis=-1)[..., None]
@@ -110,16 +115,7 @@ class TestEllipsoids(unittest.TestCase):
             rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
-            shape = tangent_vectors_formula_arr.shape
-            tangent_vectors_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1], phis[..., 2]),
-                np.array(tangent_vectors_formula_arr.flatten())
-            ))
-
-            tangent_vectors_gt = np.stack(tangent_vectors_gt, axis=-1).reshape((*phis.shape[:-1], *shape))
+            tangent_vectors_gt = evaluate_symbolic_array(tangent_vectors_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(tangent_vectors_gt, axis=-1), axis=-1)[..., None]
@@ -197,15 +193,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            metric_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1]),
-                np.array(metric_formula_arr.flatten())
-            ))
-
-            metric_gt = np.stack(metric_gt, axis=-1).reshape((*phis.shape[:-1], *metric_formula_arr.shape))
+            metric_gt = evaluate_symbolic_array(metric_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(metric_gt, axis=-1), axis=-1)[..., None]
@@ -259,15 +247,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            metric_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1], phis[..., 2]),
-                np.array(metric_formula_arr.flatten())
-            ))
-
-            metric_gt = np.stack(metric_gt, axis=-1).reshape((*phis.shape[:-1], *metric_formula_arr.shape))
+            metric_gt = evaluate_symbolic_array(metric_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(metric_gt, axis=-1), axis=-1)[..., None]
@@ -327,15 +307,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            metric_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1], phis[..., 2], phis[..., 3]),
-                np.array(metric_formula_arr.flatten())
-            ))
-
-            metric_gt = np.stack(metric_gt, axis=-1).reshape((*phis.shape[:-1], *metric_formula_arr.shape))
+            metric_gt = evaluate_symbolic_array(metric_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(metric_gt, axis=-1), axis=-1)[..., None]
@@ -399,16 +371,7 @@ class TestHyperboloids(unittest.TestCase):
             rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
-            shape = tangent_vectors_formula_arr.shape
-            tangent_vectors_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1]),
-                np.array(tangent_vectors_formula_arr.flatten())
-            ))
-
-            tangent_vectors_gt = np.stack(tangent_vectors_gt, axis=-1).reshape((*phis.shape[:-1], *shape))
+            tangent_vectors_gt = evaluate_symbolic_array(tangent_vectors_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(tangent_vectors_gt, axis=-1), axis=-1)[..., None]
@@ -464,16 +427,7 @@ class TestHyperboloids(unittest.TestCase):
             rotation, _ = cast(tuple[np.ndarray, np.ndarray], isometry)
 
             # Compute the ground truth values.
-            shape = tangent_vectors_formula_arr.shape
-            tangent_vectors_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1], phis[..., 2]),
-                np.array(tangent_vectors_formula_arr.flatten())
-            ))
-
-            tangent_vectors_gt = np.stack(tangent_vectors_gt, axis=-1).reshape((*phis.shape[:-1], *shape))
+            tangent_vectors_gt = evaluate_symbolic_array(tangent_vectors_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(tangent_vectors_gt, axis=-1), axis=-1)[..., None]
@@ -544,15 +498,7 @@ class TestHyperboloids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            metric_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1]),
-                np.array(metric_formula_arr.flatten())
-            ))
-
-            metric_gt = np.stack(metric_gt, axis=-1).reshape((*phis.shape[:-1], *metric_formula_arr.shape))
+            metric_gt = evaluate_symbolic_array(metric_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(metric_gt, axis=-1), axis=-1)[..., None]
@@ -604,15 +550,7 @@ class TestHyperboloids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            metric_gt = list(map(
-                lambda x:
-                    np.ones_like(phis[..., 0])*float(x)
-                    if x.is_constant()
-                    else sp.lambdify(coordinates, x)(phis[..., 0], phis[..., 1], phis[..., 2]),
-                np.array(metric_formula_arr.flatten())
-            ))
-
-            metric_gt = np.stack(metric_gt, axis=-1).reshape((*phis.shape[:-1], *metric_formula_arr.shape))
+            metric_gt = evaluate_symbolic_array(metric_formula_arr, coordinates, phis)
 
             # Sort the vectors by their norm to handle a potential permutation of them.
             sort_idx = np.argsort(np.linalg.norm(metric_gt, axis=-1), axis=-1)[..., None]

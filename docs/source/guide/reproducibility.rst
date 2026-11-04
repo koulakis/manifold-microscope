@@ -39,17 +39,8 @@ described in :doc:`installation`.
 Preview and run
 ---------------
 
-From the repository root:
-
-.. code-block:: bash
-
-   python -m experiments_and_analysis.scripts.sweep \
-     --config experiments_and_analysis/scripts/configs/paper/figure4_quick.yaml \
-     --output-dir ../outputs/new-paper-run --dry-run
-
-The preview saves resolved jobs under
-``experiment-configurations/sweep__figure_4__<hash>/jobs.json`` without loading
-data or initializing CUDA. Remove ``--dry-run`` to execute.
+Use the :ref:`experiment-run-preview` commands with a preset below and a fresh
+output directory. See :ref:`device-selection` for CUDA and CPU selection.
 
 All presets live in ``experiments_and_analysis/scripts/configs/paper/``:
 
@@ -76,9 +67,6 @@ neighbors. Full configurations can take many hours and substantial memory.
 Practical settings
 ------------------
 
-* All paper presets request ``cuda:0`` and stop new computation if it cannot
-  initialize. ``--device cpu`` explicitly selects CPU. Dry runs and fully
-  cached runs need no accelerator.
 * ``figure4_quick.yaml`` reduces the sweep without shortening VAE training.
   The separate ``--quick-run`` profile caps training at 10K steps and reduces
   sweep/evaluation sizes. Full grids and all geometry layers are retained.

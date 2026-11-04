@@ -31,11 +31,15 @@ def plot_points(
     Returns:
         None.
     """
-    n_plots = 1
-    if curvature is not None:
-        n_plots += 1
-    if volume_element is not None:
-        n_plots += 1
+    scalar_fields = {
+        name: values
+        for name, values in (
+            ("curvature", curvature),
+            ("volume element", volume_element)
+        )
+        if values is not None
+    }
+    n_plots = 1 + len(scalar_fields)
 
     n_points = np.prod(pts.shape[:-1])
     if subsample_ratio is not None:
@@ -73,17 +77,17 @@ def plot_points(
     ax.set_ylim(limits)
     ax.set_zlim(limits)
 
-    if curvature is not None:
-        curvature = curvature.flatten()[idx]
+    for ax, (name, values) in zip(axes[1:], scalar_fields.items()):
+        values = values.flatten()[idx]
         ax = axes[1]
         plot = ax.scatter(
             xs,
             ys,
             zs,  # pyright: ignore[reportArgumentType]
             s=s,  # pyright: ignore[reportArgumentType]
-            c=curvature,
+            c=values,
             cmap=cmap,
-            label="curvature",
+            label=name,
             alpha=alpha
         )
         ax.set_xlim(limits)
@@ -91,24 +95,4 @@ def plot_points(
         ax.set_zlim(limits)
         ax.legend()
         plt.colorbar(plot, ax=ax, fraction=0.03)
-
-    if volume_element is not None:
-        volume_element = volume_element.flatten()[idx]
-        ax = axes[2]
-        plot = ax.scatter(
-            xs,
-            ys,
-            zs,  # pyright: ignore[reportArgumentType]
-            s=s,  # pyright: ignore[reportArgumentType]
-            c=volume_element,
-            cmap=cmap,
-            label="volume element",
-            alpha=alpha
-        )
-        ax.set_xlim(limits)
-        ax.set_ylim(limits)
-        ax.set_zlim(limits)
-        ax.legend()
-        plt.colorbar(plot, ax=ax, fraction=0.03)
-
     plt.show()

@@ -151,7 +151,7 @@ def _scalar_curvature_from_metric(
     return scalar
 
 
-def _validate_curvature_grid(
+def validate_curvature_grid(
     features_on_grid: np.ndarray,
     difference_intervals: list[float],
     cyclic_dimensions: list[int],
@@ -226,58 +226,6 @@ def scalar_curvature_batch(
     return _scalar_curvature_from_metric(metric, metric_inv, difference_intervals, normalize)
 
 
-def _scalar_curvature_in_patches(
-    features_on_grid: np.ndarray,
-    difference_intervals: list[float],
-    cyclic_dimensions: list[int],
-    patch_sizes: list[int],
-    normalize: bool,
-    device: str | torch.device | None
-) -> np.ndarray:
-    """Estimate intrinsic curvature using embedding tiles with a three-point halo.
-
-    Args:
-        features_on_grid: Embedding array, shape (s1 ... sd f).
-        difference_intervals: Coordinate spacing along each of the d grid axes.
-        cyclic_dimensions: Zero-based periodic grid axes.
-        patch_sizes: Patch size along each of the d grid axes.
-        normalize: Divide scalar curvature by d * (d - 1).
-        device: Torch device; None selects CUDA when available, otherwise CPU.
-
-    Returns:
-        Curvature array of shape (t1, ..., td), where ti = si on cyclic axes and si - 6 otherwise; dtype matches the
-        input.
-    """
-    _validate_curvature_grid(
-        features_on_grid,
-        difference_intervals,
-        cyclic_dimensions,
-        patch_sizes
-    )
-    if device is None:
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    output_shape = tuple(
-        s if i in cyclic_dimensions else s - 6
-        for i, s in enumerate(features_on_grid.shape[:-1])
-    )
-    curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
-    for destination, patch in iter_patches_with_halo(
-        features_on_grid,
-        patch_sizes,
-        3,
-        cyclic_dimensions
-    ):
-        if any(stride < 0 for stride in patch.strides):
-            patch = np.ascontiguousarray(patch)
-        points_pt_patch = torch.from_numpy(patch).to(device)
-        curvature_array[destination] = scalar_curvature_batch(
-            points_pt_patch,
-            difference_intervals=difference_intervals,
-            normalize=normalize
-        ).cpu().detach().numpy()
-    return curvature_array
-
-
 def scalar_curvature(
     features_on_grid: np.ndarray,
     difference_intervals: list[float],
@@ -301,13 +249,13 @@ def scalar_curvature(
         A NumPy array of shape (s1_out, ..., sd_out), where s_i_out = s_i for periodic axes and s_i - 6 otherwise: one
         scalar curvature per point.
 
-    Requires a finite regular floating grid; see _validate_curvature_grid and validate_tensor for detailed requirements.
+    Requires a finite regular floating grid; see validate_curvature_grid and validate_tensor for detailed requirements.
     Each metric and inverse is computed once using a one-point image halo, then curvature is computed from those small
     fields with a two-point halo. Two host arrays of shape (metric_grid_shape, d, d) are stored; this storage is
     independent of the number of embedding features. Image tiles alone move to the selected device; periodic boundaries
     are wrapped locally without padding the full embedding. The dense tensor API remains differentiable.
     """
-    _validate_curvature_grid(
+    validate_curvature_grid(
         features_on_grid,
         difference_intervals,
         cyclic_dimensions,

@@ -9,9 +9,20 @@ python -m pre_commit install
 python -m pre_commit run --all-files
 ```
 
-The hooks run Ruff and Pyright across the maintained Python code, including tests. They use the active environment so
-Pyright can resolve the same scientific dependencies used to run the code. They do not create separate environments
-or install packages when a commit is made. Run the same checks directly with:
+The hooks use the active environment and do not create environments or install packages when a commit is made.
+Missing dependencies fail the checks, so activate the development environment first.
+
+Ruff checks common Python errors, 120-character lines, function annotations, function docstrings and documented
+arguments in Google-style `Args` sections. Tests are exempt from annotation/docstring and line-length rules; generated
+symbolic formulas are exempt from line-length checks. The solver has a narrow import-order exemption because it
+configures warning filtering before importing training dependencies.
+
+Pyright uses standard mode for all maintained Python, including tests, the root test configuration and the Sphinx
+configuration. It checks the entire project on every commit, independently of staged files. Errors and warnings fail
+directly; there is no accepted-error baseline. Notebooks and generated build outputs are excluded. Use the same
+environment when comparing results because dependency versions can affect diagnostics.
+
+Run the checks directly from the repository root with:
 
 ```sh
 python -m ruff check .
@@ -23,13 +34,6 @@ In the shared maintenance workspace, select the existing `microscope` pyenv envi
 ```sh
 PYENV_VERSION=microscope pyenv exec python -m pre_commit run --all-files
 ```
-
-Ruff checks common Python errors, 120-character lines, function annotations, function docstrings and documented
-arguments in Google-style `Args` sections. Tests are exempt from annotation/docstring and line-length rules; generated
-symbolic formulas are exempt from line-length checks. Pyright uses standard mode for all maintained Python files,
-including tests, the root test configuration and the Sphinx configuration. Generated build outputs are excluded.
-The solver retains a narrow import-order exemption because it configures warning filtering before importing
-training dependencies.
 
 ## Dense grid reference tests
 
@@ -69,21 +73,6 @@ The analytic grids use float64, as they have historically; their dense finite di
 Runtime and memory use depend on the selected device and method. Small tests with an explicit CPU device and tests
 parameterized over CPU/CUDA retain their declared device coverage.
 
-## Type checking
-
-Pyright checks every maintained Python file, including tests, on every commit. The hook always runs the entire project
-and does not limit analysis to staged files. Errors and warnings fail the hook directly; there is no accepted-error
-baseline. Missing dependencies also fail, so activate the development environment before checking or committing.
-
-Run the full check from the repository root:
-
-```sh
-python -m pyright --project pyproject.toml --warnings
-```
-
-Notebooks remain outside the command-line check. Diagnostic details can change with scientific dependency versions,
-so use the same development environment when comparing results.
-
 ## VS Code diagnostics
 
 Enable the Microsoft Python and Pylance extensions, then use **Python: Select Interpreter** to choose the development
@@ -99,8 +88,7 @@ For inline diagnostics and Problems entries throughout the workspace, use these 
 ```
 
 After changing the interpreter or configuration, run **Python: Restart Language Server**. Open **View: Toggle Problems**
-from the Command Palette to inspect diagnostics. Both the editor and the pre-commit hook check tests as well as library
-code.
+from the Command Palette to inspect diagnostics.
 Pylance bundles its own checker version, so editor diagnostics can differ slightly from the pinned command-line version.
 See the [Python settings reference](https://code.visualstudio.com/docs/python/settings-reference).
 

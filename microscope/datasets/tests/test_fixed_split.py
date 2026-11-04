@@ -1,4 +1,4 @@
-"""Reference cases for FPS and retained fixed splits; not yet executed."""
+"""Reference cases for FPS and retained fixed splits."""
 import numpy as np
 import pytest
 
