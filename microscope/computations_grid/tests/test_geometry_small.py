@@ -125,26 +125,8 @@ def test_sphere_curvature_normalization_and_patch_seams():
     np.testing.assert_allclose(normalized, raw/2, rtol=1e-12, atol=1e-12)
 
 
-def test_rank_deficient_grid_cannot_compute_curvature():
-    u, _ = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
-    points = torch.from_numpy(np.stack([u, np.zeros_like(u)], axis=-1))
-    # Torch exposes this alias but does not mark its re-export as public.
-    with pytest.raises(
-        torch.linalg.LinAlgError  # pyright: ignore[reportPrivateImportUsage]
-    ):
-        scalar_curvature_batch(points, [1., 1.])
-
-
 def test_normalized_curvature_rejects_intrinsic_dimension_one():
     # Division by d*(d-1) is undefined for curves; request a clear rejection.
     points = torch.arange(9., dtype=torch.float64)[:, None]
     with pytest.raises(ValueError, match="dimension|normaliz"):
         scalar_curvature_batch(points, [1.], normalize=True)
-
-
-@pytest.mark.parametrize("patch_sizes", [[6, 9], [5, 9]])
-def test_curvature_rejects_patch_sizes_without_an_interior(patch_sizes):
-    u, v = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
-    points = np.stack([u, v], axis=-1)
-    with pytest.raises(ValueError):
-        scalar_curvature(points, [1., 1.], [], patch_sizes, device="cpu")

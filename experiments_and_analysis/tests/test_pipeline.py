@@ -73,6 +73,7 @@ def test_real_mmls_run_reuses_fit_for_new_analysis_and_resumes(tmp_path, monkeyp
     config = circle_config(tmp_path)
     root = tmp_path / 'outputs'
     first = single.run(config, root)
+    assert first['analyses'][0]['name'] == 'errors'
     model_dir = next((root / 'trained-models').glob(f"*__{first['model_id']}"))
     before = {p: p.read_bytes() for p in model_dir.rglob('*') if p.is_file()}
     assert not (model_dir / 'training_points.npy').exists()

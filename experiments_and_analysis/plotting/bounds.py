@@ -82,19 +82,7 @@ class CustomLogFormatter(LogFormatterMathtext):
         Returns:
             Logarithmic-axis tick label displaying the absolute value of x.
         """
-        if x <= 0:
-            return '0'
-        elif x < 0.001:
-            return f'{x:.1e}'
-        elif x < 1:
-            return f'{x:.3f}'.rstrip('0').rstrip('.')
-        elif x < 10:
-            formatted = f'{x:.1f}'
-            if formatted.endswith('.0'):
-                return formatted[:-2]
-            return formatted
-        else:
-            return f'{int(round(x))}'
+        return format_abs_values(x, pos)
 
 
 def format_label(label: str) -> str:
@@ -199,43 +187,6 @@ def assign_colors_by_group(bound_types: list[str]) -> tuple[dict[str, str], dict
         color_index += 1
 
     return color_map, group_info
-
-
-# noinspection PyUnusedLocal
-def get_legend_entries(
-    bound_types: list[str],
-    color_map: dict[str, str],
-    group_info: dict
-) -> list[dict[str, str]]:
-    """Get unique legend entries, combining bounds with same colors.
-
-    Args:
-        bound_types: Names of the bound curves.
-        color_map: Curve names mapped to colors.
-        group_info: Legend labels, colors and members for each bound group.
-
-    Returns:
-        Ordered legend-entry dictionaries for the requested curves and groups.
-    """
-    legend_entries = []
-    processed_groups = set()
-
-    for bound_type in bound_types:
-        # Find which group this bound belongs to
-        group_key = None
-        for gkey, ginfo in group_info.items():
-            if bound_type in ginfo['bounds']:
-                group_key = gkey
-                break
-
-        if group_key and group_key not in processed_groups:
-            legend_entries.append({
-                'label': group_info[group_key]['label'],
-                'color': group_info[group_key]['color']
-            })
-            processed_groups.add(group_key)
-
-    return legend_entries
 
 
 def get_grouped_legend_label(

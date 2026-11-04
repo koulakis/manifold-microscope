@@ -15,7 +15,7 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter, LogFormatterMathtext
+from matplotlib.ticker import FuncFormatter
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -79,44 +79,6 @@ def format_three_decimals(y: float, _: int | None) -> str:
     if s == '':
         s = '0'
     return sign + s
-
-
-class CustomLogFormatter(LogFormatterMathtext):
-    """Custom log formatter with scientific notation for large values."""
-
-    def __call__(
-        self,
-        x: float,
-        _: int | None = None
-    ) -> str:
-        """Format log scale values with proper scientific notation.
-
-        Args:
-            x: Axis value to format.
-            _: Tick position supplied by Matplotlib, unused.
-
-        Returns:
-            Formatted logarithmic-axis tick label.
-        """
-        # Log scale should only have positive values
-        if x <= 0:
-            return '0'
-
-        # Use scientific notation for values outside [-99, 99] range
-        if x >= 99:
-            return f'{x:.1e}'
-
-        # For values within [0, 99], use at most 2 decimal places
-        if x < 0.01:
-            return f'{x:.2e}'
-        elif x < 1:
-            formatted = f'{x:.3f}'.rstrip('0').rstrip('.')
-            return formatted if formatted != '' else '0'
-        else:
-            formatted = f'{x:.2f}'
-            if formatted.endswith('.00'):
-                return f'{int(x)}'
-            return formatted.rstrip('0').rstrip('.')
 
 
 def assign_colors_by_group(measure_names: list[str]) -> dict[str, str]:

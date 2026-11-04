@@ -15,18 +15,6 @@ if TYPE_CHECKING:
     import numpy as np
 
 
-def is_power_of_2(num: int) -> bool:
-    """Check whether a nonzero integer is a power of two.
-
-    Args:
-        num: Integer to check.
-
-    Returns:
-        True if num is a positive power of two; otherwise False.
-    """
-    return ((num & (num - 1)) == 0) and num != 0
-
-
 class CustomTensorDataset(Dataset):
     def __init__(self, data_tensor: torch.Tensor) -> None:
         """Wrap an image tensor as a dataset.

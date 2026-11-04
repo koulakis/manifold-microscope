@@ -203,16 +203,6 @@ class BetaVAE_H(nn.Module):
 class BetaVAE_B(BetaVAE_H):
     """Model proposed in understanding beta-VAE paper(Burgess et al, arxiv:1804.03599, 2018)."""
 
-    def weight_init(self) -> None:
-        """Initialize the encoder and decoder weights.
-
-        Returns:
-            None.
-        """
-        for block in self._modules:
-            for m in cast(nn.Sequential, self._modules[block]):
-                kaiming_init(m)
-
     def __init__(
         self,
         z_dim: int = 10,
@@ -265,28 +255,6 @@ class BetaVAE_B(BetaVAE_H):
             nn.ConvTranspose2d(32, nc, 4, 2, 1), # B,  nc, 64, 64
         )
         self.weight_init()
-
-    def _encode(self, x: torch.Tensor) -> torch.Tensor:
-        """Encode images into latent Gaussian parameters.
-
-        Args:
-            x: Images of shape (b c 64 64).
-
-        Returns:
-            Gaussian-parameter tensor of shape (b, 2 * z_dim), with means followed by log variances.
-        """
-        return self.encoder(x)
-
-    def _decode(self, z: torch.Tensor) -> torch.Tensor:
-        """Decode latent codes into image logits.
-
-        Args:
-            z: Latent codes of shape (b z).
-
-        Returns:
-            Reconstruction-logit tensor of shape (b nc 64 64).
-        """
-        return self.decoder(z)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Return reconstruction logits, latent means and log variances.

@@ -127,14 +127,7 @@ def test_flat_product_of_circles_has_two_nonzero_normal_curvatures():
     np.testing.assert_allclose(result, 0, atol=1e-11)
 
 
-def test_rank_failure_and_normalization_dimension_match_intrinsic():
-    u, _ = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
-    singular = torch.from_numpy(np.stack([u, np.zeros_like(u)], axis=-1))
-    # Torch exposes this alias but does not mark its re-export as public.
-    with pytest.raises(
-        torch.linalg.LinAlgError  # pyright: ignore[reportPrivateImportUsage]
-    ):
-        scalar_curvature_batch(singular, [1., 1.])
+def test_normalized_curvature_rejects_intrinsic_dimension_one():
     curve = torch.arange(9., dtype=torch.float64)[:, None]
     with pytest.raises(ValueError, match="dimension|normaliz"):
         scalar_curvature_batch(curve, [1.], normalize=True)

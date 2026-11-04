@@ -57,26 +57,6 @@ def _pair_geometry(
     return distance, fraction
 
 
-def _distances_to_tangent_space(
-    tangent_vectors: torch.Tensor,
-    points: torch.Tensor,
-    x: torch.Tensor
-) -> torch.Tensor:
-    """Compute candidate distances to each query tangent space.
-
-    Args:
-        tangent_vectors: Query tangent matrices, shape (b f d).
-        points: Candidate points, shape (c f).
-        x: Query points, shape (b f).
-
-    Returns:
-        Normal-distance tensor of shape (b c), one value per query/candidate pair.
-    """
-    _, frame, _ = tangent_geometry(tangent_vectors)
-    distance, normal_fraction = _pair_geometry(frame, points, x)
-    return distance*normal_fraction
-
-
 def _subsample_dims(
     tensor: torch.Tensor,
     take_every_k: int,

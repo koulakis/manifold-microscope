@@ -53,24 +53,6 @@ def _normal_geometry(
     return form, metric, inverse_factor
 
 
-def _second_fundamental_form_and_metric(
-    tensor: torch.Tensor,
-    difference_intervals: list[float]
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Compute the normal-valued form and its induced metric.
-
-    Args:
-        tensor: Embedding tensor, shape (s1 ... sd f).
-        difference_intervals: Coordinate spacing along each of the d grid axes.
-
-    Returns:
-        (form, metric), tensors of shapes (s1 - 4, ..., sd - 4, f, d, d) and (s1 - 4, ..., sd - 4, d, d), on the input
-        device.
-    """
-    form, metric, _ = _normal_geometry(tensor, difference_intervals)
-    return form, metric
-
-
 def second_fundamental_form(
     tensor: torch.Tensor,
     difference_intervals: list[float]
@@ -89,7 +71,7 @@ def second_fundamental_form(
     The projection uses a reduced QR tangent frame with d columns. No full ambient normal basis or ambient-by-ambient
     projector is constructed.
     """
-    form, _ = _second_fundamental_form_and_metric(tensor, difference_intervals)
+    form, _, _ = _normal_geometry(tensor, difference_intervals)
     return form
 
 
