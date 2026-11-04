@@ -1,17 +1,17 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, TypeVar, cast
+from typing import TypeVar, cast
 
 import numpy as np
-import torch
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+import torch
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
-from microscope.computations_grid.curvature import scalar_curvature, compute_total_curvature
+from microscope.computations_grid.curvature import compute_total_curvature, scalar_curvature
 from microscope.computations_grid.reach import reach_per_point
-from microscope.computations_grid.volume import volume_element, compute_total_volume
+from microscope.computations_grid.volume import compute_total_volume, volume_element
 from microscope.cyclic_dimensions import get_difference_intervals
 
 MeasureKey = TypeVar('MeasureKey', bound=str | tuple[str, str])
@@ -318,7 +318,7 @@ def _plot_with_scalar_values(
     cmap: str = "coolwarm",
     colorbar_fraction: float = 0.03,
     dpi: int = 300,
-    output_path: Optional[Path] = None,
+    output_path: Path | None = None,
     show: bool = True
 ) -> None:
     """Plot three-dimensional coordinates colored by scalar fields.
@@ -378,7 +378,7 @@ def compute_measures_multiclass(
     patch_sizes: list[int],
     normalize_for_volume: bool,
     normalize_curvatures: bool = False,
-    reach_subsample: Optional[int] = None,
+    reach_subsample: int | None = None,
     reach_batch_size: int = 2,
     device: str | torch.device | None = None
 ) -> AnalysisResults:
@@ -562,8 +562,8 @@ def clip_results_multiclass(
 def plot_pairs_multiclass(
     data: np.ndarray,
     analysis_results: AnalysisResults,
-    distributions_dir: Optional[Path] = None,
-    name: Optional[str] = None,
+    distributions_dir: Path | None = None,
+    name: str | None = None,
     plot_per_class: bool = False,
     height: float = 2.5,
     alpha: float = 0.5,
@@ -710,9 +710,9 @@ def plot_features_vs_measures_multiclass(
 def plot_3d_pca_projections_multiclass(
     data: np.ndarray,
     analysis_results: AnalysisResults,
-    projection_measures_dir: Optional[Path] = None,
-    projection_classes_dir: Optional[Path] = None,
-    case_name: Optional[str] = None,
+    projection_measures_dir: Path | None = None,
+    projection_classes_dir: Path | None = None,
+    case_name: str | None = None,
     alpha: float = 0.3,
     s: float = 0.2,
     dpi: int = 300,

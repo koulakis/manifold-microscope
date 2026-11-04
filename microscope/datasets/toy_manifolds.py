@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import numpy as np
-from scipy.optimize import root_scalar
-from scipy.integrate import quad
 import torch
 from geomloss import SamplesLoss
+from scipy.integrate import quad
+from scipy.optimize import root_scalar
 from tqdm import tqdm
 
 
@@ -76,7 +76,6 @@ class Manifold(ABC):
         Returns:
             Normalized radius parameter, or a tuple of parameters, giving unit manifold volume.
         """
-        pass
 
     @abstractmethod
     def sample(
@@ -121,7 +120,6 @@ class Manifold(ABC):
             Spread-out point array of shape (n_points, f), with sample count determined by the concrete manifold
             implementation.
         """
-        pass
 
     @abstractmethod
     def measures(self, normalized: bool = False) -> MeasuresGlobal:
@@ -132,7 +130,6 @@ class Manifold(ABC):
 
         Returns: An instance of 'MeasuresGlobal' which contains all the measures as attributes.
         """
-        pass
 
     @abstractmethod
     def measures_pointwise(
@@ -149,7 +146,6 @@ class Manifold(ABC):
         Returns:
             MeasuresLocal with arrays of shape (n), one value per input point, for volume element, curvature and reach.
         """
-        pass
 
     def __str__(self) -> str:
         """Describe the concrete manifold class.
@@ -167,7 +163,6 @@ class Manifold(ABC):
         Returns:
             Intrinsic manifold dimension.
         """
-        pass
 
 
 # Lloyd relaxation-based tesselation for surfaces using Sinkhorn loss from GeomLoss
@@ -229,7 +224,7 @@ class Circle(Manifold):
         return 1
 
     @staticmethod
-    def normalize_parameters(R: Optional[float] = None) -> float:
+    def normalize_parameters(R: float | None = None) -> float:
         """Compute radius parameters giving unit manifold volume.
 
         Args:
@@ -371,7 +366,7 @@ class Moons(Manifold):
         return 1
 
     @staticmethod
-    def normalize_parameters(R: Optional[float] = None) -> float:
+    def normalize_parameters(R: float | None = None) -> float:
         """Compute radius parameters giving unit manifold volume.
 
         Args:
@@ -624,7 +619,7 @@ class Sphere(Manifold):
         return 2
 
     @staticmethod
-    def normalize_parameters(R: Optional[float] = None) -> float:
+    def normalize_parameters(R: float | None = None) -> float:
         """Compute radius parameters giving unit manifold volume.
 
         Args:

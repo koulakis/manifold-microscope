@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
-
 from decimal import Decimal
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from .outputs import artifact_path, experiment_identity, stage_directory, stage_ids
 
@@ -13,7 +12,7 @@ if TYPE_CHECKING:
     from .bundles import BundlePath
 
 
-def number(value: float | int | str | Decimal) -> str:
+def number(value: float | str | Decimal) -> str:
     """Format a number without scientific notation or redundant trailing zeros.
 
     Args:

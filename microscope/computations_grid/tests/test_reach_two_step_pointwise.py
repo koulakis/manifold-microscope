@@ -6,7 +6,10 @@ import pytest
 import torch
 
 from microscope.computations_grid.reach_two_step import (
-    ReachComponents, _bottleneck_radius, reach_curvature_bottleneck, reach_per_point,
+    ReachComponents,
+    _bottleneck_radius,
+    reach_curvature_bottleneck,
+    reach_per_point,
 )
 
 

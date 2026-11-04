@@ -3,12 +3,14 @@
 Only the shared style helpers and mean/one-sigma renderer are retained. Experiment selection and completion handling
 live in render.py.
 """
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import os
 from pathlib import Path
+
+import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter, LogFormatterMathtext
 
 

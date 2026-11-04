@@ -1,14 +1,13 @@
 """Stage identities and IO; numerical functions do not use these helpers."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, BinaryIO, Literal, cast
-
+import json
+import re
 from datetime import datetime, timezone
 from hashlib import sha256
-import json
 from pathlib import Path
-import re
 from time import time
+from typing import TYPE_CHECKING, BinaryIO, Literal, cast
 
 import numpy as np
 

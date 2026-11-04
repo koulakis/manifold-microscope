@@ -1,16 +1,15 @@
 """Dataset metadata, index splits and historical per-domain normalization."""
-from collections.abc import Mapping
-from typing import Any
-
-from dataclasses import dataclass
-from pathlib import Path
-from hashlib import sha256
 import os
+from collections.abc import Mapping
+from dataclasses import dataclass
+from hashlib import sha256
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 from microscope.computations_grid.volume import volume_element
-from microscope.datasets.dataset_split import weighted_uniform_splitting, maximal_distance_selection_torch
+from microscope.datasets.dataset_split import maximal_distance_selection_torch, weighted_uniform_splitting
 from microscope.datasets.generic_dataset_loader import load_dataset_no_split
 from microscope.datasets.toy_manifolds import Manifold
 
@@ -174,7 +173,7 @@ def load_source(spec: Mapping[str, Any], reference: np.ndarray | None = None) ->
         )
     data, _, patches, intervals, volume_slices, split_slices, ranges, cyclic = load_dataset_no_split(
         spec['name'], spec['dimension'])
-    from microscope.datasets import custom_dsprites, coil20
+    from microscope.datasets import coil20, custom_dsprites
     labels = coil20.LABEL_MAPPING if spec['name'] == 'extended_coil20' else custom_dsprites.LABEL_MAPPING
     return Dataset(
         data,

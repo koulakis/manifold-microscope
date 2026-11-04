@@ -6,11 +6,11 @@ import pytest
 import sympy as sp
 import torch
 
-from microscope.computations_grid.basic import partial_derivatives_across_all_dims, crop_dim_borders, riemannian_metric
+from microscope.computations_grid.basic import crop_dim_borders, partial_derivatives_across_all_dims, riemannian_metric
+from microscope.computations_grid.tests._device import get_test_device
 from microscope.cyclic_dimensions import get_difference_intervals, pad_cyclic_dimensions
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 from microscope.manifold_examples.symbolic_computations import ellipsoid_parametrization, hyperboloid_parametrization
-from microscope.computations_grid.tests._device import get_test_device
 
 
 class TestEllipsoids(unittest.TestCase):

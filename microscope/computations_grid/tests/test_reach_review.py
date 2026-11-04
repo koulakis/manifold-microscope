@@ -2,9 +2,9 @@
 from typing import cast
 
 import numpy as np
-from numpy.typing import DTypeLike
 import pytest
 import torch
+from numpy.typing import DTypeLike
 
 from microscope.computations_grid.reach import reach_per_point
 

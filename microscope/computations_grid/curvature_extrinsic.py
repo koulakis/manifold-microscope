@@ -3,13 +3,13 @@
 import numpy as np
 import torch
 
+from microscope.computations_grid._curvature_geometry import tangent_geometry, validate_tensor
 from microscope.computations_grid.basic import (
     crop_dim_borders,
     partial_derivatives_across_all_dims,
 )
 from microscope.computations_grid.curvature import _validate_curvature_grid
-from microscope.computations_grid._curvature_geometry import tangent_geometry, validate_tensor
-from microscope.patches import _iter_patches_with_halo
+from microscope.patches import iter_patches_with_halo
 
 
 def _normal_geometry(
@@ -170,7 +170,7 @@ def scalar_curvature(
         for i, s in enumerate(features_on_grid.shape[:-1])
     )
     curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
-    for destination, patch in _iter_patches_with_halo(
+    for destination, patch in iter_patches_with_halo(
         features_on_grid,
         patch_sizes,
         3,

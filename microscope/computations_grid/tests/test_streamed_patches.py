@@ -3,8 +3,8 @@ import numpy as np
 import pytest
 import torch
 
-from microscope.patches import extract_patches, stack_patches
 from microscope.computations_grid import basic, curvature, curvature_extrinsic, volume
+from microscope.patches import extract_patches, stack_patches
 
 
 class NoFlatten(np.ndarray):

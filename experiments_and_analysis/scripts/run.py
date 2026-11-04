@@ -1,18 +1,18 @@
 """Run one configured experiment; keep IO and stage selection here."""
-from collections.abc import Iterator, Mapping
-from typing import Any, BinaryIO, Optional, cast
-
-from pathlib import Path
 import pickle
+from collections.abc import Iterator, Mapping
+from pathlib import Path
 from time import perf_counter
+from typing import Any, BinaryIO, cast
 
 import numpy as np
 import typer
 
+from ..bundles import BundlePath, output_root
 from ..config import load_config, resolve
 from ..config_types import GeometryOptions
-from ..bundles import output_root
 from ..data.preparation import (
+    Dataset,
     candidates,
     load_source,
     normalize,
@@ -21,7 +21,9 @@ from ..data.preparation import (
     source_identity,
     toy_reference,
 )
+from ..models.beta_vae.model import BetaVAE_H
 from ..models.config import MMLSConfig
+from ..models.mmls.projector import ANNMMLSProjector
 from ..outputs import (
     STAGES,
     artifact_path,
@@ -40,11 +42,6 @@ from ..outputs import (
 )
 from ..paths import dataset_label, experiment_paths, representation_label
 from ..quick import apply_quick_run
-from ..bundles import BundlePath
-from ..data.preparation import Dataset
-from ..models.beta_vae.model import BetaVAE_H
-from ..models.mmls.projector import ANNMMLSProjector
-
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -655,7 +652,7 @@ def main(
     config: Path = typer.Option(..., exists=True),
     output_dir: Path = typer.Option(...),
     quick_run: bool = False,
-    device: Optional[str] = typer.Option(None, help='Override the configured device, e.g. cuda:0.')
+    device: str | None = typer.Option(None, help='Override the configured device, e.g. cuda:0.')
 ) -> None:
     """Run one YAML/JSON experiment configuration.
 

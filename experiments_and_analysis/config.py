@@ -1,10 +1,10 @@
 """Plain configuration dictionaries shared by Python and CLI callers."""
-from copy import deepcopy
-from collections.abc import Mapping
-from pathlib import Path
-from dataclasses import asdict
-from typing import Any
 import json
+from collections.abc import Mapping
+from copy import deepcopy
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any
 
 import yaml
 

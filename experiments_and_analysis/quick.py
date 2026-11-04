@@ -1,6 +1,6 @@
 """The shared --quick-run profile; edit its budgets here."""
-from copy import deepcopy
 from collections.abc import Mapping
+from copy import deepcopy
 from typing import Any, TypedDict
 
 from .config import resolve

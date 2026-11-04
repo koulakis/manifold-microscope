@@ -3,14 +3,14 @@ import unittest
 import numpy as np
 import pytest
 
-from microscope.computations_grid.curvature import scalar_curvature, compute_total_curvature
+from microscope.computations_grid.curvature import compute_total_curvature, scalar_curvature
+from microscope.computations_grid.tests._device import get_test_device
 from microscope.computations_grid.volume import volume_element
 from microscope.cyclic_dimensions import get_difference_intervals
 from microscope.manifold_examples.ellipsoid import ellipsoid_scalar_curvature
 from microscope.manifold_examples.hyperboloid import hyperboloid_scalar_curvature
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 from microscope.manifold_examples.sphere import sphere_scalar_curvature
-from microscope.computations_grid.tests._device import get_test_device
 
 
 class TestEllipsoids(unittest.TestCase):

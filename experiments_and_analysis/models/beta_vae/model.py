@@ -3,11 +3,12 @@
 Copied and adapted from https://github.com/1Konny/Beta-VAE. The upstream project is MIT licensed; see this package's
 `LICENSE` and the repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
-import torch
-import torch.nn as nn
-import torch.nn.init as init
-from torch.autograd import Variable
 from typing import cast
+
+import torch
+from torch import nn
+from torch.autograd import Variable
+from torch.nn import init
 
 
 def reparametrize(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
@@ -35,7 +36,7 @@ class View(nn.Module):
         Returns:
             None.
         """
-        super(View, self).__init__()
+        super().__init__()
         self.size = size
 
     def forward(self, tensor: torch.Tensor) -> torch.Tensor:
@@ -122,7 +123,7 @@ class BetaVAE_H(nn.Module):
         Returns:
             None.
         """
-        super(BetaVAE_H, self).__init__()
+        super().__init__()
         self.z_dim = z_dim
         self.nc = nc
         self.encoder = nn.Sequential(
@@ -213,7 +214,7 @@ class BetaVAE_B(BetaVAE_H):
         Returns:
             None.
         """
-        super(BetaVAE_B, self).__init__()
+        super().__init__()
         self.nc = nc
         self.z_dim = z_dim
 

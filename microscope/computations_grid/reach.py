@@ -1,13 +1,12 @@
-from typing import Optional, Union
 
 import numpy as np
 import torch
 from einops import einops
 from tqdm import tqdm
 
-from microscope.computations_grid.basic import crop_dim_borders, partial_derivatives_across_all_dims_batched
-from microscope.computations_grid._curvature_geometry import tangent_geometry
 from microscope._grid_validation import validate_cyclic_axes, validate_integer_list, validate_spacings
+from microscope.computations_grid._curvature_geometry import tangent_geometry
+from microscope.computations_grid.basic import crop_dim_borders, partial_derivatives_across_all_dims_batched
 from microscope.cyclic_dimensions import get_difference_intervals
 
 
@@ -170,14 +169,14 @@ def reach_per_point(
     features_on_grid: np.ndarray,
     range_sizes: list[float],
     patch_sizes: list[int],
-    cyclic_dimensions: Optional[list[int]] = None,
-    subsample_points: Optional[int] = None,
+    cyclic_dimensions: list[int] | None = None,
+    subsample_points: int | None = None,
     batch_size: int = 10,
     return_witnesses: bool = False,
     device: str | torch.device | None = None,
     candidate_batch_size: int = 1024,
-    min_pair_distance: Optional[float] = None
-) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    min_pair_distance: float | None = None
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Estimate local reach from sampled pairs and finite-difference tangents.
 
     Uses min_{y != x} ||y - x||^2 / (2 d(y - x, T_x M)); see https://arxiv.org/abs/1705.04565. The minimum over x

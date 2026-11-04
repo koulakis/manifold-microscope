@@ -4,9 +4,13 @@ import numpy as np
 import sympy as sp
 from scipy.integrate import quad
 
-from microscope.manifold_examples.symbolic_computations import ellipsoid_parametrization, hyperboloid_parametrization, \
-    ellipsoid_volume_element_formula, hyperboloid_volume_element_formula
-from microscope.manifold_examples.utils import parallel_apply, embed_to_ambient_space, random_isometry_transform
+from microscope.manifold_examples.symbolic_computations import (
+    ellipsoid_parametrization,
+    ellipsoid_volume_element_formula,
+    hyperboloid_parametrization,
+    hyperboloid_volume_element_formula,
+)
+from microscope.manifold_examples.utils import embed_to_ambient_space, parallel_apply, random_isometry_transform
 
 DEFAULT_QUAD_KWARGS = {
     "limit": 500,

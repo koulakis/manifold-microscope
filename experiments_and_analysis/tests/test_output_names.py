@@ -8,8 +8,8 @@ from experiments_and_analysis import paths
 from experiments_and_analysis.config import load_config, resolve
 from experiments_and_analysis.data.preparation import source_identity
 from experiments_and_analysis.outputs import begin, experiment_identity, read_json, stage_directory, stage_ids
-from experiments_and_analysis.scripts import run as single, sweep
-
+from experiments_and_analysis.scripts import run as single
+from experiments_and_analysis.scripts import sweep
 
 PAPER = Path(__file__).parents[1] / 'scripts/configs/paper'
 

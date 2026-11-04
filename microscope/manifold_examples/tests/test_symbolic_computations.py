@@ -4,7 +4,7 @@ import numpy as np
 import sympy as sp
 from sympy import Matrix, cos, sin
 
-from microscope.manifold_examples.symbolic_computations import volume_element_formula, scalar_curvature_formula
+from microscope.manifold_examples.symbolic_computations import scalar_curvature_formula, volume_element_formula
 
 
 class TestBasicFunctions(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestBasicFunctions(unittest.TestCase):
 
             # Known volume element formula for the sphere.
             n = len(coordinates)
-            components = np.concatenate([[R], np.vectorize(sin)((coordinates[:-1]))])
+            components = np.concatenate([[R], np.vectorize(sin)(coordinates[:-1])])
             gt_element = np.prod(components ** np.arange(n, 0, -1))
 
             pred_element = volume_element_formula(u, coordinates)

@@ -1,4 +1,3 @@
-from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,14 +6,14 @@ from mpl_toolkits import mplot3d
 
 def plot_points(
     pts: np.ndarray,
-    curvature: Optional[np.ndarray] = None,
-    volume_element: Optional[np.ndarray] = None,
+    curvature: np.ndarray | None = None,
+    volume_element: np.ndarray | None = None,
     limit: float = 1,
     s: float = 1,
     cmap: str = "coolwarm",
     alpha: float = 0.5,
     size_mult: float = 4,
-    subsample_ratio: Optional[float] = None
+    subsample_ratio: float | None = None
 ) -> None:
     """Plot a three-dimensional point grid and optional scalar fields.
 

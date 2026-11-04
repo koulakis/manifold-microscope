@@ -1,12 +1,11 @@
-from typing import Optional
 
 import numpy as np
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.callbacks import EarlyStopping
+from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.ops import MLP
-from torch import nn
-import torch
 
 
 def _validate_training_batch(batch: tuple[torch.Tensor, ...] | list[torch.Tensor], noise_along_normals: bool) -> None:
@@ -70,7 +69,7 @@ class DenoisingAutoencoderPL(pl.LightningModule):
     def add_noise(
         self,
         points: torch.Tensor,
-        normals: Optional[torch.Tensor] = None
+        normals: torch.Tensor | None = None
     ) -> torch.Tensor:
         """Perturb points with Gaussian noise.
 
@@ -180,7 +179,7 @@ class DenoisingAutoencoder:
     def fit(
         self,
         samples: np.ndarray,
-        unitary_normals: Optional[np.ndarray],
+        unitary_normals: np.ndarray | None,
         max_epochs: int = 1_000,
         train_loss_stop_threshold: float = 1e-3,
         batch_size: int = 32,

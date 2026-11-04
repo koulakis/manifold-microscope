@@ -2,6 +2,7 @@
 import json
 
 from typer.testing import CliRunner
+
 from experiments_and_analysis.config import resolve
 from experiments_and_analysis.scripts import run as runner
 

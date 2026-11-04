@@ -7,8 +7,8 @@ import torch
 from microscope.computations_grid.basic import partial_derivatives_across_all_dims_batched
 from microscope.computations_grid.curvature import scalar_curvature
 from microscope.computations_grid.reach import reach_per_point
-from microscope.computations_grid.volume import volume_element
 from microscope.computations_grid.tests._device import get_test_device
+from microscope.computations_grid.volume import volume_element
 
 
 @pytest.mark.parametrize("available", [False, True])

@@ -8,7 +8,7 @@ from microscope._grid_validation import validate_cyclic_axes, validate_integer_l
 from microscope.computations_grid.curvature_extrinsic import _normal_geometry
 from microscope.computations_grid.reach import _chord_geometry
 from microscope.cyclic_dimensions import get_difference_intervals
-from microscope.patches import _iter_patches_with_halo
+from microscope.patches import iter_patches_with_halo
 
 
 class ReachComponents(NamedTuple):
@@ -369,7 +369,7 @@ def reach_per_point(
     frames = np.empty((*sampled_shape, features_on_grid.shape[-1], dims), dtype=features_on_grid.dtype)
     curvatures = np.empty(sampled_shape, dtype=features_on_grid.dtype)
     with torch.no_grad():
-        for destination, patch in _iter_patches_with_halo(features_on_grid, patch_sizes, 2, cyclic):
+        for destination, patch in iter_patches_with_halo(features_on_grid, patch_sizes, 2, cyclic):
             offsets = [(-s.start) % stride for s in destination]
             if any(first >= s.stop-s.start for first, s in zip(offsets, destination)):
                 continue

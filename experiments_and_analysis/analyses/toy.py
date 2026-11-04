@@ -7,8 +7,8 @@ import numpy as np
 import typer
 from tqdm import tqdm
 
-from microscope.datasets import toy_manifolds
 from experiments_and_analysis.models.mmls.projector import ANNMMLSProjector
+from microscope.datasets import toy_manifolds
 
 app = typer.Typer(pretty_exceptions_enable=False)
 

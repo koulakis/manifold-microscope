@@ -1,10 +1,10 @@
 import unittest
 
 import numpy as np
-from sympy import cos, sin
 from scipy.special import ellipeinc, ellipkinc
+from sympy import cos, sin
 
-from microscope.manifold_examples.ellipsoid import ellipsoid_volume_element, ellipsoid_scalar_curvature
+from microscope.manifold_examples.ellipsoid import ellipsoid_scalar_curvature, ellipsoid_volume_element
 
 
 def ellipsoid_2d_surface_area(a, b, c):

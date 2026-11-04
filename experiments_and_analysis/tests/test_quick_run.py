@@ -13,7 +13,6 @@ from experiments_and_analysis.quick import QUICK_RUN, apply_quick_run
 from experiments_and_analysis.scripts import run as single
 from experiments_and_analysis.scripts import sweep
 
-
 PAPER = Path(__file__).parents[1] / 'scripts/configs/paper'
 
 

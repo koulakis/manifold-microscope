@@ -1,15 +1,16 @@
-import time
 import signal
+import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from functools import partial
 from types import FrameType, TracebackType
-from typing import Any, cast
+from typing import cast
 
-import sympy as sp
-from sympy import sin, cos, sinh, cosh, Matrix
-import numpy as np
 import einops
+import numpy as np
+import sympy as sp
+from sympy import Matrix, cos, cosh, sin, sinh
+from sympy.core.symbol import Symbol as SympySymbol
 
 from microscope.manifold_examples.utils import parallel_apply
 
@@ -95,9 +96,7 @@ def time_limit(seconds: int, message: str | None = None) -> Generator[None]:
 
 def _time_limited_simplify(
     formula: sp.Expr,
-    limit_seconds: int = 10 * 60,
-    *args: Any,
-    **kwargs: Any
+    limit_seconds: int = 10 * 60
 ) -> sp.Expr:
     """A time limited version of the sympy simplify function. If it does not succeed, it will return the original,
     unsimplified formula.
@@ -115,7 +114,7 @@ def _time_limited_simplify(
     try:
         message = f"Simplification time of {limit_seconds} seconds exceeded. Returning original formula."
         with time_limit(limit_seconds, message=message):
-            return sp.simplify(formula, *args, **kwargs)
+            return sp.simplify(formula)
     except TimeoutException:
         return formula
 
@@ -391,7 +390,7 @@ def _prepend_np_to_functions(formula: str, function_names: list[str]) -> str:
 
 def formula_to_code(
     formula: sp.Expr,
-    args: list[sp.core.symbol.Symbol],
+    args: list[SympySymbol],
     fn_name: str
 ) -> str:
     """Convert a computed formula to a python function to be added to the codebase.

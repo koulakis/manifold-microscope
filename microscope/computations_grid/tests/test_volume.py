@@ -1,16 +1,16 @@
 import unittest
-
-import numpy as np
 from typing import cast
 
-from microscope.computations_grid.volume import volume_element, compute_total_volume
+import numpy as np
+
+from microscope.computations_grid.tests._device import get_test_device
+from microscope.computations_grid.volume import compute_total_volume, volume_element
 from microscope.cyclic_dimensions import get_difference_intervals
 from microscope.manifold_examples.ellipsoid import ellipsoid_volume_element
 from microscope.manifold_examples.hyperboloid import hyperboloid_volume_element
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 from microscope.manifold_examples.sphere import sphere_volume_element
 from microscope.manifold_examples.tests.test_ellipsoid import ellipsoid_2d_surface_area
-from microscope.computations_grid.tests._device import get_test_device
 
 
 class TestEllipsoids(unittest.TestCase):

@@ -1,6 +1,7 @@
 """Paper power-law aggregation, independent of result storage."""
 from collections import defaultdict
 
+
 def _curve(rows: list[dict], dimension: int) -> tuple[dict, dict]:
     """Fit an empirical power law and scale the paper reference bounds.
 

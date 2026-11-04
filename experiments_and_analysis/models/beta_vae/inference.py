@@ -5,13 +5,13 @@ from typing import cast
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
 from tqdm import tqdm
 
 from experiments_and_analysis.models.beta_vae.dataset import CustomTensorDataset
-from experiments_and_analysis.models.beta_vae.model import reparametrize, BetaVAE_B, BetaVAE_H
+from experiments_and_analysis.models.beta_vae.model import BetaVAE_B, BetaVAE_H, reparametrize
 
 
 def get_dataloader(

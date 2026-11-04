@@ -1,9 +1,9 @@
 """Small real toy runs check bundled IO, equivalence, resume and file counts."""
-from copy import deepcopy
 import csv
-from pathlib import Path
 import pickle
 import struct
+from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -12,7 +12,8 @@ from experiments_and_analysis import bundles
 from experiments_and_analysis.config import load_config, resolve
 from experiments_and_analysis.config_types import ExperimentOptions, SweepOptions
 from experiments_and_analysis.outputs import identity, read_json
-from experiments_and_analysis.scripts import run as single, sweep
+from experiments_and_analysis.scripts import run as single
+from experiments_and_analysis.scripts import sweep
 
 
 def toy_config() -> ExperimentOptions:

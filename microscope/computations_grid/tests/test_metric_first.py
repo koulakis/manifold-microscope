@@ -3,9 +3,9 @@ import numpy as np
 import pytest
 import torch
 
-from microscope.computations_grid import curvature
 from microscope.computations_grid import _curvature_geometry as geometry
-from microscope.patches import _iter_patches_with_halo
+from microscope.computations_grid import curvature
+from microscope.patches import iter_patches_with_halo
 
 
 def immersion(shape, cyclic, dtype):
@@ -144,7 +144,7 @@ def test_halo_tiles_wrap_corners_and_cover_each_output_once(shape, cyclic, halo,
     monkeypatch.setattr(np, "take", forbidden)
     output_shape = tuple(n if a in cyclic else n-2*halo for a, n in enumerate(shape))
     visits = np.zeros(output_shape, dtype=int)
-    for destination, tile in _iter_patches_with_halo(array, patches, halo, cyclic):
+    for destination, tile in iter_patches_with_halo(array, patches, halo, cyclic):
         indices = [np.arange(s.start, s.stop+2*halo)-(halo if a in cyclic else 0)
                    for a, s in enumerate(destination)]
         reference = array[np.ix_(*[x % n for x, n in zip(indices, shape)])]

@@ -1,14 +1,13 @@
 from collections.abc import Iterator
-from typing import Optional
 
 import numpy as np
 from einops import einops
 
-from microscope.cyclic_dimensions import pad_cyclic_dimensions
 from microscope._grid_validation import validate_cyclic_axes, validate_integer_list
+from microscope.cyclic_dimensions import pad_cyclic_dimensions
 
 
-def _iter_patches_with_halo(
+def iter_patches_with_halo(
     array: np.ndarray,
     patch_sizes: list[int],
     halo: int,
@@ -107,7 +106,7 @@ def extract_patches(
     array: np.ndarray,
     patch_sizes: list[int],
     overlaps: list[int],
-    cyclic_dimensions: Optional[list[int]] = None,
+    cyclic_dimensions: list[int] | None = None,
     verbose: bool = False
 ) -> np.ndarray:
     """Generalized function to extract overlapping patches from the first n - d dimensions of a multidimensional array,
@@ -162,7 +161,7 @@ def extract_patches(
             array,
             pad_width=
             tuple((0, r) for r in ((step_sizes - residue) % step_sizes))
-            + tuple(((0, 0) for _ in range(n_features))),
+            + tuple((0, 0) for _ in range(n_features)),
             mode="wrap"
         )
         array_shape = np.array(array.shape[:n_dim])

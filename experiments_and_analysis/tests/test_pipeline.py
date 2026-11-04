@@ -156,8 +156,8 @@ def test_mmls_projector_export_round_trip(tmp_path, standalone):
 
 def test_one_step_vae_checkpoint_and_named_inference(tmp_path):
     import torch
-    from experiments_and_analysis.models.beta_vae.inference import batches
-    from experiments_and_analysis.models.beta_vae.inference import load_autoencoder_from_checkpoint
+
+    from experiments_and_analysis.models.beta_vae.inference import batches, load_autoencoder_from_checkpoint
     data = np.random.default_rng(5).random((3, 64, 64), dtype=np.float32)
     np.savez(tmp_path / 'images.npz', data=data[None])
     config = dict(dataset=dict(name='tiny_images', dimension=1, path=str(tmp_path / 'images.npz'),

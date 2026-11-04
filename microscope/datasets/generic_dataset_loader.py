@@ -1,14 +1,13 @@
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
 from microscope.computations_grid.volume import volume_element
 from microscope.cyclic_dimensions import get_difference_intervals
-from microscope.datasets import original_dsprites, custom_dsprites
+from microscope.datasets import custom_dsprites, original_dsprites
 from microscope.datasets.coil20 import extended_coil20
-from microscope.datasets.dataset_split import weighted_uniform_splitting, maximal_distance_selection_torch
+from microscope.datasets.dataset_split import maximal_distance_selection_torch, weighted_uniform_splitting
 from microscope.datasets.noise_adding import compute_gaussian_noise
 
 
@@ -160,7 +159,7 @@ def load_dataset(
     noise_sigma: float,
     save_train_idx: bool = False,
     weight_subsampling_by_manifold_volume: bool = True,
-    output_dir: Optional[Path] = None,
+    output_dir: Path | None = None,
     return_full_datasets: bool = False,
     return_dataset_unflat_with_metadata: bool = False,
     full_datasets_unclipped: bool = False,

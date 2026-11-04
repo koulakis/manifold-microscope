@@ -1,13 +1,18 @@
+import os
 from functools import partial
 from pathlib import Path
-import os
 
 import numpy as np
 from numpy.typing import DTypeLike
 from PIL import Image
 
-from microscope.datasets.image_transforms import apply_transform, statistical_scaling, shrink_image, rotate_image, \
-    place_in_middle_of_background
+from microscope.datasets.image_transforms import (
+    apply_transform,
+    place_in_middle_of_background,
+    rotate_image,
+    shrink_image,
+    statistical_scaling,
+)
 
 LABEL_MAPPING = {
     0: "duck",

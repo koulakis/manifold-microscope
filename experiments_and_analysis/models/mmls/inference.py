@@ -1,5 +1,6 @@
 """Projection using the unchanged MMLS neighbor/SVD implementation."""
 import numpy as np
+
 from .projector import ANNMMLSProjector
 
 

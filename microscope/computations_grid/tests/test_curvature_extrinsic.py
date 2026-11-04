@@ -7,7 +7,8 @@ import pytest
 import torch
 
 from microscope.computations_grid.basic import partial_derivatives_across_all_dims
-from microscope.computations_grid.curvature import compute_total_curvature, scalar_curvature as intrinsic_curvature
+from microscope.computations_grid.curvature import compute_total_curvature
+from microscope.computations_grid.curvature import scalar_curvature as intrinsic_curvature
 from microscope.computations_grid.curvature_extrinsic import (
     scalar_curvature,
     scalar_curvature_batch,

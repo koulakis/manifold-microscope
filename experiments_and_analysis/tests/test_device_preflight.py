@@ -1,10 +1,10 @@
 """Unavailable devices fail before datasets are loaded or stage files are written."""
-from pathlib import Path
 import importlib
+from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
 from experiments_and_analysis.config import load_config
 from experiments_and_analysis.scripts import run as single

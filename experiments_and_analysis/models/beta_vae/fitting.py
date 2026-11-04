@@ -5,11 +5,11 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from ...outputs import write_json
 from ..config import BetaVAEConfig
 from .dataset import training_loader
-from .solver import Solver
-from ...outputs import write_json
 from .model import BetaVAE_H
+from .solver import Solver
 
 
 def fit(

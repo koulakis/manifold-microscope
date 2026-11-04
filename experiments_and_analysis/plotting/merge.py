@@ -1,14 +1,15 @@
 import pickle
 from pathlib import Path
 
+import matplotlib
 import numpy as np
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+import typer
+from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
 from tqdm import tqdm
-import typer
-import matplotlib
-from matplotlib.colors import LinearSegmentedColormap
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -138,7 +139,7 @@ def merge_distributions(
                             alpha=alpha,
                             color=color,
                             linewidth=0.2,
-                            label=encoder_layers[layer_n],
+                            label=layer,
                             ax=ax
                         )
 

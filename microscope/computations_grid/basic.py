@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-from microscope.patches import extract_patches
 from microscope._grid_validation import validate_spacings
+from microscope.patches import extract_patches
 
 
 def partial_derivative_approximation(

@@ -1,15 +1,15 @@
 """IO wrappers for plot-ready results and the retained paper styles."""
-from typing import cast
-
-from pathlib import Path
 import pickle
+from pathlib import Path
+from typing import cast
 
 import numpy as np
 from PIL import Image
 
+from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
+
 from ..analyses.bounds import _curve
 from ..outputs import artifact_path, begin, finish, identity, read_json, stage_directory, write_json
-from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
 
 def matches(record: dict, selection: dict) -> bool:

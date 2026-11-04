@@ -1,18 +1,17 @@
 import pickle
 from pathlib import Path
 
-import numpy as np
 import matplotlib
-
+import numpy as np
 
 matplotlib.use('Agg')
 
 from microscope.computations_grid.data_analysis.data_analysis import (
-    compute_measures_multiclass,
-    plot_pairs_multiclass,
-    plot_3d_pca_projections_multiclass,
+    MeasureAggregates,
     clip_results_multiclass,
-    MeasureAggregates
+    compute_measures_multiclass,
+    plot_3d_pca_projections_multiclass,
+    plot_pairs_multiclass,
 )
 
 

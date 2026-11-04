@@ -2,10 +2,11 @@
 from typing import cast
 
 import matplotlib
+
 matplotlib.use('Agg')
-from matplotlib import pyplot as plt
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 
 from experiments_and_analysis.plotting import bounds as style
 

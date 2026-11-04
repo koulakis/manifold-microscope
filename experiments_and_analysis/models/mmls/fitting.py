@@ -1,15 +1,15 @@
 """MMLS fitting and projector-state IO, separate from projection and metrics."""
+import pickle
+from dataclasses import asdict
 from pathlib import Path
 from typing import BinaryIO, cast
 
-from dataclasses import asdict
-import pickle
+import numpy as np
 
+from ...bundles import BundlePath
+from ...outputs import artifact_path, load_array, read_json, save_array, write_json
 from ..config import MMLSConfig
 from .projector import ANNMMLSProjector
-from ...outputs import artifact_path, load_array, read_json, save_array, write_json
-import numpy as np
-from ...bundles import BundlePath
 
 
 def fit(

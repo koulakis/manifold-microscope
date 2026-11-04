@@ -3,10 +3,9 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any
 
+import numpy as np
 import scipy
 from joblib import Parallel, delayed
-
-import numpy as np
 from tqdm import tqdm
 
 

@@ -3,11 +3,11 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
-from experiments_and_analysis.models.beta_vae.model import BetaVAE_H
 
-from experiments_and_analysis.models.config import BetaVAEConfig
 from experiments_and_analysis.models.beta_vae import solver as solver_module
 from experiments_and_analysis.models.beta_vae.inference import get_intermediate_from_autoencoder
+from experiments_and_analysis.models.beta_vae.model import BetaVAE_H
+from experiments_and_analysis.models.config import BetaVAEConfig
 
 
 class SmallNetwork(nn.Module):

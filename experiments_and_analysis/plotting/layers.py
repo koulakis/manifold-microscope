@@ -1,24 +1,21 @@
 """Paper layer styles, receiving explicitly selected in-memory analysis results."""
-from pathlib import Path
-from matplotlib.axes import Axes
-
-
 import os
+from pathlib import Path
 
-import numpy as np
 import matplotlib
-
+import numpy as np
+from matplotlib.axes import Axes
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.ticker import FuncFormatter
 
 from microscope.computations_grid.data_analysis.data_analysis import (
+    AnalysisResults,
     clip_results_multiclass,
 )
-from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
 
 def format_two_decimals(y: float, _: int | None) -> str:

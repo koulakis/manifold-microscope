@@ -1,20 +1,20 @@
 """Expand parameter choices, run experiments sequentially, then aggregate/plot."""
-from collections.abc import Generator, Mapping
-from copy import deepcopy
-from contextlib import contextmanager, redirect_stderr, redirect_stdout
-from itertools import product
 import os
-from pathlib import Path
 import sys
+from collections.abc import Generator, Mapping
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
+from copy import deepcopy
+from itertools import product
+from pathlib import Path
 from time import perf_counter
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from tqdm import tqdm
 from tqdm.contrib import DummyTqdmFile
 
-from ..config import load_config, merge, resolve
 from ..bundles import bundle_session
+from ..config import load_config, merge, resolve
 from ..data.preparation import source_identity
 from ..outputs import identity, stage_directory, write_json
 from ..paths import sweep_label
@@ -195,10 +195,10 @@ def main(
     output_dir: Path = typer.Option(...),
     dry_run: bool = False,
     quick_run: bool = False,
-    quiet_experiments: Optional[bool] = typer.Option(
+    quiet_experiments: bool | None = typer.Option(
              None, '--quiet-experiments/--no-quiet-experiments',
              help='Show only sweep progress; overrides quiet_experiments in the sweep config.'),
-    device: Optional[str] = typer.Option(None, help='Override the configured device, e.g. cuda:0.')
+    device: str | None = typer.Option(None, help='Override the configured device, e.g. cuda:0.')
 ) -> None:
     """Expand/run a YAML or JSON sweep; --dry-run writes its job list only.
 

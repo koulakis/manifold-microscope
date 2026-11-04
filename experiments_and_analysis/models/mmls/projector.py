@@ -1,6 +1,6 @@
 import numpy as np
-import torch
 import pynndescent
+import torch
 from tqdm import tqdm
 
 

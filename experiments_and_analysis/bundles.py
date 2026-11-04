@@ -5,25 +5,25 @@ entire experiment at a time; results.pkl is the normal, single-pickle export for
 """
 from __future__ import annotations
 
-from collections.abc import Generator
-from typing import BinaryIO, cast
-from contextlib import contextmanager
-from copy import deepcopy
 import csv
-from hashlib import sha256
 import io
 import json
 import os
-from pathlib import Path, PurePosixPath
 import pickle
 import struct
+from collections.abc import Generator
+from contextlib import contextmanager
+from copy import deepcopy
+from hashlib import sha256
+from pathlib import Path, PurePosixPath
 from time import perf_counter
+from typing import BinaryIO, cast
 
 import numpy as np
 
+from .config_types import ExportConfiguration, ExportResult
 from .outputs import canonical, identity, stage_directory
 from .paths import model_label
-from .config_types import ExportConfiguration, ExportResult
 
 FORMAT_VERSION = 1
 _bundles = {}

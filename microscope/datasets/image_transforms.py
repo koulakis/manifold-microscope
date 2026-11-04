@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from functools import partial
 from multiprocessing import Pool
-from typing import Callable, Optional
 
 import cv2
 import numpy as np
@@ -122,7 +122,7 @@ def apply_transform(
     transform: Callable[..., np.ndarray],
     transform_range: tuple[str, list[int] | np.ndarray],
     axis: int = 0,
-    processes: Optional[int] = None,
+    processes: int | None = None,
     verbose: bool = False
 ) -> np.ndarray:
     """Apply a transform over all images in a grid and for all given values of the transform.

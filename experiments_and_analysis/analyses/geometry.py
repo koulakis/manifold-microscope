@@ -1,8 +1,9 @@
 """Full-grid geometry; numerical implementations remain in microscope."""
-from microscope.computations_grid.data_analysis.data_analysis import compute_measures_multiclass
 import numpy as np
+
+from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults, compute_measures_multiclass
+
 from ..data.preparation import Dataset
-from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
 
 def compute(

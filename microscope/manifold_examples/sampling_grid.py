@@ -1,4 +1,3 @@
-from typing import Optional
 
 import numpy as np
 
@@ -33,8 +32,8 @@ def sample_ellipsoid_on_grid(
     ambient_space_dim: int,
     fraction_of_angles: float = 0.7,
     apply_random_isometry: bool = True,
-    seed: Optional[int] = None
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[tuple[np.ndarray, np.ndarray]]]:
+    seed: int | None = None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray] | None]:
     """Sample points on a spherical coordinate grid on an n-ellipsoid. All angles, except from the polar one, are
     sampled on a fraction of their domain to create a simple cylindrical grid.
 
@@ -97,8 +96,8 @@ def sample_hyperboloid_on_grid(
     ambient_space_dim: int,
     apply_random_isometry: bool = True,
     height_variable_limit: float = 1.,
-    seed: Optional[int] = None
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[tuple[np.ndarray, np.ndarray]]]:
+    seed: int | None = None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray] | None]:
     """Sample points on a coordinate grid on an n-hyperboloid.
 
     Requires compatible grid and embedding dimensions; see _validate_grid_sampling_inputs.

@@ -1,13 +1,13 @@
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 import torch
 from einops import einops
 
-from microscope.computations_grid.basic import partial_derivatives_across_all_dims, crop_dim_borders
-from microscope.patches import _iter_patches_with_halo
 from microscope._grid_validation import validate_cyclic_axes, validate_integer_list, validate_spacings
 from microscope.computations_grid._curvature_geometry import metric_and_inverse, validate_tensor
+from microscope.computations_grid.basic import crop_dim_borders, partial_derivatives_across_all_dims
+from microscope.patches import iter_patches_with_halo
 
 
 def christoffel_symbols(
@@ -50,7 +50,7 @@ def riemannian_curvature_tensor(
     gamma_second_kind: torch.Tensor,
     difference_intervals: list[float],
     kinds: list[str] | tuple[str, ...] = ("first", "second")
-) -> dict[str, Optional[torch.Tensor]]:
+) -> dict[str, torch.Tensor | None]:
     """Estimate Riemann tensors by differentiating Christoffel symbols.
 
     Args:
@@ -79,7 +79,7 @@ def riemannian_curvature_tensor(
     gamma_first_kind = crop_dim_borders(gamma_first_kind, dim_idxs)
     gamma_second_kind = crop_dim_borders(gamma_second_kind, dim_idxs)
 
-    result: dict[str, Optional[torch.Tensor]] = {"first": None, "second": None}
+    result: dict[str, torch.Tensor | None] = {"first": None, "second": None}
 
     if gamma_derivatives_first_kind is not None:
         riemannian_tensor_first_kind = (
@@ -261,7 +261,7 @@ def _scalar_curvature_in_patches(
         for i, s in enumerate(features_on_grid.shape[:-1])
     )
     curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
-    for destination, patch in _iter_patches_with_halo(
+    for destination, patch in iter_patches_with_halo(
         features_on_grid,
         patch_sizes,
         3,
@@ -324,7 +324,7 @@ def scalar_curvature(
     inverse_array = np.empty_like(metric_array)
 
     with torch.no_grad():
-        for destination, patch in _iter_patches_with_halo(
+        for destination, patch in iter_patches_with_halo(
             features_on_grid,
             patch_sizes,
             1,
@@ -344,8 +344,8 @@ def scalar_curvature(
                              for a, n in enumerate(features_on_grid.shape[:-1]))
         curvature_array = np.empty(output_shape, dtype=features_on_grid.dtype)
         metric_patch_sizes = [p-2 for p in patch_sizes]
-        metric_tiles = _iter_patches_with_halo(metric_array, metric_patch_sizes, 2, cyclic_dimensions)
-        inverse_tiles = _iter_patches_with_halo(inverse_array, metric_patch_sizes, 2, cyclic_dimensions)
+        metric_tiles = iter_patches_with_halo(metric_array, metric_patch_sizes, 2, cyclic_dimensions)
+        inverse_tiles = iter_patches_with_halo(inverse_array, metric_patch_sizes, 2, cyclic_dimensions)
         for (destination, metric_patch), (_, inverse_patch) in zip(metric_tiles, inverse_tiles):
             metric = torch.from_numpy(metric_patch).to(device)
             inverse = torch.from_numpy(inverse_patch).to(device)

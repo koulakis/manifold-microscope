@@ -1,18 +1,18 @@
 from functools import partial
-from typing import Optional
 
+import cv2
 import numpy as np
 from numpy.typing import DTypeLike
-import cv2
 from scipy.ndimage import gaussian_filter
 
 from microscope.datasets.image_transforms import (
-    statistical_scaling,
+    apply_transform,
     place_in_middle_of_background,
     rotate_image,
-    shrink_image, translate_image, apply_transform
+    shrink_image,
+    statistical_scaling,
+    translate_image,
 )
-
 
 LABEL_MAPPING = {
     0: "square",
@@ -148,11 +148,11 @@ def dsprites(
     max_size_ratio: float = 1.0,
     max_translation: int = 16,
     translation_stride: int = 1,
-    blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA,
+    blur_sigma: float | None = DEFAULT_BLUR_SIGMA,
     flat: bool = False,
     scale: bool = False,
     dtype: DTypeLike = np.float32,
-    processes: list[Optional[int]] | tuple[Optional[int], ...] = (None, None, None, None),
+    processes: list[int | None] | tuple[int | None, ...] = (None, None, None, None),
     verbose: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     """Generate and return a version of the dsprites dataset. This contains images of a sprite with the following
@@ -310,7 +310,7 @@ def dsprites(
 def dsprites_original_remake(
     flat: bool = False,
     scale: bool = False,
-    blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA
+    blur_sigma: float | None = DEFAULT_BLUR_SIGMA
 ) -> tuple[np.ndarray, np.ndarray]:
     """Reproduces a smoothed version of the original dSprites dataset. The sprite sizes, might not be the same, but the
     sizes of the different dimensions match.
@@ -347,7 +347,7 @@ def dsprites_original_remake(
 def dsprites_original_remake_single_size(
     flat: bool = False,
     scale: bool = False,
-    blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA
+    blur_sigma: float | None = DEFAULT_BLUR_SIGMA
 ) -> tuple[np.ndarray, np.ndarray]:
     """Again a smoothed version of the original dataset, this time selecting only the largest sprite size in order to
     remove one dimension.
@@ -392,7 +392,7 @@ def dsprites_original_remake_single_size(
 def dsprites_balanced(
     flat: bool = False,
     scale: bool = False,
-    blur_sigma: Optional[float] = DEFAULT_BLUR_SIGMA,
+    blur_sigma: float | None = DEFAULT_BLUR_SIGMA,
     buffer_for_measure_estimation: int = 3
 ) -> tuple[np.ndarray, np.ndarray]:
     """A balanced version of the dsprites dataset with equal dimension sizes of 16.

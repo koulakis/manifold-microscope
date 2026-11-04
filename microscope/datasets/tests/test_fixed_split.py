@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from microscope.datasets.dataset_split import maximal_distance_selection_torch
 from microscope.datasets import generic_dataset_loader as loader
+from microscope.datasets.dataset_split import maximal_distance_selection_torch
 
 
 def test_farthest_points_on_a_line():

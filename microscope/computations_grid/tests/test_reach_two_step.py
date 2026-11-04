@@ -6,7 +6,8 @@ import pytest
 import torch
 
 from microscope.computations_grid.reach_two_step import (
-    ReachComponents, _max_normal_curvature,
+    ReachComponents,
+    _max_normal_curvature,
     reach_curvature_bottleneck,
 )
 from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid

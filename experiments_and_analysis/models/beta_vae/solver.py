@@ -15,14 +15,14 @@ from experiments_and_analysis.models.config import BetaVAEConfig
 warnings.filterwarnings("ignore")
 
 import os
-from tqdm import tqdm
+
 import matplotlib
-
 import torch
-import torch.optim as optim
 import torch.nn.functional as F
+from torch import optim
+from tqdm import tqdm
 
-from experiments_and_analysis.models.beta_vae.model import BetaVAE_H, BetaVAE_B
+from experiments_and_analysis.models.beta_vae.model import BetaVAE_B, BetaVAE_H
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -85,7 +85,7 @@ def kl_divergence(mu: torch.Tensor, logvar: torch.Tensor) -> tuple[torch.Tensor,
     return total_kld, dimension_wise_kld, mean_kld
 
 
-class DataGather(object):
+class DataGather:
     @staticmethod
     def get_empty_data_dict() -> dict[str, list]:
         """Create empty lists for training statistics.
@@ -179,8 +179,7 @@ def visualize_reconstructions(
     """
     autoencoder.eval()
     images = next(iter(data_loader))
-    if len(images) < num_images:
-        num_images = len(images)
+    num_images = min(num_images, len(images))
     images = images[:num_images].to(device)
     with torch.no_grad():
         reconstructed_images, _, _ = autoencoder(images)
@@ -217,7 +216,7 @@ def visualize_reconstructions(
     plt.close(fig)
 
 
-class Solver(object):
+class Solver:
     def _to_device(self, tensor_or_module: DeviceValue) -> DeviceValue:
         """Move tensor or module to the configured device.
 
@@ -249,9 +248,9 @@ class Solver(object):
             self.win_mu = checkpoint['win_states']['mu']
             self.net.load_state_dict(checkpoint['model_states']['net'])
             self.optim.load_state_dict(checkpoint['optim_states']['optim'])
-            print("=> loaded checkpoint '{} (iter {})'".format(file_path, self.global_iter))
+            print(f"=> loaded checkpoint '{file_path} (iter {self.global_iter})'")
         else:
-            print("=> no checkpoint found at '{}'".format(file_path))
+            print(f"=> no checkpoint found at '{file_path}'")
 
     def __init__(
         self,
@@ -412,7 +411,7 @@ class Solver(object):
         )
 
         if not silent:
-            print("=> saved checkpoint '{}' (iter {})".format(file_path, self.global_iter))
+            print(f"=> saved checkpoint '{file_path}' (iter {self.global_iter})")
 
     def train(self) -> None:
         """Fit the model; strict_budget opts into exact batch and epoch limits.
@@ -514,23 +513,16 @@ class Solver(object):
                     )
 
                 if (self.global_iter % self.display_step == 0) or epoch_save:
-                    pbar.write('[{}] recon_loss:{:.3f} total_kld:{:.3f} mean_kld:{:.3f}'.format(
-                        self.global_iter,
-                        recon_loss.detach().item(),
-                        total_kld.detach().item(),
-                        mean_kld.detach().item()
+                    pbar.write(
+                        f'[{self.global_iter}] '
+                        f'recon_loss:{recon_loss.detach().item():.3f} '
+                        f'total_kld:{total_kld.detach().item():.3f} '
+                        f'mean_kld:{mean_kld.detach().item():.3f}'
                     )
-                    )
-
-                    # var = logvar.exp().mean(0).data
-                    # var_str = ''
-                    # for j, var_j in enumerate(var):
-                    #     var_str += 'var{}:{:.4f} '.format(j+1, var_j)
-                    # pbar.write(var_str)
 
                     if self.objective == 'B':
                         assert C is not None
-                        pbar.write('C:{:.3f}'.format(C.data[0]))
+                        pbar.write(f'C:{C.data[0]:.3f}')
 
                 if (self.global_iter % 50000 == 0) or epoch_save:
                     self.save_checkpoint()

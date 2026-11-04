@@ -87,13 +87,14 @@ experiments_and_analysis = ["scripts/configs/*.yaml", "scripts/configs/paper/*.y
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-include = ["microscope/**/*.py", "experiments_and_analysis/**/*.py", "tools/**/*.py"]
+include = ["microscope/**/*.py", "experiments_and_analysis/**/*.py"]
 force-exclude = true
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "E501", "F", "ANN", "D102", "D103", "D107", "D417"]
-# Flexible values in scientific and configuration code may use Any.
-ignore = ["ANN401"]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

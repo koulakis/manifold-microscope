@@ -1,13 +1,12 @@
 import unittest
-
 from typing import cast
 
 import numpy as np
 import pytest
 
 from microscope.computations_grid.reach import reach_per_point
-from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 from microscope.computations_grid.tests._device import get_test_device
+from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
 
 
 class TestEllipsoids(unittest.TestCase):
