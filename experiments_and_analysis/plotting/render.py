@@ -1,8 +1,5 @@
 """IO wrappers for plot-ready results and the retained paper styles."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from pathlib import Path
 import pickle
@@ -12,9 +9,7 @@ from PIL import Image
 
 from ..analyses.bounds import _curve
 from ..outputs import artifact_path, begin, finish, identity, read_json, stage_directory, write_json
-
-if TYPE_CHECKING:
-    from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
+from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
 
 def matches(record: dict, selection: dict) -> bool:

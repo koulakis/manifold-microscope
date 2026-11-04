@@ -1,15 +1,8 @@
 """Full-grid geometry; numerical implementations remain in microscope."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from microscope.computations_grid.data_analysis.data_analysis import compute_measures_multiclass
-
-if TYPE_CHECKING:
-    import numpy as np
-    from ..data.preparation import Dataset
-    from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
+import numpy as np
+from ..data.preparation import Dataset
+from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
 
 def compute(

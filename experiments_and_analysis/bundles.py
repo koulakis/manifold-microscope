@@ -3,10 +3,9 @@
 Virtual paths let the single runner use its existing stages without creating per-experiment files. A journal commits one
 entire experiment at a time; results.pkl is the normal, single-pickle export for downstream analysis.
 """
-
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from typing import BinaryIO, cast
 from contextlib import contextmanager
 from copy import deepcopy
@@ -283,7 +282,7 @@ class Bundle:
         self.dirty = False
 
     @contextmanager
-    def transaction(self, experiment_id: str) -> Iterator[None]:
+    def transaction(self, experiment_id: str) -> Generator[None]:
         """Commit pending files together as one experiment journal event.
 
         Args:
@@ -471,7 +470,7 @@ class BundlePath:
         del self.bundle.pending[self.relative]
 
     @contextmanager
-    def open(self, mode: str = 'r') -> Iterator[io.BytesIO | io.StringIO]:
+    def open(self, mode: str = 'r') -> Generator[io.BytesIO | io.StringIO]:
         """Open a virtual file as an in-memory text or binary stream.
 
         Args:
@@ -538,7 +537,7 @@ def export_bundle(directory: str | Path) -> None:
 
 
 @contextmanager
-def bundle_session(root: str | Path) -> Iterator[None]:
+def bundle_session(root: str | Path) -> Generator[None]:
     """Export once at sweep exit, including on interruption, rather than per job.
 
     Args:

@@ -1,9 +1,4 @@
 """Fit the existing beta-VAE solver to an explicitly supplied training array."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from dataclasses import asdict
 from pathlib import Path
 
@@ -14,9 +9,7 @@ from ..config import BetaVAEConfig
 from .dataset import training_loader
 from .solver import Solver
 from ...outputs import write_json
-
-if TYPE_CHECKING:
-    from .model import BetaVAE_H
+from .model import BetaVAE_H
 
 
 def fit(

@@ -3,9 +3,6 @@
 Only the shared style helpers and mean/one-sigma renderer are retained. Experiment selection and completion handling
 live in render.py.
 """
-
-from __future__ import annotations
-
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')

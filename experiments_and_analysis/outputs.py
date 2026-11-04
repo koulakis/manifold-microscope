@@ -1,5 +1,4 @@
 """Stage identities and IO; numerical functions do not use these helpers."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, BinaryIO, Literal, cast
@@ -11,8 +10,9 @@ from pathlib import Path
 import re
 from time import time
 
+import numpy as np
+
 if TYPE_CHECKING:
-    import numpy as np
     from .bundles import BundlePath
 
 

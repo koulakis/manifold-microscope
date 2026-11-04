@@ -1,5 +1,4 @@
 """Human-readable labels use only inputs relevant to the corresponding stage."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping

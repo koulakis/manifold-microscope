@@ -1,9 +1,6 @@
 """Run one configured experiment; keep IO and stage selection here."""
-
-from __future__ import annotations
-
 from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING, Any, BinaryIO, Optional, cast
+from typing import Any, BinaryIO, Optional, cast
 
 from pathlib import Path
 import pickle
@@ -43,12 +40,10 @@ from ..outputs import (
 )
 from ..paths import dataset_label, experiment_paths, representation_label
 from ..quick import apply_quick_run
-
-if TYPE_CHECKING:
-    from ..bundles import BundlePath
-    from ..data.preparation import Dataset
-    from ..models.beta_vae.model import BetaVAE_H
-    from ..models.mmls.projector import ANNMMLSProjector
+from ..bundles import BundlePath
+from ..data.preparation import Dataset
+from ..models.beta_vae.model import BetaVAE_H
+from ..models.mmls.projector import ANNMMLSProjector
 
 
 app = typer.Typer(pretty_exceptions_enable=False)

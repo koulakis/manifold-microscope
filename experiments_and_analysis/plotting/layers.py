@@ -1,10 +1,6 @@
 """Paper layer styles, receiving explicitly selected in-memory analysis results."""
-
-from __future__ import annotations
-
 from pathlib import Path
 from matplotlib.axes import Axes
-from typing import TYPE_CHECKING
 
 
 import os
@@ -22,9 +18,7 @@ from matplotlib.patches import Patch
 from microscope.computations_grid.data_analysis.data_analysis import (
     clip_results_multiclass,
 )
-
-if TYPE_CHECKING:
-    from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
+from microscope.computations_grid.data_analysis.data_analysis import AnalysisResults
 
 
 def format_two_decimals(y: float, _: int | None) -> str:

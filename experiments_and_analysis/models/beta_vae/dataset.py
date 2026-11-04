@@ -3,16 +3,9 @@
 Copied and adapted from https://github.com/1Konny/Beta-VAE. The upstream project is MIT licensed; see this package's
 `LICENSE` and the repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 import torch
 from torch.utils.data import Dataset, DataLoader
-
-if TYPE_CHECKING:
-    import numpy as np
+import numpy as np
 
 
 class CustomTensorDataset(Dataset):

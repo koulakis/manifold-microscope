@@ -3,9 +3,6 @@
 Copied and adapted from https://github.com/1Konny/Beta-VAE. The upstream project is MIT licensed; see this package's
 `LICENSE` and the repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
-
-from __future__ import annotations
-
 import warnings
 from pathlib import Path
 from typing import TypeVar, cast

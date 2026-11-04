@@ -1,6 +1,6 @@
 import time
 import signal
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from functools import partial
 from types import FrameType, TracebackType
@@ -62,7 +62,7 @@ class TimeoutException(Exception):
 
 
 @contextmanager
-def time_limit(seconds: int, message: str | None = None) -> Iterator[None]:
+def time_limit(seconds: int, message: str | None = None) -> Generator[None]:
     """Limit the duration of a code block with a signal alarm.
 
     Args:

@@ -1,8 +1,5 @@
 """Expand parameter choices, run experiments sequentially, then aggregate/plot."""
-
-from __future__ import annotations
-
-from collections.abc import Iterator, Mapping
+from collections.abc import Generator, Mapping
 from copy import deepcopy
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from itertools import product
@@ -29,7 +26,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @contextmanager
-def experiment_output(quiet: bool) -> Iterator[None]:
+def experiment_output(quiet: bool) -> Generator[None]:
     """Keep the sweep bar separate from experiment prints and nested bars.
 
     Args:

@@ -1,9 +1,6 @@
 """MMLS fitting and projector-state IO, separate from projection and metrics."""
-
-from __future__ import annotations
-
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, cast
+from typing import BinaryIO, cast
 
 from dataclasses import asdict
 import pickle
@@ -11,10 +8,8 @@ import pickle
 from ..config import MMLSConfig
 from .projector import ANNMMLSProjector
 from ...outputs import artifact_path, load_array, read_json, save_array, write_json
-
-if TYPE_CHECKING:
-    import numpy as np
-    from ...bundles import BundlePath
+import numpy as np
+from ...bundles import BundlePath
 
 
 def fit(

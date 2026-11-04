@@ -1,7 +1,4 @@
 """Paper power-law aggregation, independent of result storage."""
-
-from __future__ import annotations
-
 from collections import defaultdict
 
 def _curve(rows: list[dict], dimension: int) -> tuple[dict, dict]:

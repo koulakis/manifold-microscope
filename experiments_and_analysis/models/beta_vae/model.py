@@ -3,12 +3,8 @@
 Copied and adapted from https://github.com/1Konny/Beta-VAE. The upstream project is MIT licensed; see this package's
 `LICENSE` and the repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
-
-from __future__ import annotations
-
 import torch
 import torch.nn as nn
-#import torch.nn.functional as F
 import torch.nn.init as init
 from torch.autograd import Variable
 from typing import cast

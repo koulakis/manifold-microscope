@@ -1,7 +1,4 @@
 """The shared --quick-run profile; edit its budgets here."""
-
-from __future__ import annotations
-
 from copy import deepcopy
 from collections.abc import Mapping
 from typing import Any, TypedDict

@@ -1,7 +1,4 @@
 """Plain configuration dictionaries shared by Python and CLI callers."""
-
-from __future__ import annotations
-
 from copy import deepcopy
 from collections.abc import Mapping
 from pathlib import Path

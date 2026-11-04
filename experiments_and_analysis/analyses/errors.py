@@ -1,7 +1,4 @@
 """Corresponding-point reconstruction/projection errors used in the paper."""
-
-from __future__ import annotations
-
 import numpy as np
 
 

@@ -1,12 +1,6 @@
 """Projection using the unchanged MMLS neighbor/SVD implementation."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import numpy as np
-    from .projector import ANNMMLSProjector
+import numpy as np
+from .projector import ANNMMLSProjector
 
 
 def predict(projector: ANNMMLSProjector, data: np.ndarray) -> np.ndarray:
