@@ -1,12 +1,14 @@
 """Quick workload and resume in the new layout; old roots are not reused."""
 from pathlib import Path
+
 import numpy as np
 import pytest
 
 from experiments_and_analysis.config import load_config
 from experiments_and_analysis.data.preparation import Dataset
 from experiments_and_analysis.paths import experiment_paths
-from experiments_and_analysis.scripts import run as single, sweep
+from experiments_and_analysis.scripts import run as single
+from experiments_and_analysis.scripts import sweep
 
 
 def recipe():

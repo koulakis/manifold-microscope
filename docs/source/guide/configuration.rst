@@ -28,7 +28,7 @@ Default values
        ``strict_budget: false``; batch size 64; latent dimension 10
      - ``models/config.py:BetaVAEConfig``
    * - Dataset-specific models
-     - COIL: VAE model/objective H, learning rate 0.0001, loss threshold 10.
+     - COIL: VAE model/objective H, learning rate 0.0001.
        MMLS neighbors: ``2 * 2**dataset.dimension``
      - ``config.py:resolve``
    * - Other MMLS options

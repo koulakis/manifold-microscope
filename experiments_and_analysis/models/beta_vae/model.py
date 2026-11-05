@@ -1,37 +1,129 @@
 """beta-VAE model definitions.
 
-Copied and adapted from https://github.com/1Konny/Beta-VAE.
-The upstream project is MIT licensed; see this package's `LICENSE` and the
-repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
+Copied and adapted from https://github.com/1Konny/Beta-VAE. The upstream project is MIT licensed; see this package's
+`LICENSE` and the repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
+from typing import cast
 
 import torch
-import torch.nn as nn
-#import torch.nn.functional as F
-import torch.nn.init as init
+from torch import nn
 from torch.autograd import Variable
+from torch.nn import init
 
 
-def reparametrize(mu, logvar):
+def reparametrize(mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+    """Sample latent codes using the Gaussian reparameterization.
+
+    Args:
+        mu: Latent means of shape (b z), or (b z 1 1).
+        logvar: Latent log variances with the same shape as mu.
+
+    Returns:
+        Sampled latent tensor with the same shape as mu: (b z) or (b z 1 1).
+    """
     std = logvar.div(2).exp()
     eps = Variable(std.data.new(std.size()).normal_())
     return mu + std*eps
 
 
 class View(nn.Module):
-    def __init__(self, size):
-        super(View, self).__init__()
+    def __init__(self, size: tuple[int, ...]) -> None:
+        """Store the target tensor shape.
+
+        Args:
+            size: Target dimensions, optionally including one inferred dimension (-1).
+
+        Returns:
+            None.
+        """
+        super().__init__()
         self.size = size
 
-    def forward(self, tensor):
+    def forward(self, tensor: torch.Tensor) -> torch.Tensor:
+        """Reshape the input tensor to the stored size.
+
+        Args:
+            tensor: Tensor of shape (...).
+
+        Returns:
+            Tensor view with shape self.size, resolving any -1 dimension from the input size.
+        """
         return tensor.view(self.size)
+
+
+def kaiming_init(m: nn.Module) -> None:
+    """Apply Kaiming initialization to a supported module.
+
+    Args:
+        m: Layer whose weights and biases are initialized.
+
+    Returns:
+        None.
+    """
+    if isinstance(m, (nn.Linear, nn.Conv2d)):
+        init.kaiming_normal_(m.weight)
+        if m.bias is not None:
+            m.bias.data.fill_(0)
+    elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+        m.weight.data.fill_(1)
+        if m.bias is not None:
+            m.bias.data.fill_(0)
+
+
+def normal_init(
+    m: nn.Module,
+    mean: float,
+    std: float
+) -> None:
+    """Apply normal initialization to a supported module.
+
+    Args:
+        m: Layer whose weights and biases are initialized.
+        mean: Mean of the normal weight distribution.
+        std: Standard deviation of the normal weight distribution.
+
+    Returns:
+        None.
+    """
+    if isinstance(m, (nn.Linear, nn.Conv2d)):
+        m.weight.data.normal_(mean, std)
+        if m.bias is not None:
+            m.bias.data.zero_()
+    elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
+        m.weight.data.fill_(1)
+        if m.bias is not None:
+            m.bias.data.zero_()
+
 
 
 class BetaVAE_H(nn.Module):
     """Model proposed in original beta-VAE paper(Higgins et al, ICLR, 2017)."""
 
-    def __init__(self, z_dim=10, nc=3):
-        super(BetaVAE_H, self).__init__()
+    def weight_init(self) -> None:
+        """Initialize the encoder and decoder weights.
+
+        Returns:
+            None.
+        """
+        for block in self._modules:
+            for m in cast(nn.Sequential, self._modules[block]):
+                kaiming_init(m)
+
+    def __init__(
+        self,
+        z_dim: int = 10,
+        nc: int = 3
+    ) -> None:
+        """Construct the encoder and decoder and initialize their weights.
+
+        Args:
+            z_dim: Number of latent coordinates.
+            nc: Number of image channels.
+
+        Returns:
+            None.
+        """
+        super().__init__()
         self.z_dim = z_dim
         self.nc = nc
         self.encoder = nn.Sequential(
@@ -65,12 +157,37 @@ class BetaVAE_H(nn.Module):
 
         self.weight_init()
 
-    def weight_init(self):
-        for block in self._modules:
-            for m in self._modules[block]:
-                kaiming_init(m)
+    def _encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Encode images into latent Gaussian parameters.
 
-    def forward(self, x):
+        Args:
+            x: Images of shape (b c 64 64).
+
+        Returns:
+            Gaussian-parameter tensor of shape (b, 2 * z_dim), with means followed by log variances.
+        """
+        return self.encoder(x)
+
+    def _decode(self, z: torch.Tensor) -> torch.Tensor:
+        """Decode latent codes into image logits.
+
+        Args:
+            z: Latent codes of shape (b z).
+
+        Returns:
+            Reconstruction-logit tensor of shape (b nc 64 64).
+        """
+        return self.decoder(z)
+
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return reconstruction logits, latent means and log variances.
+
+        Args:
+            x: Images of shape (b c 64 64).
+
+        Returns:
+            (reconstruction_logits, mu, logvar), with tensor shapes (b nc 64 64), (b z_dim) and (b z_dim).
+        """
         distributions = self._encode(x)
         mu = distributions[:, :self.z_dim]
         logvar = distributions[:, self.z_dim:]
@@ -79,18 +196,25 @@ class BetaVAE_H(nn.Module):
 
         return x_recon, mu, logvar
 
-    def _encode(self, x):
-        return self.encoder(x)
-
-    def _decode(self, z):
-        return self.decoder(z)
-
 
 class BetaVAE_B(BetaVAE_H):
     """Model proposed in understanding beta-VAE paper(Burgess et al, arxiv:1804.03599, 2018)."""
 
-    def __init__(self, z_dim=10, nc=1):
-        super(BetaVAE_B, self).__init__()
+    def __init__(
+        self,
+        z_dim: int = 10,
+        nc: int = 1
+    ) -> None:
+        """Construct the encoder and decoder and initialize their weights.
+
+        Args:
+            z_dim: Number of latent coordinates.
+            nc: Number of image channels.
+
+        Returns:
+            None.
+        """
+        super().__init__()
         self.nc = nc
         self.z_dim = z_dim
 
@@ -129,12 +253,15 @@ class BetaVAE_B(BetaVAE_H):
         )
         self.weight_init()
 
-    def weight_init(self):
-        for block in self._modules:
-            for m in self._modules[block]:
-                kaiming_init(m)
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return reconstruction logits, latent means and log variances.
 
-    def forward(self, x):
+        Args:
+            x: Images of shape (b c 64 64).
+
+        Returns:
+            (reconstruction_logits, mu, logvar), with tensor shapes (b nc 64 64), (b z_dim) and (b z_dim).
+        """
         distributions = self._encode(x)
         mu = distributions[:, :self.z_dim]
         logvar = distributions[:, self.z_dim:]
@@ -142,31 +269,3 @@ class BetaVAE_B(BetaVAE_H):
         x_recon = self._decode(z).view(x.size())
 
         return x_recon, mu, logvar
-
-    def _encode(self, x):
-        return self.encoder(x)
-
-    def _decode(self, z):
-        return self.decoder(z)
-
-
-def kaiming_init(m):
-    if isinstance(m, (nn.Linear, nn.Conv2d)):
-        init.kaiming_normal_(m.weight)
-        if m.bias is not None:
-            m.bias.data.fill_(0)
-    elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
-        m.weight.data.fill_(1)
-        if m.bias is not None:
-            m.bias.data.fill_(0)
-
-
-def normal_init(m, mean, std):
-    if isinstance(m, (nn.Linear, nn.Conv2d)):
-        m.weight.data.normal_(mean, std)
-        if m.bias.data is not None:
-            m.bias.data.zero_()
-    elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
-        m.weight.data.fill_(1)
-        if m.bias.data is not None:
-            m.bias.data.zero_()

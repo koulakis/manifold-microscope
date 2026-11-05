@@ -4,6 +4,7 @@ import copy
 from contextlib import nullcontext
 
 import matplotlib
+
 matplotlib.use("Agg")
 import numpy as np
 import pytest

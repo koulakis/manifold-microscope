@@ -9,20 +9,20 @@ remains in ``microscope``.
 Runners
 -------
 
-.. py:function:: run(config, output_dir, *, dataset=None, quick_run=False)
+.. py:function:: run(config, output_dir, dataset=None, quick_run=False)
    :module: experiments_and_analysis.scripts.run
 
    Executes one configuration dictionary. An optional loaded ``Dataset``
    avoids repeated data loading. ``quick_run=True`` applies shared caps.
 
-.. py:function:: run(config, output_dir, *, dry_run=False, quick_run=False, device=None, quiet_experiments=None)
+.. py:function:: run(config, output_dir, dry_run=False, quick_run=False, device=None, quiet_experiments=None)
    :module: experiments_and_analysis.scripts.sweep
 
    Expands and sequentially executes a sweep. ``dry_run=True`` saves resolved
    jobs only. ``device`` overrides all jobs; ``quiet_experiments`` overrides
    the sweep's display setting.
 
-.. py:function:: expand(config, *, quick_run=False, device=None)
+.. py:function:: expand(config, quick_run=False, device=None)
    :module: experiments_and_analysis.scripts.sweep
 
    Returns resolved experiments from grid choices, exclusions and inclusions.

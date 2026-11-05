@@ -1,41 +1,88 @@
-from typing import Optional
 
 import numpy as np
 import pytorch_lightning as pl
+import torch
+from pytorch_lightning.callbacks import EarlyStopping
+from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision.ops import MLP
-from torch import nn
-import torch
+
+
+def _validate_training_batch(batch: tuple[torch.Tensor, ...] | list[torch.Tensor], noise_along_normals: bool) -> None:
+    """Require points and normals for normal noise, or points alone for isotropic noise.
+
+    Args:
+        batch: Point tensors of shape (b f), with a second normal tensor when required.
+        noise_along_normals: Perturb points along supplied normals instead of isotropically.
+
+    Returns:
+        None.
+    """
+    if noise_along_normals:
+        assert len(batch) == 2
+    else:
+        assert len(batch) == 1
 
 
 class DenoisingAutoencoderPL(pl.LightningModule):
     def __init__(
         self,
-        input_dim=3,
-        hidden_channels=(128, 128, 128),
-        lr=1e-3,
+        input_dim: int = 3,
+        hidden_channels: list[int] | tuple[int, ...] = (128, 128, 128),
+        lr: float = 1e-3,
         noise_std: float = 0.1,
         noise_along_normals: bool = False
-    ):
+    ) -> None:
+        """Initialize the denoising autoencoder and its training settings.
+
+        Args:
+            input_dim: Number of input coordinates.
+            hidden_channels: Widths of the hidden layers.
+            lr: Optimizer learning rate.
+            noise_std: Standard deviation of the added Gaussian noise.
+            noise_along_normals: Perturb points along supplied normals instead of isotropically.
+
+        Returns:
+            None.
+        """
         super().__init__()
         self.lr = lr
         self.noise_std = noise_std
         self.noise_along_normals = noise_along_normals
 
-        self.encoder = MLP(in_channels=input_dim, hidden_channels=hidden_channels)
+        self.encoder = MLP(in_channels=input_dim, hidden_channels=list(hidden_channels))
         self.decoder = MLP(in_channels=hidden_channels[-1], hidden_channels=[*hidden_channels[-2::-1], input_dim])
 
         self.criterion = nn.MSELoss()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Reconstruct input points.
+
+        Args:
+            x: Points of shape (b f).
+
+        Returns:
+            Reconstructed-point tensor of shape (b f).
+        """
         return self.decoder(self.encoder(x))
 
     def add_noise(
         self,
         points: torch.Tensor,
-        normals: Optional[torch.Tensor] = None
+        normals: torch.Tensor | None = None
     ) -> torch.Tensor:
+        """Perturb points with Gaussian noise.
+
+        Args:
+            points: Points of shape (b f).
+            normals: Unit normals of shape (b f), required for normal-directed noise.
+
+        Returns:
+            Perturbed-point tensor with the same shape (b f) as points.
+        """
         if self.noise_along_normals:
+            if normals is None:
+                raise ValueError('Normal-directed noise requires unit normals.')
             noise_norm = torch.normal(
                 mean=0,
                 std=self.noise_std,
@@ -52,22 +99,45 @@ class DenoisingAutoencoderPL(pl.LightningModule):
             )
         return points + noise.to(points.device)
 
-    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor] | torch.Tensor, batch_idx: int) -> float:
+    def training_step(
+        self,
+        batch: tuple[torch.Tensor, ...] | list[torch.Tensor],
+        batch_idx: int
+    ) -> torch.Tensor:
+        """Train on a batch containing points and any required normals.
+
+        Args:
+            batch: Point tensors of shape (b f), followed by normals when used.
+            batch_idx: Batch index supplied by Lightning.
+
+        Returns:
+            Differentiable reconstruction-loss tensor of scalar shape ().
+        """
+        _validate_training_batch(batch, self.noise_along_normals)
         if self.noise_along_normals:
-            assert len(batch) == 2
             points, normals = batch
             noisy_points = self.add_noise(points, normals)
         else:
-            assert len(batch) == 1
             points = batch[0]
             noisy_points = self.add_noise(points)
         out = self(noisy_points)
         loss = self.criterion(out, points)
-        self.log("train_loss", loss, prog_bar=True, on_epoch=True, on_step=False)
+        self.log(
+            "train_loss",
+            loss,
+            prog_bar=True,
+            on_epoch=True,
+            on_step=False
+        )
 
         return loss
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        """Create the AdamW optimizer.
+
+        Returns:
+            AdamW optimizer over the model parameters.
+        """
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         return optimizer
 
@@ -76,12 +146,25 @@ class DenoisingAutoencoder:
     def __init__(
         self,
         input_dim: int = 3,
-        hidden_channels: list[int] = (32, 16),
+        hidden_channels: list[int] | tuple[int, ...] = (32, 16),
         lr: float = 1e-3,
         noise_std: float = 0.1,
         noise_along_normals: bool = False,
         device: int = 0
     ) -> None:
+        """Initialize the denoising autoencoder and its training settings.
+
+        Args:
+            input_dim: Number of input coordinates.
+            hidden_channels: Widths of the hidden layers.
+            lr: Optimizer learning rate.
+            noise_std: Standard deviation of the added Gaussian noise.
+            noise_along_normals: Perturb points along supplied normals instead of isotropically.
+            device: Device used for tensor computations.
+
+        Returns:
+            None.
+        """
         self.noise_along_normals = noise_along_normals
         self.model = DenoisingAutoencoderPL(
             input_dim=input_dim,
@@ -96,12 +179,25 @@ class DenoisingAutoencoder:
     def fit(
         self,
         samples: np.ndarray,
-        unitary_normals: Optional[np.ndarray],
+        unitary_normals: np.ndarray | None,
         max_epochs: int = 1_000,
         train_loss_stop_threshold: float = 1e-3,
         batch_size: int = 32,
         num_workers: int = 1
     ) -> None:
+        """Fit with Gaussian corruption and loss-based early stopping.
+
+        Args:
+            samples: Training points of shape (n f).
+            unitary_normals: Unit normals of shape (n f), required for normal-directed noise.
+            max_epochs: Maximum number of training epochs.
+            train_loss_stop_threshold: Training loss threshold for early stopping.
+            batch_size: Number of points or images per batch.
+            num_workers: Number of data-loader workers.
+
+        Returns:
+            None.
+        """
         if self.noise_along_normals:
             dataset = TensorDataset(
                 torch.from_numpy(samples),
@@ -116,7 +212,7 @@ class DenoisingAutoencoder:
             shuffle=True,
             num_workers=num_workers
         )
-        early_stopping_callback = pl.callbacks.early_stopping.EarlyStopping(
+        early_stopping_callback = EarlyStopping(
             monitor="train_loss",
             mode="min",
             min_delta=-1,
@@ -132,7 +228,22 @@ class DenoisingAutoencoder:
         )
         trainer.fit(self.model, train_dataloaders=dataloader)
 
-    def predict(self, points: np.ndarray, batch_size: int = 32, num_workers: int = 4) -> np.ndarray:
+    def predict(
+        self,
+        points: np.ndarray,
+        batch_size: int = 32,
+        num_workers: int = 4
+    ) -> np.ndarray:
+        """Reconstruct points in batches.
+
+        Args:
+            points: Query points of shape (n f).
+            batch_size: Number of points or images per batch.
+            num_workers: Number of data-loader workers.
+
+        Returns:
+            Reconstructed NumPy array with the same shape (n f) as points.
+        """
         dataset = TensorDataset(torch.from_numpy(points))
         dataloader = DataLoader(
             dataset,

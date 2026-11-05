@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import DTypeLike
 
 from microscope.datasets.image_transforms import statistical_scaling
 
@@ -6,9 +7,19 @@ from microscope.datasets.image_transforms import statistical_scaling
 def dsprites_original(
     flat: bool = False,
     scale: bool = False,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Load the original dsprites dataset."""
+    """Load the original dsprites dataset.
+
+    Args:
+        flat: Flatten transformation axes into one sample axis.
+        scale: Center the images and divide by their standard deviation.
+        dtype: Data type of generated values.
+
+    Returns:
+        (images, labels), with grid shapes (3 6 40 32 32 64 64) and (3 6 40 32 32). With flat=True, shapes are (n 64 64)
+        and (n), where n = 3 * 6 * 40 * 32 * 32.
+    """
     data_path = (
         "<path to dataset>/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz"
     )
@@ -35,9 +46,19 @@ def dsprites_original(
 def dsprites_original_single_size(
     flat: bool = False,
     scale: bool = False,
-    dtype: np.dtype = np.float32
+    dtype: DTypeLike = np.float32
 ) -> tuple[np.ndarray, np.ndarray]:
-    """The original dsprites selecting only the largest sprite size in order to remove one dimension"""
+    """The original dsprites selecting only the largest sprite size in order to remove one dimension
+
+    Args:
+        flat: Flatten transformation axes into one sample axis.
+        scale: Center the images and divide by their standard deviation.
+        dtype: Data type of generated values.
+
+    Returns:
+        (images, labels), with grid shapes (3 40 32 32 64 64) and (3 40 32 32). With flat=True, shapes are (n 64 64) and
+        (n), where n = 3 * 40 * 32 * 32.
+    """
     dsprites = dsprites_original(dtype=dtype)
     dsprites, target = dsprites
 

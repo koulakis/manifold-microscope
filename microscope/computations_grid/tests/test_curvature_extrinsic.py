@@ -1,0 +1,372 @@
+"""Bounded analytic grids and independent geometry checks for extrinsic curvature."""
+
+import unittest
+
+import numpy as np
+import pytest
+import torch
+
+from microscope.computations_grid.basic import partial_derivatives_across_all_dims
+from microscope.computations_grid.curvature import compute_total_curvature
+from microscope.computations_grid.curvature import scalar_curvature as intrinsic_curvature
+from microscope.computations_grid.curvature_extrinsic import (
+    scalar_curvature,
+    scalar_curvature_batch,
+    second_fundamental_form,
+)
+from microscope.computations_grid.tests._device import get_test_device
+from microscope.computations_grid.volume import volume_element
+from microscope.cyclic_dimensions import get_difference_intervals
+from microscope.manifold_examples.ellipsoid import ellipsoid_scalar_curvature
+from microscope.manifold_examples.hyperboloid import hyperboloid_scalar_curvature
+from microscope.manifold_examples.sampling_grid import sample_ellipsoid_on_grid, sample_hyperboloid_on_grid
+
+
+def test_saddle_form_is_normal_symmetric_and_has_negative_curvature():
+    coordinates = np.linspace(-.5, .5, 21)
+    u, v = np.meshgrid(coordinates, coordinates, indexing="ij")
+    points = np.stack([u, v, .5*(u*u - v*v), np.zeros_like(u)], axis=-1)
+    tensor = torch.from_numpy(points)
+    intervals = [.05, .05]
+
+    form = second_fundamental_form(tensor, intervals)
+    tangent = partial_derivatives_across_all_dims(tensor, 2, intervals)[1:-1, 1:-1]
+    assert form.shape == (17, 17, 4, 2, 2)
+    torch.testing.assert_close(form, form.transpose(-1, -2), atol=1e-12, rtol=0)
+    torch.testing.assert_close(
+        torch.einsum("...ar,...aij->...rij", tangent, form),
+        torch.zeros((17, 17, 2, 2, 2), dtype=tensor.dtype),
+        atol=1e-12, rtol=0,
+    )
+    torch.testing.assert_close(
+        form[8, 8, 2], torch.diag(torch.tensor([1., -1.], dtype=tensor.dtype)),
+        atol=1e-12, rtol=0,
+    )
+    assert abs(scalar_curvature_batch(tensor, intervals)[7, 7].item() + 2) < 1e-12
+
+
+def test_sphere_codimension_normalization_and_periodic_patch_seams():
+    latitude = np.linspace(-.7, .7, 41)
+    longitude = np.linspace(0, 2*np.pi, 48, endpoint=False)
+    u, v = np.meshgrid(latitude, longitude, indexing="ij")
+    sphere = 2*np.stack([np.cos(u)*np.cos(v), np.cos(u)*np.sin(v), np.sin(u)], axis=-1)
+    points = np.concatenate([sphere, np.zeros((*sphere.shape[:-1], 2))], axis=-1)
+    intervals = [latitude[1] - latitude[0], 2*np.pi/48]
+    raw = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        device="cpu"
+    )
+    normalized = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        normalize=True,
+        device="cpu"
+    )
+    direct = scalar_curvature_batch(
+        torch.from_numpy(np.pad(points, ((0, 0), (3, 3), (0, 0)), mode="wrap")), intervals
+    ).numpy()
+    intrinsic = intrinsic_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        device="cpu"
+    )
+    assert raw.shape == (35, 48)
+    np.testing.assert_allclose(raw, direct, atol=1e-12, rtol=0)
+    np.testing.assert_allclose(raw, .5, atol=1e-12, rtol=0)
+    np.testing.assert_allclose(normalized, raw/2, atol=1e-12, rtol=0)
+    np.testing.assert_allclose(raw, intrinsic, atol=.01, rtol=0)
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_affine_grid_has_zero_form_and_curvature(dtype):
+    u, v = np.meshgrid(np.arange(11)*.25, np.arange(13)*.5, indexing="ij")
+    points = np.stack([2*u + v, u + 3*v, 4*u - 2*v], axis=-1).astype(dtype)
+    form = second_fundamental_form(torch.from_numpy(points), [.25, .5])
+    assert form.shape == (7, 9, 3, 2, 2)
+    assert form.dtype == torch.from_numpy(points).dtype
+    np.testing.assert_allclose(form.numpy(), 0, atol=1e-6 if dtype == np.float32 else 1e-13)
+    result = scalar_curvature(points, [.25, .5], [], [9, 10], device="cpu")
+    assert result.shape == (5, 7)
+    assert result.dtype == dtype
+    np.testing.assert_allclose(result, 0, atol=1e-6 if dtype == np.float32 else 1e-12)
+
+
+def test_three_sphere_has_dimension_three_scalar_curvature():
+    sizes = [16, 16, 24]
+    points, _, _, _ = sample_ellipsoid_on_grid(
+        semi_axes=[2, 2, 2, 2], n_samples_per_dim=sizes,
+        ambient_space_dim=5, fraction_of_angles=.8,
+        apply_random_isometry=False,
+    )
+    intervals = get_difference_intervals(
+        sizes, [.6*np.pi, .6*np.pi, 2*np.pi], [2]
+    )
+    result = scalar_curvature_batch(torch.from_numpy(points), intervals)
+    assert result.shape == (10, 10, 18)
+    # d(d-1)/r² = 3*2/4, including codimension two in ambient R^5.
+    torch.testing.assert_close(result, torch.full_like(result, 1.5), atol=1e-10, rtol=0)
+
+
+def test_flat_product_of_circles_has_two_nonzero_normal_curvatures():
+    u, v = np.meshgrid(
+        np.linspace(0, 2*np.pi, 24, endpoint=False),
+        np.linspace(0, 2*np.pi, 28, endpoint=False), indexing="ij"
+    )
+    points = np.stack([2*np.cos(u), 2*np.sin(u), 3*np.cos(v), 3*np.sin(v)], axis=-1)
+    form = second_fundamental_form(torch.from_numpy(points), [2*np.pi/24, 2*np.pi/28])
+    assert np.linalg.norm(form[0, 0, :, 0, 0]) > .5
+    assert np.linalg.norm(form[0, 0, :, 1, 1]) > .3
+    result = scalar_curvature(points, [2*np.pi/24, 2*np.pi/28], [0, 1], [12, 13], device="cpu")
+    assert result.shape == (24, 28)
+    np.testing.assert_allclose(result, 0, atol=1e-11)
+
+
+def test_normalized_curvature_rejects_intrinsic_dimension_one():
+    curve = torch.arange(9., dtype=torch.float64)[:, None]
+    with pytest.raises(ValueError, match="dimension|normaliz"):
+        scalar_curvature_batch(curve, [1.], normalize=True)
+
+
+def test_coarse_ellipsoid_cancels_stencil_bias_against_implicit_reference():
+    # For x.T A x = 1 in R^3, scalar curvature = 2 det(A) / ||Ax||^4.
+    # This reference avoids the sampler's symbolic coordinate formula.
+    semi_axes: list[float] = [1., 1.5, 3.]
+    radii = np.array(semi_axes)
+    points, _, _, _ = sample_ellipsoid_on_grid(
+        semi_axes=semi_axes,
+        n_samples_per_dim=[16, 19],
+        ambient_space_dim=3,
+        fraction_of_angles=.8,
+        apply_random_isometry=False
+    )
+    normal = points[3:-3, 3:-3] / radii**2
+    truth = 2 / np.prod(radii**2) / np.sum(normal**2, axis=-1)**2
+    result = scalar_curvature_batch(torch.from_numpy(points), [.6*np.pi/15, 2*np.pi/19])
+    np.testing.assert_allclose(result.numpy(), truth, atol=2e-12, rtol=0)
+
+
+def test_quartic_graph_extrinsic_error_converges_at_second_order():
+    # Generic graph, without the matched trigonometric derivative factors.
+    # Compare at a fixed physical point to exclude changes of cropped domain.
+    u0, v0 = .6, .7
+    fu, fv = .8*u0**3 + .1*v0, 1.2*v0**3 + .1*u0
+    truth = 2*(2.4*u0**2 * 3.6*v0**2 - .1**2)/(1 + fu**2 + fv**2)**2
+    errors = []
+    for h in [.04, .02, .01]:
+        u, v = np.meshgrid(u0 + np.arange(-3, 4)*h,
+                           v0 + np.arange(-3, 4)*h, indexing="ij")
+        points = np.stack([u, v, .2*u**4 + .3*v**4 + .1*u*v], axis=-1)
+        result = scalar_curvature_batch(torch.from_numpy(points), [h, h]).item()
+        errors.append(abs(result - truth))
+    # Halving h reduces the leading O(h^2) error by approximately four.
+    np.testing.assert_allclose(np.array(errors[:-1])/errors[1:], 4, rtol=.02)
+
+
+class TestEllipsoids(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.device = get_test_device()
+
+    def setUp(self):
+        state = np.random.get_state()
+        self.addCleanup(np.random.set_state, state)
+        np.random.seed(0)
+
+    def test_scalar_curvature_2d_ellipsoids(self):
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
+            # Keep the QR-based CUDA computation small.
+            fraction_of_angles = 0.8
+            n_samples_per_dim = [106, 100]
+            cyclic_dimensions = [1]
+
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
+                semi_axes=semi_axes,
+                n_samples_per_dim=n_samples_per_dim,
+                ambient_space_dim=3,
+                apply_random_isometry=True,
+                fraction_of_angles=fraction_of_angles,
+                seed=0
+            )
+
+            # Compute the ground truth values.
+            curvature_gt = ellipsoid_scalar_curvature(sampled_semi_axes, phis)
+
+            # Estimate the curvature.
+            patch_sizes = [56, 56]
+            range_sizes = [(2 * fraction_of_angles - 1) * np.pi, 2 * np.pi]
+            difference_intervals = get_difference_intervals(n_samples_per_dim, range_sizes, cyclic_dimensions)
+
+            curvature_pred = scalar_curvature(
+                points,
+                cyclic_dimensions=cyclic_dimensions,
+                difference_intervals=difference_intervals,
+                patch_sizes=patch_sizes,
+                device=self.device
+            )
+
+            np.testing.assert_almost_equal(
+                curvature_gt[3:-3, ...],
+                curvature_pred,
+                decimal=11,
+                err_msg=f"{scalar_curvature.__module__}: ellipsoid {sampled_semi_axes}."
+            )
+
+    def test_scalar_curvature_2d_ellipsoids_irregular_grid(self):
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
+            # Keep the QR-based CUDA computation small.
+            fraction_of_angles = 0.8
+            n_samples_per_dim = [123, 144]
+            cyclic_dimensions = [1]
+
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
+                semi_axes=semi_axes,
+                n_samples_per_dim=n_samples_per_dim,
+                ambient_space_dim=3,
+                apply_random_isometry=True,
+                fraction_of_angles=fraction_of_angles,
+                seed=0
+            )
+
+            # Compute the ground truth values.
+            curvature_gt = ellipsoid_scalar_curvature(sampled_semi_axes, phis)
+
+            # Estimate the curvature.
+            patch_sizes = [34, 42]
+            range_sizes = [(2 * fraction_of_angles - 1) * np.pi, 2 * np.pi]
+            difference_intervals = get_difference_intervals(n_samples_per_dim, range_sizes, cyclic_dimensions)
+
+            curvature_pred = scalar_curvature(
+                points,
+                cyclic_dimensions=cyclic_dimensions,
+                difference_intervals=difference_intervals,
+                patch_sizes=patch_sizes,
+                device=self.device
+            )
+
+            np.testing.assert_almost_equal(
+                curvature_gt[3:-3, ...],
+                curvature_pred,
+                decimal=11,
+                err_msg=f"{scalar_curvature.__module__}: ellipsoid {sampled_semi_axes}."
+            )
+
+    def test_total_scalar_curvature_2d_ellipsoids(self):
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
+            # Keep the QR-based CUDA computation small.
+            fraction_of_angles = 0.9999
+            n_samples_per_dim = [1024, 1024]
+            cyclic_dimensions = [1]
+
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
+                semi_axes=semi_axes,
+                n_samples_per_dim=n_samples_per_dim,
+                ambient_space_dim=3,
+                apply_random_isometry=True,
+                fraction_of_angles=fraction_of_angles,
+                seed=0
+            )
+
+            # Compute the ground truth via the Gauss-Bonnet theorem: Int(K dA) = 2 pi chi(M) = 4 pi.
+            # The scalar curvature is 2*K, thus the total scalar curvature is 8 pi.
+            total_curvature_gt = 8 * np.pi
+
+            # Estimate the curvature.
+            patch_sizes = [56, 56]
+            range_sizes = [(2 * fraction_of_angles - 1) * np.pi, 2 * np.pi]
+            difference_intervals = get_difference_intervals(n_samples_per_dim, range_sizes, cyclic_dimensions)
+            # Curvature loses three samples at each nonperiodic end. The
+            # rectangle-rule mean covers (n - 6) retained cells, not the
+            # original (n - 1) coordinate intervals.
+            curvature_range_sizes = [
+                (n_samples_per_dim[0] - 6) * difference_intervals[0],
+                range_sizes[1]
+            ]
+
+            volume_pred = volume_element(
+                points,
+                cyclic_dimensions=cyclic_dimensions,
+                difference_intervals=difference_intervals,
+                patch_sizes=patch_sizes,
+                device=self.device
+            )[2:-2]
+
+            curvature_pred = scalar_curvature(
+                points,
+                cyclic_dimensions=cyclic_dimensions,
+                difference_intervals=difference_intervals,
+                patch_sizes=patch_sizes,
+                device=self.device
+            )
+
+            total_curvature_pred = compute_total_curvature(
+                curvature_pred,
+                volume_pred,
+                curvature_range_sizes
+            )
+
+            # The coarse integral includes rectangle-rule and omitted-polar-cap error.
+            np.testing.assert_almost_equal(
+                total_curvature_gt,
+                total_curvature_pred,
+                decimal=3,
+                err_msg=f"{scalar_curvature.__module__}: ellipsoid {sampled_semi_axes}."
+            )
+
+
+class TestHyperboloids(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.device = get_test_device()
+
+    def setUp(self):
+        state = np.random.get_state()
+        self.addCleanup(np.random.set_state, state)
+        np.random.seed(0)
+
+    def test_scalar_curvature_2d_hyperboloid(self):
+        semi_axes: list[float] = [5, 1, 3]
+
+        # Keep the QR-based CUDA computation small.
+        n_samples_per_dim = [106, 100]
+        cyclic_dimensions = [1]
+
+        points, sampled_semi_axes, phis, _ = sample_hyperboloid_on_grid(
+            semi_axes=semi_axes,
+            n_samples_per_dim=n_samples_per_dim,
+            ambient_space_dim=3,
+            apply_random_isometry=True,
+            seed=0
+        )
+
+        # Compute the ground truth values.
+        curvature_gt = hyperboloid_scalar_curvature(sampled_semi_axes, phis)
+
+        # Estimate the metric.
+        patch_sizes = 2 * [56]
+        range_sizes = [2, 2 * np.pi]
+        difference_intervals = get_difference_intervals(n_samples_per_dim, range_sizes, cyclic_dimensions)
+
+        curvature_pred = scalar_curvature(
+            points,
+            cyclic_dimensions=cyclic_dimensions,
+            difference_intervals=difference_intervals,
+            patch_sizes=patch_sizes,
+            device=self.device
+        )
+
+        np.testing.assert_almost_equal(
+            curvature_gt[3:-3, ...],
+            curvature_pred,
+            decimal=12,
+            err_msg=f"{scalar_curvature.__module__}: hyperboloid {sampled_semi_axes}."
+        )

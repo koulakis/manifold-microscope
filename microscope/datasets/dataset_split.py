@@ -10,7 +10,18 @@ def interpolation_splitting(
     subsample_dims: list[int]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Stride over the transformation dimensions to select data on a thinner grid. This can be used to measure the
-    interpolation performance of a supervised model."""
+    interpolation performance of a supervised model.
+
+    Args:
+        data: Image grid, shape (s1 ... sd h w).
+        target: Labels, shape (s1 ... sd).
+        stride: Grid stride for selecting training samples.
+        subsample_dims: Zero-based transformation axes to subsample.
+
+    Returns:
+        (train_data, train_target, test_data, test_target, train_mask), with shapes (n_train h w), (n_train), (n_test h
+        w), (n_test) and (n_train + n_test). The mask indexes the flattened original grid.
+    """
     grid_shape = data.shape[:-2]
     subsample_slices = [slice(None)] * len(grid_shape)
     for d in subsample_dims:
@@ -47,11 +58,8 @@ def weighted_uniform_splitting(
         train_sample_ratio: Ratio of the data kept in the training set.
 
     Returns:
-        array_train: The train data in an array of shape (n_train f).
-        target_train: The train target in an array of shape (n_train).
-        array_test: The test data in an array of shape ((d1*...*dk - n_train) f1 f2).
-        target_test: The test target in an array of shape ((d1*...*dk - n_train)).
-        train_mask: A boolean mask of shape ((d1*...*dk)) which defines which indices will be used for training.
+        (train_data, train_target, test_data, test_target, train_mask), with shapes (n_train f1 f2), (n_train), (n_test
+        f1 f2), (n_test) and (n_train + n_test). The mask indexes the flattened original grid.
     """
     if not 0 <= train_sample_ratio <= 1:
         raise ValueError(f"The train ratio must have a value in [0, 1]. Found value {train_sample_ratio}.")
@@ -78,15 +86,20 @@ def weighted_uniform_splitting(
     return array_train, target_train, array_test, target_test, train_mask
 
 
-def maximal_distance_selection_torch(data: np.ndarray, size: int, device=None, verbose: bool = False):
-    """
-    Farthest point sampling (a.k.a. maximal distance selection).
+def maximal_distance_selection_torch(
+    data: np.ndarray,
+    size: int,
+    device: str | torch.device | None = None,
+    verbose: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
+    """Farthest point sampling (a.k.a. maximal distance selection).
 
     Args:
-        data: Tensor of shape (N, D), must fit in memory.
+        data: Input point array, shape (n f), fitting in device memory.
         size: Number of points to select.
         device: Optional "cuda" or "cpu". If None, will try GPU first, fallback to CPU.
         verbose: If true, show progress bar.
+
     Returns:
         selected_data: (size, D) NumPy array
         selected_idxs: (size, ) NumPy array of distinct indices
@@ -99,27 +112,27 @@ def maximal_distance_selection_torch(data: np.ndarray, size: int, device=None, v
     if device is None:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    data = torch.from_numpy(data).to(device)
+    data_tensor = torch.from_numpy(data).to(device)
 
     selected_idxs = torch.zeros(size, dtype=torch.long, device=device)
-    selected_data = torch.empty((size, D), dtype=data.dtype, device=device)
+    selected_data = torch.empty((size, D), dtype=data_tensor.dtype, device=device)
 
     # pick first point
     selected_idxs[0] = 0
-    selected_data[0] = data[0]
+    selected_data[0] = data_tensor[0]
 
     # track nearest distances to selected set
-    min_distances = torch.norm(data - data[0], dim=1)
+    min_distances = torch.norm(data_tensor - data_tensor[0], dim=1)
     min_distances[0] = -torch.inf
 
     for i in tqdm(range(1, size), total=size, disable=not verbose):
         # pick the farthest point
         new_point_idx = torch.argmax(min_distances)
         selected_idxs[i] = new_point_idx
-        selected_data[i] = data[new_point_idx]
+        selected_data[i] = data_tensor[new_point_idx]
 
         # update nearest distances (only vs new point)
-        new_distances = torch.norm(data - data[new_point_idx], dim=1)
+        new_distances = torch.norm(data_tensor - data_tensor[new_point_idx], dim=1)
         min_distances = torch.minimum(min_distances, new_distances)
         min_distances[new_point_idx] = -torch.inf
 

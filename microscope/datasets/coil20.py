@@ -1,12 +1,18 @@
+import os
 from functools import partial
 from pathlib import Path
-import os
 
 import numpy as np
+from numpy.typing import DTypeLike
 from PIL import Image
 
-from microscope.datasets.image_transforms import apply_transform, statistical_scaling, shrink_image, rotate_image, \
-    place_in_middle_of_background
+from microscope.datasets.image_transforms import (
+    apply_transform,
+    place_in_middle_of_background,
+    rotate_image,
+    shrink_image,
+    statistical_scaling,
+)
 
 LABEL_MAPPING = {
     0: "duck",
@@ -33,6 +39,15 @@ LABEL_MAPPING = {
 
 
 def load_coil20(views_stride: int = 4) -> tuple[np.ndarray, np.ndarray]:
+    """Load COIL-20 images and object labels at a view stride.
+
+    Args:
+        views_stride: Stride through the available object viewing angles.
+
+    Returns:
+        (images, labels), arrays of shapes (20, n_views, 128, 128) and (20, n_views), where n_views = len(range(0, 72,
+        views_stride)).
+    """
     path_by_env_var = os.environ.get("COIL20_PATH")
     if path_by_env_var is not None:
         coil_data_path = Path(path_by_env_var)
@@ -73,13 +88,13 @@ def extended_coil20(
     flat: bool = False,
     scale: bool = False,
     buffer_for_measure_estimation: int = 3,
-    dtype: np.dtype = np.float32,
+    dtype: DTypeLike = np.float32,
     verbose: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     """Augment COIL-20 object views with scaling and in-plane rotation.
 
-    Loads the processed images via COIL20_PATH. Grid axes are object, original
-    view, size and in-plane angle, followed by image height and width.
+    Loads the processed images via COIL20_PATH. Grid axes are object, original view, size and in-plane angle, followed
+    by image height and width.
 
     Args:
         image_size: The size of the image in pixels. Should be an even number.
@@ -90,16 +105,15 @@ def extended_coil20(
         max_size_ratio: The maximum object scale ratio.
         flat: If true, the dataset is flattened along on the variation dimensions.
         scale: If true, it centers the data around the mean and divides by the standard deviation.
-        buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions
-            in order to be able to estimate geometric measures which require surrounding points.
+        buffer_for_measure_estimation: Additional bidirectional margin on the non-cyclic dimensions in order to be able
+            to estimate geometric measures which require surrounding points.
         dtype: The type of the data.
         verbose: If true, progress bars will be printed during data generation.
 
     Returns:
         (images, labels). Unless flat=True, images have shape
-        (20, 18, n_sizes + 2 * buffer_for_measure_estimation, n_angles, height, width)
-        and labels have the same leading grid shape. Image intensities are
-        mapped to [-1, 1] before optional statistical scaling.
+        (20, 18, n_sizes + 2 * buffer_for_measure_estimation, n_angles, height, width) and labels have the same leading
+        grid shape. Image intensities are mapped to [-1, 1] before optional statistical scaling.
     """
     # Add a buffer for the sizes.
     n_sizes = n_sizes + 2 * buffer_for_measure_estimation
@@ -129,7 +143,13 @@ def extended_coil20(
         transform=rotate_image,
         transform_range=(
             "angle",
-            np.linspace(0, 360, n_angles, endpoint=False, dtype=dtype)
+            np.linspace(
+                0,
+                360,
+                n_angles,
+                endpoint=False,
+                dtype=dtype
+            )
         ),
         axis=-3,
         verbose=verbose

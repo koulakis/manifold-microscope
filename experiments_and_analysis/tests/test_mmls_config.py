@@ -1,8 +1,8 @@
 """Explicit MMLS settings reach the unchanged projector."""
 import numpy as np
 
-from experiments_and_analysis.models.mmls import fitting as mmls
 from experiments_and_analysis.models.config import MMLSConfig
+from experiments_and_analysis.models.mmls import fitting as mmls
 
 
 def test_projector_receives_configured_sigma_and_threshold(monkeypatch):

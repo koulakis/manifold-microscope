@@ -1,10 +1,25 @@
 """The shared --quick-run profile; edit its budgets here."""
+from collections.abc import Mapping
 from copy import deepcopy
+from typing import Any, TypedDict
 
 from .config import resolve
 
 
-QUICK_RUN = dict(
+class QuickRunProfile(TypedDict):
+    """Independent budgets used by the shared quick-run profile."""
+
+    vae_max_iter: int
+    train_fractions: list[float]
+    repetitions: int
+    evaluation_size: int
+    toy_sample_sizes: list[int]
+    toy_repetitions: int
+    toy_reference_points: int
+    reach_subsample: int
+
+
+QUICK_RUN = QuickRunProfile(
     vae_max_iter=10_000,
     train_fractions=[0.2, 0.5, 1.0],  # Three sizes for curve fitting.
     repetitions=1,
@@ -16,8 +31,15 @@ QUICK_RUN = dict(
 )
 
 
-def quick_grid(grid):
-    """Reduce size/repetition axes, retaining model/dataset/layer choices."""
+def quick_grid(grid: dict) -> dict:
+    """Reduce size/repetition axes, retaining model/dataset/layer choices.
+
+    Args:
+        grid: Sweep axes mapped to choices or integer ranges.
+
+    Returns:
+        Reduced copy of the sweep axes, retaining the original model, dataset and layer choices.
+    """
     grid = deepcopy(grid)
     for path, sizes in [('split.train_fraction', QUICK_RUN['train_fractions']),
                         ('dataset.sample_size', QUICK_RUN['toy_sample_sizes'])]:
@@ -30,8 +52,15 @@ def quick_grid(grid):
     return grid
 
 
-def apply_quick_run(config):
-    """Return a resolved experiment with capped budgets and unchanged grids/layers."""
+def apply_quick_run(config: Mapping[str, Any]) -> dict:
+    """Return a resolved experiment with capped budgets and unchanged grids/layers.
+
+    Args:
+        config: Experiment or sweep configuration.
+
+    Returns:
+        Resolved configuration with reduced training, inference and plotting budgets.
+    """
     result = resolve(config)
     if result['model']['name'] == 'beta_vae':
         parameters = result['model']['parameters']

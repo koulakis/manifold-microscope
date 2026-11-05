@@ -1,6 +1,6 @@
 """Sweep display settings preserve execution, caching, and visible failures."""
-import sys
 import io
+import sys
 
 import pytest
 from tqdm import tqdm

@@ -1,28 +1,39 @@
 """Small real CPU workflows and invariants for stage identity and reuse."""
 from copy import deepcopy
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pytest
 
 from experiments_and_analysis.config import resolve
+from experiments_and_analysis.config_types import AnalysisOptions, ExperimentOptions
 from experiments_and_analysis.data.preparation import split_indices
-from experiments_and_analysis.outputs import identity, read_json, stage_ids
+from experiments_and_analysis.outputs import read_json, stage_ids
 from experiments_and_analysis.scripts import run as single
 from experiments_and_analysis.scripts.sweep import expand
 
 
-def circle_config(tmp_path):
+def circle_config(tmp_path) -> ExperimentOptions:
     angle = np.arange(24) * 2 * np.pi / 24
     data = np.stack([np.cos(angle), np.sin(angle), .2 * np.cos(2 * angle)], axis=-1)[None]
     path = tmp_path / 'circle.npz'
     np.savez(path, data=data)
-    return dict(dataset=dict(name='circle_grid', path=str(path), dimension=1,
-                              range_sizes=[2 * np.pi], cyclic_dimensions=[0],
-                              patch_sizes=[12], class_names=['circle'], feature_ndim=1),
-                split=dict(method='random', weighted=False, test_fraction=.25, seed=7),
-                model=dict(name='mmls', parameters=dict(number_of_neighbors=4, verbose=False)),
-                analyses=['errors'])
+    return {
+        'dataset': {
+            'name': 'circle_grid',
+            'path': str(path),
+            'dimension': 1,
+            'range_sizes': [2 * np.pi],
+            'cyclic_dimensions': [0],
+            'patch_sizes': [12],
+            'class_names': ['circle'],
+            'feature_ndim': 1,
+        },
+        'split': {'method': 'random', 'weighted': False, 'test_fraction': .25, 'seed': 7},
+        'model': {'name': 'mmls', 'parameters': {'number_of_neighbors': 4, 'verbose': False}},
+        'analyses': ['errors'],
+    }
 
 
 def test_seeded_split_is_disjoint_reproducible_and_preserves_rng():
@@ -30,14 +41,16 @@ def test_seeded_split_is_disjoint_reproducible_and_preserves_rng():
     weights = np.arange(1, 21, dtype=float)
     weights /= weights.sum()
     spec = resolve({})['split']
-    state = np.random.get_state()
+    # The global MT19937 generator returns a tuple; NumPy's stub also allows other bit generators' dict states.
+    state = cast(tuple[str, np.ndarray, int, int, float], np.random.get_state(legacy=True))
     first = split_indices(points, weights, spec)
     second = split_indices(points, weights, spec)
     assert len(first[0]) == 18 and len(first[1]) == 2
     assert not set(first[0]).intersection(first[1])
     for left, right in zip(first, second):
         np.testing.assert_array_equal(left, right)
-    np.testing.assert_array_equal(np.random.get_state()[1], state[1])
+    current_state = cast(tuple[str, np.ndarray, int, int, float], np.random.get_state(legacy=True))
+    np.testing.assert_array_equal(current_state[1], state[1])
 
 
 def test_stage_identity_separates_trials_but_reuses_training_for_new_analyses():
@@ -60,6 +73,7 @@ def test_real_mmls_run_reuses_fit_for_new_analysis_and_resumes(tmp_path, monkeyp
     config = circle_config(tmp_path)
     root = tmp_path / 'outputs'
     first = single.run(config, root)
+    assert first['analyses'][0]['name'] == 'errors'
     model_dir = next((root / 'trained-models').glob(f"*__{first['model_id']}"))
     before = {p: p.read_bytes() for p in model_dir.rglob('*') if p.is_file()}
     assert not (model_dir / 'training_points.npy').exists()
@@ -68,8 +82,8 @@ def test_real_mmls_run_reuses_fit_for_new_analysis_and_resumes(tmp_path, monkeyp
     assert metrics['number_of_test_points'] == 6
     assert 0 < metrics['hausdorff_distance'] < 1
     assert not list((root / 'inference-outputs').rglob('*.npy'))
-    config['training'] = dict(enabled=False)
-    config['analyses'].append(dict(name='geometry', representations=['input'], normalize_for_volume=False))
+    config['training'] = {'enabled': False}
+    config['analyses'].append({'name': 'geometry', 'representations': ['input'], 'normalize_for_volume': False})
     second = single.run(config, root)
     assert first['model_id'] == second['model_id']
     assert len(second['analyses']) == 2
@@ -81,7 +95,7 @@ def test_real_mmls_run_reuses_fit_for_new_analysis_and_resumes(tmp_path, monkeyp
 
 def test_persisted_predictions_equal_recorded_errors(tmp_path):
     config = circle_config(tmp_path)
-    config['inference'] = dict(persist=True)
+    config['inference'] = {'persist': True}
     root = tmp_path / 'outputs'
     result = single.run(config, root)
     path = next((root / 'inference-outputs').glob('*/values.npy'))
@@ -95,8 +109,12 @@ def test_persisted_predictions_equal_recorded_errors(tmp_path):
 
 def test_dataset_only_geometry_skips_models_and_inference(tmp_path):
     config = circle_config(tmp_path)
-    config.update(model=dict(name=None), split=dict(method='full'), inference=dict(enabled=False),
-                  analyses=[dict(name='geometry', representations=['input'], normalize_for_volume=False)])
+    config.update(
+        model={'name': None},
+        split={'method': 'full'},
+        inference={'enabled': False},
+        analyses=[{'name': 'geometry', 'representations': ['input'], 'normalize_for_volume': False}]
+    )
     result = single.run(config, tmp_path / 'outputs')
     assert result['model_id'] is None
     assert not list((tmp_path / 'outputs/trained-models').iterdir())
@@ -105,7 +123,7 @@ def test_dataset_only_geometry_skips_models_and_inference(tmp_path):
 
 def test_geometry_on_a_split_is_rejected_before_output_creation(tmp_path):
     config = circle_config(tmp_path)
-    config['analyses'] = [dict(name='geometry', domain='test')]
+    config['analyses'] = [{'name': 'geometry', 'domain': 'test'}]
     with pytest.raises(ValueError, match='full structured grid'):
         single.run(config, tmp_path / 'outputs')
     assert not (tmp_path / 'outputs').exists()
@@ -138,8 +156,8 @@ def test_mmls_projector_export_round_trip(tmp_path, standalone):
 
 def test_one_step_vae_checkpoint_and_named_inference(tmp_path):
     import torch
-    from experiments_and_analysis.models.beta_vae.inference import batches
-    from experiments_and_analysis.models.beta_vae.inference import load_autoencoder_from_checkpoint
+
+    from experiments_and_analysis.models.beta_vae.inference import batches, load_autoencoder_from_checkpoint
     data = np.random.default_rng(5).random((3, 64, 64), dtype=np.float32)
     np.savez(tmp_path / 'images.npz', data=data[None])
     config = dict(dataset=dict(name='tiny_images', dimension=1, path=str(tmp_path / 'images.npz'),
@@ -165,13 +183,18 @@ def test_one_step_vae_checkpoint_and_named_inference(tmp_path):
 
 def test_grid_projection_geometry_reuses_persisted_inference(tmp_path, monkeypatch):
     config = circle_config(tmp_path)
-    config['inference'] = dict(persist=True, buffer='temporary')
-    config['analyses'] = [dict(name='geometry', representations=['output'], normalize_for_volume=False)]
+    config['inference'] = {'persist': True, 'buffer': 'temporary'}
+    geometry: AnalysisOptions = {
+        'name': 'geometry',
+        'representations': ['output'],
+        'normalize_for_volume': False,
+    }
+    config['analyses'] = [geometry]
     root = tmp_path / 'outputs'
     first = single.run(config, root)
     assert not list((root / 'inference-outputs').rglob('working.npy'))
     assert len(list((root / 'inference-outputs').rglob('values.npy'))) == 1
-    config['analyses'][0]['normalize_for_volume'] = True
+    geometry['normalize_for_volume'] = True
     monkeypatch.setattr(single, 'predictions', lambda *args: pytest.fail('Persisted inference must be reused'))
     second = single.run(config, root)
     assert first['model_id'] == second['model_id']

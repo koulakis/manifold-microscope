@@ -1,13 +1,21 @@
+from collections.abc import Callable
 from functools import partial
 from multiprocessing import Pool
-from typing import Callable, Optional
 
 import cv2
 import numpy as np
 from tqdm import tqdm
 
 
-def statistical_scaling(data: np.ndarray):
+def statistical_scaling(data: np.ndarray) -> np.ndarray:
+    """Center an array and scale it by its standard deviation.
+
+    Args:
+        data: Input array of arbitrary shape (s1 ... sn).
+
+    Returns:
+        Centered and scaled array with the same shape (s1 ... sn) as data.
+    """
     data_mean = data.mean()
     data_std = data.std()
 
@@ -15,19 +23,19 @@ def statistical_scaling(data: np.ndarray):
 
 
 def rotate_image(
-        image: np.ndarray,
-        angle: float
+    image: np.ndarray,
+    angle: float
 ) -> np.ndarray:
     """Rotate a 2D image given in a numpy array.
 
     Args:
-        image: The image in a numpy array.
+        image: Input image, shape (h w).
         angle: The angle in degrees.
 
     Returns:
-        The rotated image, same size as the input image.
+        Rotated image array with the same shape (h w) as image.
     """
-    center = np.array(image.shape) / 2
+    center = (image.shape[0] / 2, image.shape[1] / 2)
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
     rotated_image = cv2.warpAffine(image, rotation_matrix, (image.shape[1], image.shape[0]))
 
@@ -39,11 +47,11 @@ def place_in_middle_of_background(background: np.ndarray, image: np.ndarray) -> 
     pixels of the area where it is pasted.
 
     Args:
-        background: The background image.
-        image: The foreground image, should be smaller than the background one.
+        background: Destination image, shape (h w).
+        image: Smaller foreground image, shape (hi wi).
 
     Returns:
-        A copy of the background image with the foreground image pasted in the middle.
+        Copy of the background with the foreground pasted in its center, shape (h w).
     """
     background = background.copy()
     cy, cx = (np.array(background.shape) // 2).astype(np.int64)
@@ -58,7 +66,12 @@ def place_in_middle_of_background(background: np.ndarray, image: np.ndarray) -> 
     return background
 
 
-def shrink_image(image: np.ndarray, size: int, output_size: int, interpolation: int = cv2.INTER_AREA) -> np.ndarray:
+def shrink_image(
+    image: np.ndarray,
+    size: int,
+    output_size: int,
+    interpolation: int = cv2.INTER_AREA
+) -> np.ndarray:
     """Shrink a given image to a selected size. The new image will have the same size as before and the old shrunk one
     will be placed in the center and padded with zeroes.
 
@@ -69,7 +82,7 @@ def shrink_image(image: np.ndarray, size: int, output_size: int, interpolation: 
         interpolation: The interpolation method.
 
     Returns:
-        An image with the shrunk input image in the middle.
+        Centered, padded image array of shape (output_size, output_size).
     """
     if output_size < size:
         raise ValueError(f"Attempting to shrink image or shape {output_size} to the larger size {size}.")
@@ -81,19 +94,19 @@ def shrink_image(image: np.ndarray, size: int, output_size: int, interpolation: 
 
 
 def translate_image(
-        image: np.ndarray,
-        dx: int,
-        dy: int
+    image: np.ndarray,
+    dx: float,
+    dy: float
 ) -> np.ndarray:
     """Translate a 2D image given in a numpy array.
 
     Args:
-        image: The image in a numpy array.
+        image: Input image, shape (h w).
         dx: The translation on the x-axis in pixels.
         dy: The translation on the y-axis in pixels.
 
     Returns:
-        The translated image in a numpy array, same size as the input image.
+        Translated image array with the same shape (h w) as image.
     """
     translation_matrix = np.array([
         [1, 0, dx],
@@ -106,10 +119,10 @@ def translate_image(
 def apply_transform(
     transform_name: str,
     image_grid: np.ndarray,
-    transform: Callable[[np.ndarray, ...], np.ndarray],
-    transform_range: tuple[str, list | np.ndarray],
+    transform: Callable[..., np.ndarray],
+    transform_range: tuple[str, list[int] | np.ndarray],
     axis: int = 0,
-    processes: Optional[int] = None,
+    processes: int | None = None,
     verbose: bool = False
 ) -> np.ndarray:
     """Apply a transform over all images in a grid and for all given values of the transform.
@@ -118,8 +131,7 @@ def apply_transform(
         transform_name: The name of the transform.
         image_grid: A grid of shape (... height width) which contains images.
         transform: A function which transforms a single image.
-        transform_range: A tuple with the name of a kwarg of the transform function and a range of values it should
-            be computed on.
+        transform_range: Transform parameter name and its sampled values, shape (n).
         axis: The axis along which the transformed versions of the images will be stacked.
         processes: An optional number of processes to parallelize each single transform of the image grid.
         verbose: If true, a progress bar on the number of transforms will be shown.

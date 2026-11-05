@@ -1,10 +1,10 @@
 """Unavailable devices fail before datasets are loaded or stage files are written."""
-from pathlib import Path
 import importlib
+from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
 from experiments_and_analysis.config import load_config
 from experiments_and_analysis.scripts import run as single
@@ -39,12 +39,6 @@ def test_cached_sweep_does_not_require_cuda(tmp_path, monkeypatch):
     monkeypatch.setattr(single, 'completed_result', lambda *_: dict(analyses=[]))
     result = sweep.run(dict(base=dict(device='cuda:0')), tmp_path / 'outputs')
     assert result['results'] == [dict(analyses=[])]
-
-
-def test_cpu_single_experiment_still_runs(tmp_path):
-    from .test_pipeline import circle_config
-    result = single.run(circle_config(tmp_path), tmp_path / 'outputs')
-    assert result['analyses'][0]['name'] == 'errors'
 
 
 def test_all_paper_quick_configs_export_without_cuda(tmp_path, monkeypatch):

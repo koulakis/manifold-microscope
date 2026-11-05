@@ -1,0 +1,20 @@
+minimum_pre_commit_version: "4.6.2"
+
+# Use the active development environment so Pyright sees the scientific packages.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: Ruff
+        entry: python -m ruff check .
+        language: system
+        files: '^(microscope/|experiments_and_analysis/|tools/|pyproject\.toml$|\.pre-commit-config\.yaml$)'
+        pass_filenames: false
+        require_serial: true
+      - id: pyright
+        name: Pyright
+        entry: python -m pyright --project pyproject.toml --warnings
+        language: system
+        always_run: true
+        pass_filenames: false
+        require_serial: true

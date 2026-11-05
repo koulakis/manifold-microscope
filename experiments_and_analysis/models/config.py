@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -38,7 +37,7 @@ class BetaVAEConfig:
     display_step: int = 10_000
     save_step: int = 10_000
 
-    ckpt_name: Optional[str] = None
+    ckpt_name: str | None = None
 
 
 @dataclass
@@ -46,7 +45,7 @@ class MMLSConfig:
     number_of_dims: int
     number_of_neighbors: int = 6
     sigma: float = 1.0
-    exact_nn_threshold: Optional[int] = 10_000
+    exact_nn_threshold: int | None = 10_000
     verbose: bool = True
     projection_method: str = "thin_svd"
     projection_batch_size: int = 32

@@ -5,6 +5,8 @@
 
 `manifold-microscope` provides toy and image datasets, plus finite-difference estimates of volume, scalar curvature and reach on parameter grids. It accompanies [Marios Koulakis and Constantin Seibold, *The Data Manifold under the Microscope* (ICML 2026)](https://proceedings.mlr.press/v306/koulakis26a.html).
 
+[Documentation on Read the Docs](https://manifold-microscope.readthedocs.io/en/latest)
+
 ## Install <img src="docs/images/colorful_mathematical_surface_microscope.png" alt="" width="280" align="right">
 
 Python ≥3.10:
@@ -45,25 +47,28 @@ print(f"Mean scalar curvature: {curvature.mean():.3f}")
 
 Grid APIs with a `device` argument select CUDA when available, otherwise CPU.
 Custom experiment configs default to CPU; the paper presets explicitly request
-`cuda:0` and fail if it cannot initialize. See the [experiment guide](docs/source/guide/experiments.rst)
+`cuda:0` and fail if it cannot initialize. See the [experiment guide](https://manifold-microscope.readthedocs.io/en/latest/guide/experiments.html)
 for device overrides, training budgets, progress controls and output formats.
 
 ## Documentation and paper reproduction
 
+The [online documentation](https://manifold-microscope.readthedocs.io/en/latest) follows development. Start with the guides and API references below.
+
 For the paper figures, use **version 0.2.0** (Git tag `v0.2.0`). Check out
 that tag and install its experiment dependencies as described in the
-[reproduction guide](docs/source/guide/reproducibility.rst). Later releases may
+[reproduction guide](https://manifold-microscope.readthedocs.io/en/latest/guide/reproducibility.html). Later releases may
 introduce different numerical methods, including extrinsic curvature or faster
 reach searches, and may produce different results. Version 0.2.0 is the fixed
 reference for the paper workflow.
 
-- [Documentation index](docs/source/index.rst)
-- [Getting started](docs/source/guide/getting_started.rst) and [API reference](docs/source/api_reference/geometry.rst)
-- [Paper reproduction](docs/source/guide/reproducibility.rst)
-- [Configuration and defaults](docs/source/guide/configuration.rst)
-- [Outputs and reuse](docs/source/guide/outputs.rst)
-- [Build and publish the docs](docs/source/guide/building.rst)
+- [Installation](https://manifold-microscope.readthedocs.io/en/latest/guide/installation.html) and [getting started](https://manifold-microscope.readthedocs.io/en/latest/guide/getting_started.html)
+- API reference: [datasets](https://manifold-microscope.readthedocs.io/en/latest/api_reference/datasets.html), [geometry](https://manifold-microscope.readthedocs.io/en/latest/api_reference/geometry.html), and [experiments](https://manifold-microscope.readthedocs.io/en/latest/api_reference/experiments.html)
+- [Paper reproduction](https://manifold-microscope.readthedocs.io/en/latest/guide/reproducibility.html)
+- [Configuration and defaults](https://manifold-microscope.readthedocs.io/en/latest/guide/configuration.html)
+- [Outputs and reuse](https://manifold-microscope.readthedocs.io/en/latest/guide/outputs.html)
+- [Build and publish the docs](https://manifold-microscope.readthedocs.io/en/latest/guide/building.html)
 - [Dataset and geometry notebooks](notebooks/datasets_and_measures)
+- [Development checks and pre-commit setup](CONTRIBUTING.md)
 
 **Note:** The original paper experiments were not fully seeded. Current presets
 specify seeds, but plots may still vary slightly across runs or devices.

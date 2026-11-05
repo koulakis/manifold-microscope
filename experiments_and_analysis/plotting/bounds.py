@@ -1,19 +1,28 @@
 """Required paper bound renderer, copied from submission revision 9f519c9.
 
-Only the shared style helpers and mean/one-sigma renderer are retained.
-Experiment selection and completion handling live in render.py.
+Only the shared style helpers and mean/one-sigma renderer are retained. Experiment selection and completion handling
+live in render.py.
 """
-
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import os
 from pathlib import Path
+
+import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter, LogFormatterMathtext
 
 
-def format_title_text(title_text):
+def format_title_text(title_text: str) -> str:
+    """Convert an internal panel name to its display title.
+
+    Args:
+        title_text: Internal panel title.
+
+    Returns:
+        Human-readable panel title with model and dimension names expanded.
+    """
     return (
         title_text
         .replace("_", " ")
@@ -25,8 +34,16 @@ def format_title_text(title_text):
 
 
 # noinspection PyUnusedLocal
-def format_abs_values(y, p):
-    """Format y-axis values to show readable absolute values, handling log scale properly."""
+def format_abs_values(y: float, p: int | None) -> str:
+    """Format y-axis values to show readable absolute values, handling log scale properly.
+
+    Args:
+        y: Axis value to format.
+        p: Tick position supplied by Matplotlib, unused.
+
+    Returns:
+        Tick-label string displaying the absolute value of y.
+    """
     if y <= 0:
         return '0'
 
@@ -50,25 +67,32 @@ def format_abs_values(y, p):
 class CustomLogFormatter(LogFormatterMathtext):
     """Custom log formatter that shows absolute values instead of scientific notation."""
 
-    def __call__(self, x, pos=None):
-        """Format log scale values as absolute numbers."""
-        if x <= 0:
-            return '0'
-        elif x < 0.001:
-            return f'{x:.1e}'
-        elif x < 1:
-            return f'{x:.3f}'.rstrip('0').rstrip('.')
-        elif x < 10:
-            formatted = f'{x:.1f}'
-            if formatted.endswith('.0'):
-                return formatted[:-2]
-            return formatted
-        else:
-            return f'{int(round(x))}'
+    def __call__(
+        self,
+        x: float,
+        pos: int | None = None
+    ) -> str:
+        """Format log scale values as absolute numbers.
+
+        Args:
+            x: Axis value to format.
+            pos: Tick position supplied by Matplotlib, unused.
+
+        Returns:
+            Logarithmic-axis tick label displaying the absolute value of x.
+        """
+        return format_abs_values(x, pos)
 
 
-def format_label(label):
-    """Format bound labels to readable format."""
+def format_label(label: str) -> str:
+    """Format bound labels to readable format.
+
+    Args:
+        label: Label to format.
+
+    Returns:
+        Readable bound label identifying upper or lower bounds when present.
+    """
     if 'upper' in label.lower():
         return f"Upper Bound - {label.replace('upper', '').replace('_', ' ').strip().title()}"
     elif 'lower' in label.lower():
@@ -77,11 +101,15 @@ def format_label(label):
         return label.replace('_', ' ').title()
 
 
-def assign_colors_by_group(bound_types):
-    """
-    Assign colors to bound types, grouping by common substrings.
-    Keys with shared substrings (like 'genovese') get the same color.
-    Returns both color_map and group_info for legend handling.
+def assign_colors_by_group(bound_types: list[str]) -> tuple[dict[str, str], dict]:
+    """Assign colors to bound types, grouping by common substrings. Keys with shared substrings (like 'genovese') get
+    the same color. Returns both color_map and group_info for legend handling.
+
+    Args:
+        bound_types: Names of the bound curves.
+
+    Returns:
+        (color_map, group_info), mapping curve names to colors and grouped legend metadata.
     """
     colors = ['tab:blue', 'tab:green', 'tab:orange', 'tab:red', 'tab:purple',
               'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
@@ -160,34 +188,21 @@ def assign_colors_by_group(bound_types):
     return color_map, group_info
 
 
-# noinspection PyUnusedLocal
-def get_legend_entries(bound_types, color_map, group_info):
+def get_grouped_legend_label(
+    bound_type: str,
+    group_info: dict,
+    emitted_groups: set[str]
+) -> str:
+    """Return one legend label per grouped bound family.
+
+    Args:
+        bound_type: Name of the current bound curve.
+        group_info: Legend labels, colors and members for each bound group.
+        emitted_groups: Group names already labeled, updated in place.
+
+    Returns:
+        Display label for the bound type or group, or an empty string when no label applies.
     """
-    Get unique legend entries, combining bounds with same colors.
-    """
-    legend_entries = []
-    processed_groups = set()
-
-    for bound_type in bound_types:
-        # Find which group this bound belongs to
-        group_key = None
-        for gkey, ginfo in group_info.items():
-            if bound_type in ginfo['bounds']:
-                group_key = gkey
-                break
-
-        if group_key and group_key not in processed_groups:
-            legend_entries.append({
-                'label': group_info[group_key]['label'],
-                'color': group_info[group_key]['color']
-            })
-            processed_groups.add(group_key)
-
-    return legend_entries
-
-
-def get_grouped_legend_label(bound_type, group_info, emitted_groups):
-    """Return one legend label per grouped bound family."""
     for group_key, group in group_info.items():
         if bound_type in group['bounds']:
             if group_key in emitted_groups:
@@ -198,24 +213,45 @@ def get_grouped_legend_label(bound_type, group_info, emitted_groups):
     return format_label(bound_type)
 
 
-def compute_figsize(n_cols, width_per_col=9, height=9, min_width=10):
+def compute_figsize(
+    n_cols: int,
+    width_per_col: float = 9,
+    height: float = 9,
+    min_width: float = 10
+) -> tuple[float, float]:
     """Compute a `figsize` tuple that scales naturally with the number of columns.
 
-    width_per_col: horizontal space allocated per subplot column
-    height: figure height in inches
-    min_width: minimum total figure width in inches
+    Args:
+        n_cols: Number of subplot columns.
+        width_per_col: Figure width per subplot column in inches.
+        height: Figure height in inches.
+        min_width: Minimum figure width in inches.
+
+    Returns:
+        (width, height) of the plot figure in inches.
     """
     fig_width = max(min_width, width_per_col * n_cols)
     return (fig_width, height)
 
 
-def resolve_plot_fontsizes(fontsize=None, title_fontsize=None, text_fontsize=None):
+def resolve_plot_fontsizes(
+    fontsize: float | None = None,
+    title_fontsize: float | None = None,
+    text_fontsize: float | None = None
+) -> tuple[float, float, float, float]:
     """Resolve optional global/title/text font-size controls.
 
     Defaults reproduce the original hard-coded values:
-    titles=28, axis labels=24, ticks=20, legends=22.
-    If fontsize is set, it controls all text unless title_fontsize or
+    titles=28, axis labels=24, ticks=20, legends=22. If fontsize is set, it controls all text unless title_fontsize or
     text_fontsize are set explicitly.
+
+    Args:
+        fontsize: Global font size; None keeps the default.
+        title_fontsize: Title font size, overriding the global setting.
+        text_fontsize: Axis, tick and legend font size, overriding the global setting.
+
+    Returns:
+        (title_size, label_size, tick_size, legend_size), font sizes in points.
     """
     if fontsize is None:
         title_size = 28
@@ -238,33 +274,48 @@ def resolve_plot_fontsizes(fontsize=None, title_fontsize=None, text_fontsize=Non
     return title_size, label_size, tick_size, legend_size
 
 
-def resolve_legend_y(legend_y=None):
+def resolve_legend_y(legend_y: float | None = None) -> float:
+    """Use the requested legend position or the default.
+
+    Args:
+        legend_y: Vertical legend position in figure coordinates; None uses the default.
+
+    Returns:
+        Explicit legend position, or the default vertical offset -0.05.
+    """
     return -0.05 if legend_y is None else legend_y
 
 
 def create_repetitions_shaded_plot(
-        data,
-        output_dir,
-        log_scale=False,
-        first_only=False,
-        no_axes=False,
-        full_version=False,
-        fontsize=None,
-        title_fontsize=None,
-        text_fontsize=None,
-        legend_y=None,
-        name="bounds"
-):
-    """
-    Create empirical curves, shading ±sigma only with at least three repetitions.
+    data: dict,
+    output_dir: str | Path,
+    log_scale: bool = False,
+    first_only: bool = False,
+    no_axes: bool = False,
+    full_version: bool = False,
+    fontsize: float | None = None,
+    title_fontsize: float | None = None,
+    text_fontsize: float | None = None,
+    legend_y: float | None = None,
+    name: str = "bounds"
+) -> None:
+    """Create empirical curves, shading ±sigma only with at least three repetitions.
 
     Args:
-        data: Mapping of panel names to plot-ready bound dictionaries
-        output_dir: Directory to save the plots
-        log_scale: Whether to use logarithmic scale for y-axis
-        first_only: Whether to plot only the first key with legend inside figure
-        no_axes: Whether to disable axes and axis labels
-        full_version: If true, don't sub-sample curve points.
+        data: Panels mapped to bound dictionaries; curves have shape (s), repetitions have shape (s r).
+        output_dir: Directory for generated outputs.
+        log_scale: Use a logarithmic y-axis.
+        first_only: Plot only the first panel with its legend inside the figure.
+        no_axes: Hide axes and their labels.
+        full_version: Keep all curve points instead of subsampling.
+        fontsize: Global font size; None keeps the default.
+        title_fontsize: Title font size, overriding the global setting.
+        text_fontsize: Axis, tick and legend font size, overriding the global setting.
+        legend_y: Vertical legend position in figure coordinates; None uses the default.
+        name: Name used for labels or output files.
+
+    Returns:
+        None.
     """
     title_size, label_size, tick_size, legend_size = resolve_plot_fontsizes(
         fontsize=fontsize,
@@ -305,7 +356,12 @@ def create_repetitions_shaded_plot(
     emitted_legend_groups = set()
 
     # Create the multicolumn plot (larger figsize)
-    figsize = compute_figsize(n_cols, width_per_col=10, height=9, min_width=10)
+    figsize = compute_figsize(
+        n_cols,
+        width_per_col=10,
+        height=9,
+        min_width=10
+    )
     fig, axes = plt.subplots(1, n_cols, figsize=figsize)
     if n_cols == 1:
         axes = [axes]
@@ -433,7 +489,12 @@ def create_repetitions_shaded_plot(
         # Configure axes based on no_axes flag
         if no_axes:
             axes[i].grid(True, alpha=0.3)
-            axes[i].tick_params(axis='both', which='major', labelbottom=False, labelleft=False)
+            axes[i].tick_params(
+                axis='both',
+                which='major',
+                labelbottom=False,
+                labelleft=False
+            )
             axes[i].set_xlabel('')
             axes[i].set_ylabel('')
             axes[i].set_title('')
@@ -451,7 +512,7 @@ def create_repetitions_shaded_plot(
             axes[i].tick_params(axis='both', which='major', labelsize=tick_size)
             axes[i].tick_params(axis='x', rotation=45)
             # Format x-axis to show integer values only
-            axes[i].xaxis.set_major_formatter(plt.FuncFormatter(lambda xx, p: f'{int(xx)}'))
+            axes[i].xaxis.set_major_formatter(FuncFormatter(lambda xx, p: f'{int(xx)}'))
 
         if log_scale:
             axes[i].set_yscale('log')
@@ -464,7 +525,13 @@ def create_repetitions_shaded_plot(
     # Add legend
     handles, labels = axes[0].get_legend_handles_labels()
     if first_only:
-        axes[0].legend(handles, labels, loc='upper right', fontsize=legend_size, markerscale=2.5)
+        axes[0].legend(
+            handles,
+            labels,
+            loc='upper right',
+            fontsize=legend_size,
+            markerscale=2.5
+        )
     else:
         fig.legend(
             handles,
@@ -490,7 +557,12 @@ def create_repetitions_shaded_plot(
     output_filename = f"{input_filename}_shaded{scale_suffix}{first_suffix}{axes_suffix}.png"
     output_path = os.path.join(output_dir, output_filename)
 
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig(
+        output_path,
+        dpi=300,
+        bbox_inches='tight',
+        facecolor='white'
+    )
     print(f"Saved shaded plot: {output_path}")
 
     pdf_path = output_path.replace('.png', '.pdf')

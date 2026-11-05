@@ -1,19 +1,20 @@
 """Expand parameter choices, run experiments sequentially, then aggregate/plot."""
-from copy import deepcopy
-from contextlib import contextmanager, redirect_stderr, redirect_stdout
-from itertools import product
 import os
-from pathlib import Path
 import sys
+from collections.abc import Generator, Mapping
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
+from copy import deepcopy
+from itertools import product
+from pathlib import Path
 from time import perf_counter
-from typing import Optional
+from typing import Any
 
 import typer
 from tqdm import tqdm
 from tqdm.contrib import DummyTqdmFile
 
-from ..config import load_config, merge, resolve
 from ..bundles import bundle_session
+from ..config import load_config, merge, resolve
 from ..data.preparation import source_identity
 from ..outputs import identity, stage_directory, write_json
 from ..paths import sweep_label
@@ -25,19 +26,41 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @contextmanager
-def experiment_output(quiet):
-    """Keep the sweep bar separate from experiment prints and nested bars."""
+def experiment_output(quiet: bool) -> Generator[None]:
+    """Keep the sweep bar separate from experiment prints and nested bars.
+
+    Args:
+        quiet: Suppress experiment prints and progress bars.
+
+    Yields:
+        None while experiment output is suppressed or redirected around the sweep progress bar.
+    """
     if quiet:
         with open(os.devnull, 'w') as sink, redirect_stdout(sink), redirect_stderr(sink):
             yield
     else:
         # Inner tqdm instances must write directly to stderr. Wrapping their
         # refreshes in tqdm.write clears/repaints every active bar each time.
-        with redirect_stdout(DummyTqdmFile(sys.stdout)):
+        # The proxy forwards flush; its write returns None, which redirect_stdout also supports at runtime.
+        with redirect_stdout(DummyTqdmFile(sys.stdout)):  # pyright: ignore[reportArgumentType]
             yield
 
 
-def set_choice(config, path, value):
+def set_choice(
+    config: dict,
+    path: str,
+    value: object
+) -> None:
+    """Set a nested configuration value using a dotted key.
+
+    Args:
+        config: Experiment or sweep configuration.
+        path: Dotted key identifying the configuration field to replace.
+        value: Value to serialize or assign.
+
+    Returns:
+        None.
+    """
     keys = path.split('.')
     current = config
     for key in keys[:-1]:
@@ -45,8 +68,21 @@ def set_choice(config, path, value):
     current[keys[-1]] = deepcopy(value)
 
 
-def expand(config, *, quick_run=False, device=None):
-    """Cartesian choices plus explicit exclusions and additional configurations."""
+def expand(
+    config: Mapping[str, Any],
+    quick_run: bool = False,
+    device: str | None = None
+) -> list[dict]:
+    """Cartesian choices plus explicit exclusions and additional configurations.
+
+    Args:
+        config: Experiment or sweep configuration.
+        quick_run: Apply the shared reduced experiment budgets.
+        device: Optional device override for every experiment.
+
+    Returns:
+        Deduplicated list of resolved experiment configurations after applying choices, exclusions and overrides.
+    """
     experiments = []
     for group in config.get('groups', [dict()]):
         base = merge(config.get('base', {}), group.get('base', {}))
@@ -76,8 +112,28 @@ def expand(config, *, quick_run=False, device=None):
     return list({identity(experiment): experiment for experiment in experiments}.values())
 
 
-def run(config: dict, output_dir, *, dry_run=False, quick_run=False, device=None,
-        quiet_experiments=None):
+def run(
+    config: Mapping[str, Any],
+    output_dir: str | Path,
+    dry_run: bool = False,
+    quick_run: bool = False,
+    device: str | None = None,
+    quiet_experiments: bool | None = None
+) -> dict:
+    """Run a resolved sweep and render its requested aggregate outputs.
+
+    Args:
+        config: Experiment or sweep configuration.
+        output_dir: Directory for generated outputs.
+        dry_run: Write resolved jobs without executing experiments.
+        quick_run: Apply the shared reduced experiment budgets.
+        device: Optional device override for every experiment.
+        quiet_experiments: Override whether experiment output is suppressed during a sweep.
+
+    Returns:
+        Dictionary containing resolved configurations, experiment results and generated plot paths; dry runs leave the
+        last two lists empty.
+    """
     started = perf_counter()
     quiet = config.get('quiet_experiments', False) if quiet_experiments is None else quiet_experiments
     experiments = expand(config, quick_run=quick_run, device=device)
@@ -103,8 +159,14 @@ def run(config: dict, output_dir, *, dry_run=False, quick_run=False, device=None
         return dict(configurations=experiments, results=[], plots=[])
     results = []
     dataset, previous_source = None, None
-    with bundle_session(root), tqdm(total=len(experiments), desc='Sweep', unit='experiment', file=sys.stderr,
-              position=0, dynamic_ncols=True) as progress:
+    with bundle_session(root), tqdm(
+        total=len(experiments),
+        desc='Sweep',
+        unit='experiment',
+        file=sys.stderr,
+        position=0,
+        dynamic_ncols=True
+    ) as progress:
         for experiment, completed in zip(experiments, completed_results):
             with experiment_output(quiet):
                 if completed is not None:
@@ -128,15 +190,37 @@ def run(config: dict, output_dir, *, dry_run=False, quick_run=False, device=None
 
 
 @app.command()
-def main(config: Path = typer.Option(..., exists=True), output_dir: Path = typer.Option(...),
-         dry_run: bool = False, quick_run: bool = False,
-         quiet_experiments: Optional[bool] = typer.Option(
+def main(
+    config: Path = typer.Option(..., exists=True),
+    output_dir: Path = typer.Option(...),
+    dry_run: bool = False,
+    quick_run: bool = False,
+    quiet_experiments: bool | None = typer.Option(
              None, '--quiet-experiments/--no-quiet-experiments',
              help='Show only sweep progress; overrides quiet_experiments in the sweep config.'),
-         device: str = typer.Option(None, help='Override the configured device, e.g. cuda:0.')):
-    """Expand/run a YAML or JSON sweep; --dry-run writes its job list only."""
-    result = run(load_config(config), output_dir, dry_run=dry_run, quick_run=quick_run, device=device,
-                 quiet_experiments=quiet_experiments)
+    device: str | None = typer.Option(None, help='Override the configured device, e.g. cuda:0.')
+) -> None:
+    """Expand/run a YAML or JSON sweep; --dry-run writes its job list only.
+
+    Args:
+        config: Path to a YAML or JSON sweep configuration.
+        output_dir: Directory for generated outputs.
+        dry_run: Write resolved jobs without executing experiments.
+        quick_run: Apply the shared reduced experiment budgets.
+        quiet_experiments: Override whether experiment output is suppressed during a sweep.
+        device: Optional device override, such as cpu or cuda:0.
+
+    Returns:
+        None.
+    """
+    result = run(
+        load_config(config),
+        output_dir,
+        dry_run=dry_run,
+        quick_run=quick_run,
+        device=device,
+        quiet_experiments=quiet_experiments
+    )
     if dry_run:
         typer.echo(f"Prepared {len(result['configurations'])} experiment configurations.")
 

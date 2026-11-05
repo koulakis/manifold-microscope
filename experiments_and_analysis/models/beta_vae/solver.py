@@ -1,13 +1,11 @@
 """Training solver for the adapted beta-VAE implementation.
 
-Copied and adapted from https://github.com/1Konny/Beta-VAE.
-The upstream project is MIT licensed; see this package's `LICENSE` and the
-repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
+Copied and adapted from https://github.com/1Konny/Beta-VAE. The upstream project is MIT licensed; see this package's
+`LICENSE` and the repository's `docs/source/third_party/beta_vae.rst` for copyright and attribution.
 """
-
 import warnings
 from pathlib import Path
-from typing import Optional
+from typing import TypeVar, cast
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -17,20 +15,36 @@ from experiments_and_analysis.models.config import BetaVAEConfig
 warnings.filterwarnings("ignore")
 
 import os
-from tqdm import tqdm
+
 import matplotlib
-
 import torch
-import torch.optim as optim
 import torch.nn.functional as F
+from torch import optim
+from tqdm import tqdm
 
-from experiments_and_analysis.models.beta_vae.model import BetaVAE_H, BetaVAE_B
+from experiments_and_analysis.models.beta_vae.model import BetaVAE_B, BetaVAE_H
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+DeviceValue = TypeVar('DeviceValue', bound=torch.Tensor | torch.nn.Module)
 
-def reconstruction_loss(x, x_recon, distribution):
+
+def reconstruction_loss(
+    x: torch.Tensor,
+    x_recon: torch.Tensor,
+    distribution: str
+) -> torch.Tensor | None:
+    """Compute the reconstruction loss for the selected likelihood.
+
+    Args:
+        x: Target images of shape (b c h w); the batch must be nonempty.
+        x_recon: Reconstruction logits of shape (b c h w).
+        distribution: Reconstruction likelihood, bernoulli or gaussian.
+
+    Returns:
+        Batch-averaged reconstruction loss as a scalar tensor of shape (), or None for an unsupported distribution.
+    """
     batch_size = x.size(0)
     assert batch_size != 0
 
@@ -45,7 +59,17 @@ def reconstruction_loss(x, x_recon, distribution):
     return recon_loss
 
 
-def kl_divergence(mu, logvar):
+def kl_divergence(mu: torch.Tensor, logvar: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Compute total, dimension-wise and mean latent KL divergence.
+
+    Args:
+        mu: Latent means of shape (b z), or (b z 1 1).
+        logvar: Latent log variances with the same shape as mu.
+
+    Returns:
+        (total_kld, dimension_wise_kld, mean_kld), tensors of shapes (1), (z) and (1), respectively, averaged over the
+        batch.
+    """
     batch_size = mu.size(0)
     assert batch_size != 0
     if mu.data.ndimension() == 4:
@@ -61,12 +85,14 @@ def kl_divergence(mu, logvar):
     return total_kld, dimension_wise_kld, mean_kld
 
 
-class DataGather(object):
-    def __init__(self):
-        self.data = self.get_empty_data_dict()
-
+class DataGather:
     @staticmethod
-    def get_empty_data_dict():
+    def get_empty_data_dict() -> dict[str, list]:
+        """Create empty lists for training statistics.
+
+        Returns:
+            Dictionary mapping each tracked training statistic to an empty list.
+        """
         return dict(
             iter=[],
             recon_loss=[],
@@ -80,15 +106,45 @@ class DataGather(object):
             images=[]
         )
 
-    def insert(self, **kwargs):
+    def __init__(self) -> None:
+        """Initialize the collected training statistics.
+
+        Returns:
+            None.
+        """
+        self.data = self.get_empty_data_dict()
+
+    def insert(self, **kwargs: object) -> None:
+        """Append the supplied training statistics.
+
+        Args:
+            **kwargs: Named statistics; tensor values have the shape of their corresponding metric.
+
+        Returns:
+            None.
+        """
         for key in kwargs:
             self.data[key].append(kwargs[key])
 
-    def flush(self):
+    def flush(self) -> None:
+        """Clear all collected training statistics.
+
+        Returns:
+            None.
+        """
         self.data = self.get_empty_data_dict()
 
 
 def plot_training_curve(train_losses: list[float], plots_dir: Path) -> None:
+    """Save the reconstruction-loss training curve.
+
+    Args:
+        train_losses: Reconstruction losses in training-step order.
+        plots_dir: Directory for the saved training curve.
+
+    Returns:
+        None.
+    """
     plt.figure(figsize=(8, 5))
     epochs = len(train_losses)
     plt.plot(range(1, epochs + 1), train_losses, marker='o')
@@ -104,14 +160,26 @@ def visualize_reconstructions(
     output_dir: Path,
     step: int,
     autoencoder: torch.nn.Module,
-    data_loader: DataLoader,
+    data_loader: DataLoader | list[torch.Tensor],
     device: str,
-    num_images=8
-):
+    num_images: int = 8
+) -> None:
+    """Save a small panel of original images and reconstructions.
+
+    Args:
+        output_dir: Directory for generated outputs.
+        step: Training step used in the output filename.
+        autoencoder: Autoencoder whose activations or reconstructions are collected.
+        data_loader: Loader yielding image batches of shape (b c h w).
+        device: Device used for tensor computations.
+        num_images: Maximum number of images to display.
+
+    Returns:
+        None.
+    """
     autoencoder.eval()
     images = next(iter(data_loader))
-    if len(images) < num_images:
-        num_images = len(images)
+    num_images = min(num_images, len(images))
     images = images[:num_images].to(device)
     with torch.no_grad():
         reconstructed_images, _, _ = autoencoder(images)
@@ -125,10 +193,20 @@ def visualize_reconstructions(
     fig, axes = plt.subplots(2, num_images, figsize=(12, 4))
     for i in range(num_images):
         # Original images
-        axes[0, i].imshow(original_images[i].squeeze(), cmap='gray', vmin=0, vmax=1)
+        axes[0, i].imshow(
+            original_images[i].squeeze(),
+            cmap='gray',
+            vmin=0,
+            vmax=1
+        )
         axes[0, i].axis('off')
         # Reconstructed images
-        axes[1, i].imshow(reconstructed_images[i].squeeze(), cmap='gray', vmin=0, vmax=1)
+        axes[1, i].imshow(
+            reconstructed_images[i].squeeze(),
+            cmap='gray',
+            vmin=0,
+            vmax=1
+        )
         axes[1, i].axis('off')
 
     axes[0, 0].set_title("Original", fontsize=10)
@@ -138,8 +216,56 @@ def visualize_reconstructions(
     plt.close(fig)
 
 
-class Solver(object):
-    def __init__(self, args: BetaVAEConfig, data_loader=None) -> None:
+class Solver:
+    def _to_device(self, tensor_or_module: DeviceValue) -> DeviceValue:
+        """Move tensor or module to the configured device.
+
+        Args:
+            tensor_or_module: Tensor of shape (...) or module to move to the configured device.
+
+        Returns:
+            Tensor with unchanged shape (...) or the same module, placed on the configured device.
+        """
+        return cast(DeviceValue, tensor_or_module.to(self.device))
+
+    def load_checkpoint(self, filename: str) -> None:
+        """Restore solver state when the checkpoint file exists.
+
+        Args:
+            filename: Checkpoint filename relative to the checkpoint directory.
+
+        Returns:
+            None.
+        """
+        file_path = self.ckpt_dir / filename
+        if os.path.isfile(file_path):
+            # Full solver checkpoints are trusted local training outputs.
+            checkpoint = torch.load(file_path, map_location=self.device, weights_only=False)
+            self.global_iter = checkpoint['iter']
+            self.win_recon = checkpoint['win_states']['recon']
+            self.win_kld = checkpoint['win_states']['kld']
+            self.win_var = checkpoint['win_states']['var']
+            self.win_mu = checkpoint['win_states']['mu']
+            self.net.load_state_dict(checkpoint['model_states']['net'])
+            self.optim.load_state_dict(checkpoint['optim_states']['optim'])
+            print(f"=> loaded checkpoint '{file_path} (iter {self.global_iter})'")
+        else:
+            print(f"=> no checkpoint found at '{file_path}'")
+
+    def __init__(
+        self,
+        args: BetaVAEConfig,
+        data_loader: DataLoader | list[torch.Tensor] | None = None
+    ) -> None:
+        """Initialize model, optimizer, checkpoint settings and training data.
+
+        Args:
+            args: Model, optimizer, device, output and training settings.
+            data_loader: Loader yielding image batches of shape (b c h w).
+
+        Returns:
+            None.
+        """
         self.args = args
 
         self.device = args.device
@@ -205,14 +331,95 @@ class Solver(object):
 
         self.gather = DataGather()
 
-    def _to_device(self, tensor_or_module):
-        """Move tensor or module to the configured device."""
-        return tensor_or_module.to(self.device)
+    def net_mode(self, train: bool) -> None:
+        """Set the network training or evaluation mode.
 
-    def train(self):
+        Args:
+            train: Enable training mode when true, or evaluation mode when false.
+
+        Returns:
+            None.
+        """
+        if not isinstance(train, bool):
+            raise 'Only bool type is supported. True or False'
+
+        if train:
+            self.net.train()
+        else:
+            self.net.eval()
+
+    def save_checkpoint(
+        self,
+        filename: str | None = None,
+        silent: bool = True
+    ) -> None:
+        """Save solver state, loss arrays and reconstruction plots.
+
+        Args:
+            filename: Checkpoint filename; None derives a name from recent training losses.
+            silent: Suppress the checkpoint confirmation message.
+
+        Returns:
+            None.
+        """
+        model_states = {'net': self.net.state_dict()}
+        optim_states = {'optim': self.optim.state_dict()}
+        win_states = {
+            'recon': self.win_recon,
+            'kld': self.win_kld,
+            'mu': self.win_mu,
+            'var': self.win_var
+        }
+        states = {
+            'iter': self.global_iter,
+            'win_states': win_states,
+            'model_states': model_states,
+            'optim_states': optim_states
+        }
+
+        recon_losses = torch.stack(self.gather.data['recon_loss']).cpu().numpy()
+        avg_dists = torch.stack(self.gather.data['avg_dists']).cpu().numpy()
+        hausdorff_dists = torch.stack(self.gather.data['hausdorff_dists']).cpu().numpy()
+        file_path = (
+            self.ckpt_dir /
+            (
+                f"iter_{self.global_iter}_rec_loss_{recon_losses[-10:].mean()}"
+                f"_haus_dists_{hausdorff_dists[-10:].mean()}_avg_dists_{avg_dists[-10:].mean()}"
+                if filename is None else filename
+            )
+        )
+        with open(file_path, mode='wb+') as f:
+            torch.save(states, f)
+
+        np.savez(os.path.join(self.ckpt_dir, "train_losses.npz"), recon_losses_train=recon_losses)
+
+        plots_dir = self.output_dir / "plots"
+        plots_dir.mkdir(exist_ok=True)
+
+        if self.data_loader is None:
+            raise ValueError('Reconstruction plots require an image data loader.')
+        visualize_reconstructions(
+            plots_dir,
+            step=self.global_iter,
+            autoencoder=self.net,
+            data_loader=self.data_loader,
+            device=self.device
+        )
+        plot_training_curve(
+            list(recon_losses),
+            Path(plots_dir)
+        )
+
+        if not silent:
+            print(f"=> saved checkpoint '{file_path}' (iter {self.global_iter})")
+
+    def train(self) -> None:
         """Fit the model; strict_budget opts into exact batch and epoch limits.
 
         Historical default behavior finishes an epoch after a stop condition.
+
+        Returns:
+            None.
         """
         strict_budget = self.args.strict_budget
         if strict_budget:
@@ -221,10 +428,16 @@ class Solver(object):
             if self.global_iter >= self.max_iter:
                 print("Training budget already reached by the loaded checkpoint.")
                 return
-        # print(f"Train size: {len(self.data_loader.dataset)}, train perc: {self.args.training_ratio}, dataset: {self.args.dataset}, dim: {self.args.number_of_dims}")
+        if self.data_loader is None:
+            raise ValueError('Training requires an image data loader.')
+        # print(
+        #     f"Train size: {len(self.data_loader.dataset)}, train perc: {self.args.training_ratio}, "
+        #     f"dataset: {self.args.dataset}, dim: {self.args.number_of_dims}"
+        # )
         # return
         self.net_mode(train=True)
-        self.C_max = self._to_device(torch.FloatTensor([self.C_max]))
+        C_max = self._to_device(torch.FloatTensor([self.C_max]))
+        self.C_max = C_max
         out = False
 
         pbar = tqdm(total=self.max_iter)
@@ -254,17 +467,21 @@ class Solver(object):
                 x = self._to_device(x)
                 x_recon, mu, logvar = self.net(x)
                 # noinspection PyTypeChecker
-                recon_loss = reconstruction_loss(x, x_recon, self.decoder_dist)
+                recon_loss = cast(torch.Tensor, reconstruction_loss(x, x_recon, self.decoder_dist))
                 total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
 
+                C: torch.Tensor | None = None
                 if self.objective == 'H':
                     beta_vae_loss = recon_loss + self.beta*total_kld
                 elif self.objective == 'B':
-                    # noinspection PyTypeChecker
-                    C = torch.clamp(
-                        self.C_max / self.C_stop_iter * self.global_iter,
-                        min=0,
-                        max=self.C_max.data[0]
+                    # PyTorch supports scalar min with tensor max; its overloads omit mixed bounds.
+                    C = cast(
+                        torch.Tensor,
+                        torch.clamp(  # pyright: ignore[reportCallIssue]
+                            C_max / self.C_stop_iter * self.global_iter,
+                            min=0,
+                            max=C_max.data[0]  # pyright: ignore[reportArgumentType]
+                        )
                     )
                     beta_vae_loss = recon_loss + self.gamma*(total_kld-C).abs()
                 else:
@@ -296,22 +513,16 @@ class Solver(object):
                     )
 
                 if (self.global_iter % self.display_step == 0) or epoch_save:
-                    pbar.write('[{}] recon_loss:{:.3f} total_kld:{:.3f} mean_kld:{:.3f}'.format(
-                        self.global_iter,
-                        recon_loss.detach().item(),
-                        total_kld.detach().item(),
-                        mean_kld.detach().item())
+                    pbar.write(
+                        f'[{self.global_iter}] '
+                        f'recon_loss:{recon_loss.detach().item():.3f} '
+                        f'total_kld:{total_kld.detach().item():.3f} '
+                        f'mean_kld:{mean_kld.detach().item():.3f}'
                     )
 
-                    # var = logvar.exp().mean(0).data
-                    # var_str = ''
-                    # for j, var_j in enumerate(var):
-                    #     var_str += 'var{}:{:.4f} '.format(j+1, var_j)
-                    # pbar.write(var_str)
-
                     if self.objective == 'B':
-                        # noinspection PyUnboundLocalVariable
-                        pbar.write('C:{:.3f}'.format(C.data[0]))
+                        assert C is not None
+                        pbar.write(f'C:{C.data[0]:.3f}')
 
                 if (self.global_iter % 50000 == 0) or epoch_save:
                     self.save_checkpoint()
@@ -352,75 +563,3 @@ class Solver(object):
 
         pbar.write("[Training Finished]")
         pbar.close()
-
-    def net_mode(self, train):
-        if not isinstance(train, bool):
-            raise 'Only bool type is supported. True or False'
-
-        if train:
-            self.net.train()
-        else:
-            self.net.eval()
-
-    def save_checkpoint(self, filename: Optional[str] = None, silent=True):
-        model_states = {'net': self.net.state_dict()}
-        optim_states = {'optim': self.optim.state_dict()}
-        win_states = {
-            'recon': self.win_recon,
-            'kld': self.win_kld,
-            'mu': self.win_mu,
-            'var': self.win_var
-        }
-        states = {
-            'iter': self.global_iter,
-            'win_states': win_states,
-            'model_states': model_states,
-            'optim_states': optim_states
-        }
-
-        recon_losses = torch.stack(self.gather.data['recon_loss']).cpu().numpy()
-        avg_dists = torch.stack(self.gather.data['avg_dists']).cpu().numpy()
-        hausdorff_dists = torch.stack(self.gather.data['hausdorff_dists']).cpu().numpy()
-        file_path = (
-            self.ckpt_dir /
-            (f"iter_{self.global_iter}_rec_loss_{recon_losses[-10:].mean()}_haus_dists_{hausdorff_dists[-10:].mean()}_avg_dists_{avg_dists[-10:].mean()}"
-             if filename is None else filename)
-        )
-        with open(file_path, mode='wb+') as f:
-            torch.save(states, f)
-
-        np.savez(os.path.join(self.ckpt_dir, "train_losses.npz"), recon_losses_train=recon_losses)
-
-        plots_dir = self.output_dir / "plots"
-        plots_dir.mkdir(exist_ok=True)
-
-        visualize_reconstructions(
-            plots_dir,
-            step=self.global_iter,
-            autoencoder=self.net,
-            data_loader=self.data_loader,
-            device=self.device
-        )
-        plot_training_curve(
-            list(recon_losses),
-            Path(plots_dir)
-        )
-
-        if not silent:
-            print("=> saved checkpoint '{}' (iter {})".format(file_path, self.global_iter))
-
-    def load_checkpoint(self, filename):
-        file_path = self.ckpt_dir / filename
-        if os.path.isfile(file_path):
-            # Full solver checkpoints are trusted local training outputs.
-            checkpoint = torch.load(file_path, map_location=self.device, weights_only=False)
-            self.global_iter = checkpoint['iter']
-            self.win_recon = checkpoint['win_states']['recon']
-            self.win_kld = checkpoint['win_states']['kld']
-            self.win_var = checkpoint['win_states']['var']
-            self.win_mu = checkpoint['win_states']['mu']
-            self.net.load_state_dict(checkpoint['model_states']['net'])
-            self.optim.load_state_dict(checkpoint['optim_states']['optim'])
-            print("=> loaded checkpoint '{} (iter {})'".format(file_path, self.global_iter))
-        else:
-            print("=> no checkpoint found at '{}'".format(file_path))

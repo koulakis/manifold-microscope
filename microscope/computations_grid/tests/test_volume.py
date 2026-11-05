@@ -1,9 +1,10 @@
 import unittest
+from typing import cast
 
 import numpy as np
-import torch
 
-from microscope.computations_grid.volume import volume_element, compute_total_volume
+from microscope.computations_grid.tests._device import get_test_device
+from microscope.computations_grid.volume import compute_total_volume, volume_element
 from microscope.cyclic_dimensions import get_difference_intervals
 from microscope.manifold_examples.ellipsoid import ellipsoid_volume_element
 from microscope.manifold_examples.hyperboloid import hyperboloid_volume_element
@@ -15,16 +16,17 @@ from microscope.manifold_examples.tests.test_ellipsoid import ellipsoid_2d_surfa
 class TestEllipsoids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_volume_element_2d_ellipsoids(self):
-        for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
             # Sample a relatively dense grid.
             fraction_of_angles = 0.8
             n_samples_per_dim = [3_002, 3_000]
             cyclic_dimensions = [1]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
@@ -33,7 +35,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            volume_gt = ellipsoid_volume_element(semi_axes, phis)
+            volume_gt = ellipsoid_volume_element(sampled_semi_axes, phis)
 
             # Estimate the volume.
             patch_sizes = [52, 52]
@@ -52,17 +54,18 @@ class TestEllipsoids(unittest.TestCase):
                 volume_gt[1:-1, ...],
                 volume_pred,
                 decimal=4,
-                err_msg=f"Failed on an ellipsoid with semi axes: {semi_axes}."
+                err_msg=f"Failed on an ellipsoid with semi axes: {sampled_semi_axes}."
             )
 
     def test_volume_element_2d_ellipsoids_irregular_grid(self):
-        for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
             # Sample a relatively dense grid.
             fraction_of_angles = 0.8
             n_samples_per_dim = [2_993, 2_853]
             cyclic_dimensions = [1]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
@@ -71,7 +74,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            volume_gt = ellipsoid_volume_element(semi_axes, phis)
+            volume_gt = ellipsoid_volume_element(sampled_semi_axes, phis)
 
             # Estimate the volume.
             patch_sizes = [37, 29]
@@ -90,17 +93,18 @@ class TestEllipsoids(unittest.TestCase):
                 volume_gt[1:-1, ...],
                 volume_pred,
                 decimal=4,
-                err_msg=f"Failed on an ellipsoid with irregular grid and semi axes: {semi_axes}."
+                err_msg=f"Failed on an ellipsoid with irregular grid and semi axes: {sampled_semi_axes}."
             )
 
     def test_total_volume_2d_ellipsoid(self):
-        for semi_axes in [[2, 2, 2], [1, 1.5, 3]]:
+        semi_axes_cases: list[list[float]] = [[2, 2, 2], [1, 1.5, 3]]
+        for semi_axes in semi_axes_cases:
             # Sample a relatively dense grid.
             fraction_of_angles = 0.999
             n_samples_per_dim = [5_993, 5_853]
             cyclic_dimensions = [1]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=3,
@@ -109,7 +113,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Ground truth from the area formula.
-            total_volume_gt = ellipsoid_2d_surface_area(*semi_axes)
+            total_volume_gt = ellipsoid_2d_surface_area(*sampled_semi_axes)
 
             # Estimate the volume.
             patch_sizes = [1037, 1029]
@@ -130,11 +134,11 @@ class TestEllipsoids(unittest.TestCase):
                 total_volume_gt,
                 total_volume_pred,
                 decimal=2,
-                err_msg=f"Failed on an ellipsoid with irregular grid and semi axes: {semi_axes}."
+                err_msg=f"Failed on an ellipsoid with irregular grid and semi axes: {sampled_semi_axes}."
             )
 
     def test_volume_element_3d_ellipsoid(self):
-        semi_axes = [1, 1.5, 3, 1.8]
+        semi_axes: list[float] = [1, 1.5, 3, 1.8]
         for ambient_dim in [4, 100]:
             # Sample a relatively dense grid.
             fraction_of_angles = 0.8
@@ -142,7 +146,7 @@ class TestEllipsoids(unittest.TestCase):
             n_samples_per_dim = [102, 102, 100]
             cyclic_dimensions = [2]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=ambient_dim,
@@ -151,7 +155,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            volume_gt = ellipsoid_volume_element(semi_axes, phis)
+            volume_gt = ellipsoid_volume_element(sampled_semi_axes, phis)
 
             # Estimate the metric.
             patch_sizes = [12, 12, 12]
@@ -170,18 +174,18 @@ class TestEllipsoids(unittest.TestCase):
                 volume_gt[1:-1, 1:-1, ...],
                 volume_pred,
                 decimal=2,
-                err_msg=f"Failed on an ellipsoid with semi axes: {semi_axes} and ambient dim {ambient_dim}."
+                err_msg=f"Failed on an ellipsoid with semi axes: {sampled_semi_axes} and ambient dim {ambient_dim}."
             )
 
     def test_volume_element_4d_sphere(self):
-        semi_axes = 5*[2]
+        semi_axes: list[float] = [2, 2, 2, 2, 2]
         for ambient_dim in [5, 10]:
             # Sample a relatively dense grid.
             fraction_of_angles = 0.8
             n_samples_per_dim = 3 * [52] + [50]
             cyclic_dimensions = [3]
 
-            points, semi_axes, phis, _ = sample_ellipsoid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_ellipsoid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=ambient_dim,
@@ -190,7 +194,7 @@ class TestEllipsoids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            volume_gt = sphere_volume_element(2., phis)
+            volume_gt = cast(np.ndarray, sphere_volume_element(2., phis))
 
             # Estimate the metric.
             patch_sizes = 4 * [12]
@@ -209,23 +213,23 @@ class TestEllipsoids(unittest.TestCase):
                 volume_gt[1:-1, 1:-1, 1:-1, ...],
                 volume_pred,
                 decimal=1,
-                err_msg=f"Failed on an ellipsoid with semi axes: {semi_axes}."
+                err_msg=f"Failed on an ellipsoid with semi axes: {sampled_semi_axes}."
             )
 
 
 class TestHyperboloids(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        cls.device = get_test_device()
 
     def test_volume_element_2d_hyperboloid(self):
-        semi_axes = [5, 1, 3]
+        semi_axes: list[float] = [5, 1, 3]
 
         # Sample a relatively dense grid.
         n_samples_per_dim = [1_002, 1_000]
         cyclic_dimensions = [1]
 
-        points, semi_axes, phis, _ = sample_hyperboloid_on_grid(
+        points, sampled_semi_axes, phis, _ = sample_hyperboloid_on_grid(
             semi_axes=semi_axes,
             n_samples_per_dim=n_samples_per_dim,
             ambient_space_dim=3,
@@ -233,7 +237,7 @@ class TestHyperboloids(unittest.TestCase):
         )
 
         # Compute the ground truth values.
-        volume_gt = hyperboloid_volume_element(semi_axes, phis)
+        volume_gt = hyperboloid_volume_element(sampled_semi_axes, phis)
 
         # Estimate the metric.
         patch_sizes = 2 * [52]
@@ -252,17 +256,17 @@ class TestHyperboloids(unittest.TestCase):
             volume_gt[1:-1, ...],
             volume_pred,
             decimal=3,
-            err_msg=f"Failed on a hyperboloid with semi axes: {semi_axes}."
+            err_msg=f"Failed on a hyperboloid with semi axes: {sampled_semi_axes}."
         )
 
     def test_volume_element_3d_hyperboloid(self):
-        semi_axes = [5, 1, 3, 1]
+        semi_axes: list[float] = [5, 1, 3, 1]
         for ambient_dim in [4]:
             # Sample a relatively dense grid.
             n_samples_per_dim = [302, 302, 300]
             cyclic_dimensions = [2]
 
-            points, semi_axes, phis, _ = sample_hyperboloid_on_grid(
+            points, sampled_semi_axes, phis, _ = sample_hyperboloid_on_grid(
                 semi_axes=semi_axes,
                 n_samples_per_dim=n_samples_per_dim,
                 ambient_space_dim=ambient_dim,
@@ -270,7 +274,7 @@ class TestHyperboloids(unittest.TestCase):
             )
 
             # Compute the ground truth values.
-            volume_gt = hyperboloid_volume_element(semi_axes, phis)
+            volume_gt = hyperboloid_volume_element(sampled_semi_axes, phis)
 
             # Estimate the metric.
             patch_sizes = 3 * [52]
@@ -289,5 +293,5 @@ class TestHyperboloids(unittest.TestCase):
                 volume_gt[1:-1, 1:-1, ...],
                 volume_pred,
                 decimal=2,
-                err_msg=f"Failed on a hyperboloid with semi axes: {semi_axes} and ambient dim {ambient_dim}."
+                err_msg=f"Failed on a hyperboloid with semi axes: {sampled_semi_axes} and ambient dim {ambient_dim}."
             )

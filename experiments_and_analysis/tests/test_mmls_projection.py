@@ -10,10 +10,22 @@ def test_default_thin_svd_matches_original(batch_size):
     rng = np.random.default_rng(52)
     train = rng.normal(size=(20, 9))
     queries = rng.normal(size=(5, 9))
-    options = dict(d=3, k=8, sigma=1.3, device="cpu")
-    expected = ANNMMLSProjector(train, **options, projection_method="original").project(queries)
-    actual = ANNMMLSProjector(train, **options,
-                              projection_batch_size=batch_size).project(queries)
+    expected = ANNMMLSProjector(
+        train,
+        d=3,
+        k=8,
+        sigma=1.3,
+        device="cpu",
+        projection_method="original"
+    ).project(queries)
+    actual = ANNMMLSProjector(
+        train,
+        d=3,
+        k=8,
+        sigma=1.3,
+        device="cpu",
+        projection_batch_size=batch_size
+    ).project(queries)
     np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-10)
 
 

@@ -5,17 +5,42 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from ...outputs import write_json
 from ..config import BetaVAEConfig
 from .dataset import training_loader
+from .model import BetaVAE_H
 from .solver import Solver
-from ...outputs import write_json
 
 
-def fit(data, directory, parameters, *, seed=42, device='cpu', num_workers=0):
-    """Training/checkpoint IO boundary. No dataset loading or sampling here."""
+def fit(
+    data: np.ndarray,
+    directory: str | Path,
+    parameters: dict,
+    seed: int = 42,
+    device: str = 'cpu',
+    num_workers: int = 0
+) -> BetaVAE_H:
+    """Training/checkpoint IO boundary. No dataset loading or sampling here.
+
+    Args:
+        data: Training images of shape (n 64 64).
+        directory: Directory or virtual bundle path for this stage.
+        parameters: Model parameters.
+        seed: Random seed.
+        device: Device used for tensor computations.
+        num_workers: Number of data-loader workers.
+
+    Returns:
+        Trained beta-VAE model from the completed solver run.
+    """
     directory = Path(directory)
-    config = BetaVAEConfig(output_dir=directory, ckpt_dir=directory / 'checkpoints',
-                           device=device, num_workers=num_workers, **parameters)
+    config = BetaVAEConfig(
+        output_dir=directory,
+        ckpt_dir=directory / 'checkpoints',
+        device=device,
+        num_workers=num_workers,
+        **parameters
+    )
     write_json(directory / 'model.json', asdict(config))
     np.random.seed(seed)
     torch.manual_seed(seed)

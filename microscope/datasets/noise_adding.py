@@ -6,17 +6,17 @@ from microscope.cyclic_dimensions import get_difference_intervals
 
 
 def null_space(A: np.ndarray) -> np.ndarray:
-    """Compute the null space of a matrix. The function decomposes the matrice with SVD to U, S, V and
-    then keeps the last n - m vectors of V which span the orthogonal space.
+    """Compute the null space of a matrix. The function decomposes the matrice with SVD to U, S, V and then keeps the
+    last n - m vectors of V which span the orthogonal space.
 
     Args:
         A: A (d1 ... dk m n) array of matrices describing linear transformations whose null spaces will be computed.
 
     Returns:
-        A (d1 ... dk n - m n) array with k orthogonal vectors spanning the null space. Note those are parts of the
-        n x n matrices V of the SVD decompositions U S V.
+        A (d1 ... dk n - m n) array with k orthogonal vectors spanning the null space. Note those are parts of the n x n
+        matrices V of the SVD decompositions U S V.
     """
-    m, n = A.shape[-2:]
+    m, _ = A.shape[-2:]
 
     U, S, V = np.linalg.svd(A, full_matrices=True)
 
@@ -35,6 +35,21 @@ def cotangent_gaussian_noise(
     check_orthogonality: bool = False,
     orthogonality_check_sample_size: int = 1000
 ) -> np.ndarray:
+    """Generate Gaussian noise in the estimated normal spaces of a grid.
+
+    Args:
+        data: Embedding grid, shape (s1 ... sd f).
+        sigma: Standard deviation of the Gaussian noise.
+        range_sizes: Parameter-range length along each of the d grid axes.
+        patch_sizes: Patch size along each of the d grid axes.
+        cyclic_dimensions: Zero-based periodic grid axes.
+        batch_size: Number of tangent matrices processed together.
+        check_orthogonality: Check sampled tangent/normal products after constructing the bases.
+        orthogonality_check_sample_size: Number of bases sampled for the optional numerical check.
+
+    Returns:
+        Normal-noise array of shape (t1 ... td f), where ti = si on cyclic axes and si - 2 otherwise.
+    """
     # Estimate the tangent vectors of the data.
     dims_shape = data.shape[:-1]
 
@@ -55,17 +70,10 @@ def cotangent_gaussian_noise(
     tangent_vectors_flat = tangent_vectors.reshape(np.prod(tangent_vectors.shape[:-2]), *tangent_vectors.shape[-2:])
 
     batch_results = []
-    n_batches = tangent_vectors_flat.shape[0] // batch_size
-    batch_residue = tangent_vectors_flat.shape[0] % batch_size
-    for i in tqdm(list(range(n_batches))):
-        s = batch_size*i
-        e = s + batch_size
-        bases = null_space(tangent_vectors_flat[s:e]).astype(np.float32)
-        batch_results.append(bases)
-    if batch_residue != 0:
-        s = batch_size * n_batches
-        e = s + batch_residue
-        bases = null_space(tangent_vectors_flat[s:e]).astype(np.float32)
+    for start in tqdm(range(0, len(tangent_vectors_flat), batch_size)):
+        bases = null_space(
+            tangent_vectors_flat[start:start + batch_size]
+        ).astype(np.float32)
         batch_results.append(bases)
     cotangent_bases_flat = np.concatenate(batch_results)
     cotangent_bases = cotangent_bases_flat.reshape(*tangent_vectors.shape[:-2], *cotangent_bases_flat.shape[-2:])
@@ -99,5 +107,14 @@ def cotangent_gaussian_noise(
     return cotangent_noise[..., 0, :]
 
 
-def compute_gaussian_noise(shape: tuple[int, ...], sigma: float):
+def compute_gaussian_noise(shape: tuple[int, ...], sigma: float) -> np.ndarray:
+    """Generate independent zero-mean Gaussian values.
+
+    Args:
+        shape: Shape (s1 ... sn) of the generated noise array.
+        sigma: Standard deviation of the Gaussian noise.
+
+    Returns:
+        Gaussian-noise array with the requested shape (s1 ... sn).
+    """
     return np.random.normal(size=shape, loc=0, scale=sigma)

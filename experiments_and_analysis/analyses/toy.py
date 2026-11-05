@@ -1,13 +1,14 @@
 import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import typer
 from tqdm import tqdm
 
-from microscope.datasets import toy_manifolds
 from experiments_and_analysis.models.mmls.projector import ANNMMLSProjector
+from microscope.datasets import toy_manifolds
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -22,37 +23,61 @@ def compute_distances(
     error_weight: float = 1.0,
     device: str = "cuda:0",
     projection_method: str = "thin_svd"
-):
-    if fitting_method.startswith("denoising_autoencoder_"):
-        from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
+) -> tuple[np.ndarray, float]:
+    """Fit a sampled manifold and return reference-point errors and their maximum.
+
+    Args:
+        manifold: Analytic manifold used to generate samples and reference geometry.
+        ground_truth: Reference points of shape (n f).
+        N: Number of sampled training points.
+        sigma: Gaussian kernel width.
+        fitting_method: Manifold approximation method.
+        normalized: Use the manifold's normalized coordinates.
+        error_weight: Scale applied to the denoising training stop threshold.
+        device: Device used for tensor computations.
+        projection_method: MMLS projection implementation.
+
+    Returns:
+        (distances, maximum_distance), with distances an array of shape (n) containing paired Euclidean errors.
+    """
     match fitting_method:
         case "MMLS":
-            samples = manifold.sample(N, normalized=normalized)
+            samples = cast(np.ndarray, manifold.sample(N, normalized=normalized))
 
             d = manifold.dimension
             k = 5
-            projector = ANNMMLSProjector(samples, d=d, k=k, device=device,
-                                        projection_method=projection_method)
+            projector = ANNMMLSProjector(
+                samples,
+                d=d,
+                k=k,
+                device=device,
+                projection_method=projection_method
+            )
             prediction = projector.project(ground_truth)
         case "denoising_autoencoder_normal_noise":
-            samples, unitary_normals = manifold.sample(
-                N,
-                normalized=normalized,
-                return_unitary_normal=True
+            from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
+
+            samples, unitary_normals = cast(
+                tuple[np.ndarray, np.ndarray],
+                manifold.sample(
+                    N,
+                    normalized=normalized,
+                    return_unitary_normal=True
+                )
             )
 
             match manifold.__class__:
                 case toy_manifolds.Circle | toy_manifolds.Sphere:
-                    manifold: toy_manifolds.Circle | toy_manifolds.Sphere
-                    R = manifold.R
+                    spherical_manifold = cast(toy_manifolds.Circle | toy_manifolds.Sphere, manifold)
+                    R = spherical_manifold.R
                     noise_std = 0.2*R
                 case toy_manifolds.Moons:
-                    manifold: toy_manifolds.Moons
-                    R = manifold.R
+                    moons = cast(toy_manifolds.Moons, manifold)
+                    R = moons.R
                     noise_std = 0.1 * R
                 case toy_manifolds.Torus:
-                    manifold: toy_manifolds.Torus
-                    R, r = manifold.R, manifold.r
+                    torus = cast(toy_manifolds.Torus, manifold)
+                    R, r = torus.R, torus.r
                     noise_std = 0.2 * min(R - r, r)
                 case _:
                     raise ValueError(f"Unknown manifold class: {manifold.__class__}")
@@ -71,24 +96,29 @@ def compute_distances(
             )
             prediction = denoising_ae.predict(ground_truth)
         case "denoising_autoencoder_random_noise":
-            samples = manifold.sample(
-                N,
-                normalized=normalized,
-                return_unitary_normal=False
+            from experiments_and_analysis.models.denoising_autoencoder import DenoisingAutoencoder
+
+            samples = cast(
+                np.ndarray,
+                manifold.sample(
+                    N,
+                    normalized=normalized,
+                    return_unitary_normal=False
+                )
             )
 
             match manifold.__class__:
                 case toy_manifolds.Circle | toy_manifolds.Sphere:
-                    manifold: toy_manifolds.Circle | toy_manifolds.Sphere
-                    R = manifold.R
+                    spherical_manifold = cast(toy_manifolds.Circle | toy_manifolds.Sphere, manifold)
+                    R = spherical_manifold.R
                     noise_std = 0.1 * R
                 case toy_manifolds.Moons:
-                    manifold: toy_manifolds.Moons
-                    R = manifold.R
+                    moons = cast(toy_manifolds.Moons, manifold)
+                    R = moons.R
                     noise_std = 0.1 * R
                 case toy_manifolds.Torus:
-                    manifold: toy_manifolds.Torus
-                    R, r = manifold.R, manifold.r
+                    torus = cast(toy_manifolds.Torus, manifold)
+                    R, r = torus.R, torus.r
                     noise_std = 0.1 * min(R - r, r)
                 case _:
                     raise ValueError(f"Unknown manifold class: {manifold.__class__}")
@@ -117,16 +147,35 @@ def run_size_ablation(
     manifold: toy_manifolds.Manifold,
     ground_truth: np.ndarray,
     N_range: np.ndarray = np.arange(10, 200),
-    n_examples_per_size=20,
+    n_examples_per_size: int = 20,
     sigma: float = 0.0001,
     fitting_method: str = "MMLS",
     normalized: bool = True,
     error_weight: float = 1.0,
-    parallel=True,
-    max_workers=None,
+    parallel: bool = True,
+    max_workers: int | None = None,
     device: str = "cuda:0",
     projection_method: str = "thin_svd"
-):
+) -> tuple[dict, dict]:
+    """Compare pointwise and maximum errors over training sizes and repeated fits.
+
+    Args:
+        manifold: Analytic manifold used to generate samples and reference geometry.
+        ground_truth: Reference points of shape (n f).
+        N_range: Training sample counts of shape (s).
+        n_examples_per_size: Number of independent fits per training size.
+        sigma: Gaussian kernel width.
+        fitting_method: Manifold approximation method.
+        normalized: Use the manifold's normalized coordinates.
+        error_weight: Scale applied to the denoising training stop threshold.
+        parallel: Run repeated fits concurrently.
+        max_workers: Maximum concurrent fits; None uses the executor default.
+        device: Device used for tensor computations.
+        projection_method: MMLS projection implementation.
+
+    Returns:
+        (average_distances, hausdorff_distances), dictionaries of errors grouped by sample size and trial.
+    """
     avg_all, haus_all = {}, {}
 
     for N in tqdm(N_range):
@@ -184,7 +233,24 @@ def fit_and_get_measures(
     error_weight: float = 1.0,
     device: str = "cuda:0",
     projection_method: str = "thin_svd"
-):
+) -> None:
+    """Save toy-manifold approximation errors and analytic reference measures.
+
+    Args:
+        output_path: Directory for the saved toy-manifold results.
+        N_range: Start, stop and step for training sample counts.
+        n_examples_per_size: Number of independent fits per training size.
+        N_ground_truth: Target number of reference tessellation points.
+        max_workers: Maximum concurrent fits; None uses the executor default.
+        fitting_method: Manifold approximation method.
+        normalized: Use the manifold's normalized coordinates.
+        error_weight: Scale applied to the denoising training stop threshold.
+        device: Device used for tensor computations.
+        projection_method: MMLS projection implementation.
+
+    Returns:
+        None.
+    """
     output_path.mkdir(exist_ok=True, parents=True)
 
     results = {}

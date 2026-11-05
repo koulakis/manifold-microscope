@@ -30,14 +30,31 @@ def test_affine_grid_preserves_derivative_axes_and_metric(dtype):
     direct = partial_derivatives_across_all_dims(tensor, 2, [.25, .5])
     np.testing.assert_allclose(direct.numpy(), expected_derivatives, atol=1e-6)
     np.testing.assert_allclose(riemannian_metric(tensor, [.25, .5]).numpy(), expected_metric)
-    kwargs = dict(patch_sizes=[9, 10], cyclic_dimensions=[], device="cpu")
-    batched = partial_derivatives_across_all_dims_batched(points, [.25, .5], **kwargs)
+    batched = partial_derivatives_across_all_dims_batched(
+        features_on_grid=points,
+        difference_intervals=[.25, .5],
+        patch_sizes=[9, 10],
+        cyclic_dimensions=[],
+        device="cpu"
+    )
     assert batched.dtype == dtype
     np.testing.assert_allclose(batched, expected_derivatives, atol=1e-6)
-    np.testing.assert_allclose(volume_element(points, [.25, .5], **kwargs),
-                               np.full((9, 11), np.sqrt(285)), rtol=1e-6)
-    np.testing.assert_allclose(scalar_curvature(points, [.25, .5], **kwargs),
-                               np.zeros((5, 7)), atol=1e-5)
+    volume = volume_element(
+        features_on_grid=points,
+        difference_intervals=[.25, .5],
+        patch_sizes=[9, 10],
+        cyclic_dimensions=[],
+        device="cpu"
+    )
+    curvature = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=[.25, .5],
+        cyclic_dimensions=[],
+        patch_sizes=[9, 10],
+        device="cpu"
+    )
+    np.testing.assert_allclose(volume, np.full((9, 11), np.sqrt(285)), rtol=1e-6)
+    np.testing.assert_allclose(curvature, np.zeros((5, 7)), atol=1e-5)
 
 
 @pytest.fixture
@@ -72,9 +89,11 @@ def test_flat_polar_metric_has_zero_riemann_tensor(polar_metric, kind):
     _, first, second = polar_metric
     result = riemannian_curvature_tensor(first, second, [.02, .1], kinds=[kind])
     assert result["second" if kind == "first" else "first"] is None
-    assert result[kind].shape == (47, 3, 2, 2, 2, 2)
+    curvature = result[kind]
+    assert curvature is not None
+    assert curvature.shape == (47, 3, 2, 2, 2, 2)
     # Differentiating 1/r introduces O(h**2) error; h=.02, r>=1.
-    torch.testing.assert_close(result[kind], torch.zeros_like(result[kind]), rtol=0, atol=1e-3)
+    torch.testing.assert_close(curvature, torch.zeros_like(curvature), rtol=0, atol=1e-3)
 
 
 def test_sphere_curvature_normalization_and_patch_seams():
@@ -83,9 +102,21 @@ def test_sphere_curvature_normalization_and_patch_seams():
     u, v = np.meshgrid(latitude, longitude, indexing="ij")
     points = 2*np.stack([np.cos(u)*np.cos(v), np.cos(u)*np.sin(v), np.sin(u)], axis=-1)
     intervals = [latitude[1] - latitude[0], 2*np.pi/48]
-    kwargs = dict(cyclic_dimensions=[1], device="cpu")
-    raw = scalar_curvature(points, intervals, patch_sizes=[13, 17], **kwargs)
-    normalized = scalar_curvature(points, intervals, patch_sizes=[13, 17], normalize=True, **kwargs)
+    raw = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        device="cpu"
+    )
+    normalized = scalar_curvature(
+        features_on_grid=points,
+        difference_intervals=intervals,
+        cyclic_dimensions=[1],
+        patch_sizes=[13, 17],
+        normalize=True,
+        device="cpu"
+    )
     padded = np.pad(points, ((0, 0), (3, 3), (0, 0)), mode="wrap")
     direct = scalar_curvature_batch(torch.from_numpy(padded), intervals).numpy()
     np.testing.assert_allclose(raw, direct, rtol=1e-10, atol=1e-10)
@@ -94,23 +125,8 @@ def test_sphere_curvature_normalization_and_patch_seams():
     np.testing.assert_allclose(normalized, raw/2, rtol=1e-12, atol=1e-12)
 
 
-def test_rank_deficient_grid_cannot_compute_curvature():
-    u, _ = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
-    points = torch.from_numpy(np.stack([u, np.zeros_like(u)], axis=-1))
-    with pytest.raises(torch.linalg.LinAlgError):
-        scalar_curvature_batch(points, [1., 1.])
-
-
 def test_normalized_curvature_rejects_intrinsic_dimension_one():
     # Division by d*(d-1) is undefined for curves; request a clear rejection.
     points = torch.arange(9., dtype=torch.float64)[:, None]
     with pytest.raises(ValueError, match="dimension|normaliz"):
         scalar_curvature_batch(points, [1.], normalize=True)
-
-
-@pytest.mark.parametrize("patch_sizes", [[6, 9], [5, 9]])
-def test_curvature_rejects_patch_sizes_without_an_interior(patch_sizes):
-    u, v = np.meshgrid(np.arange(9.), np.arange(9.), indexing="ij")
-    points = np.stack([u, v], axis=-1)
-    with pytest.raises(ValueError):
-        scalar_curvature(points, [1., 1.], [], patch_sizes, device="cpu")

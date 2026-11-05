@@ -1,13 +1,15 @@
 import pickle
 from pathlib import Path
 
+import matplotlib
 import numpy as np
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+import typer
+from matplotlib.colors import LinearSegmentedColormap
 from PIL import Image
 from tqdm import tqdm
-import typer
-import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -17,11 +19,24 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 def merge_layer_evolution(
-    plots_intermediate_outputs_dir: Path, steps: list[str],
+    plots_intermediate_outputs_dir: Path,
+    steps: list[str],
     merge_output_dir: Path,
     dpi: int,
     figsize: tuple[int, int] = (40, 20)
 ) -> None:
+    """Stack training-step layer plots into one figure.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        steps: Training-step labels in plotted order.
+        merge_output_dir: Directory for merged figures.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+
+    Returns:
+        None.
+    """
     for scale in ["linear", "symlog"]:
         image_paths = list((plots_intermediate_outputs_dir / f"layer_evolution/{scale}").glob("*.png"))
         step_to_image_paths = {"_".join(p.stem.split("_")[1:]): p for p in image_paths}
@@ -46,11 +61,29 @@ def merge_distributions(
     n_measures: int = 3,
     alpha: float = 0.1,
     quantile_margin: float = 0.1,
-    cmap: matplotlib.colors.LinearSegmentedColormap = matplotlib.colors.LinearSegmentedColormap.from_list(
+    cmap: LinearSegmentedColormap = LinearSegmentedColormap.from_list(
         "red_to_blue",
         ["b", "r"]
     )
 ) -> None:
+    """Merge per-layer geometry distributions across training steps.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        merge_output_dir: Directory for merged figures.
+        steps: Training-step labels in plotted order.
+        encoder_layers: Encoder layers included in distribution plots.
+        sprites: Class labels to include.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+        n_measures: Number of geometry measures to plot.
+        alpha: Scatter-point opacity.
+        quantile_margin: Tail fraction trimmed from plot ranges.
+        cmap: Colormap used for the measure values.
+
+    Returns:
+        None.
+    """
     measures_paths = list((plots_intermediate_outputs_dir / "measures").glob("*.pkl"))
 
     paths_per_step_layer = dict(
@@ -106,7 +139,7 @@ def merge_distributions(
                             alpha=alpha,
                             color=color,
                             linewidth=0.2,
-                            label=encoder_layers[layer_n],
+                            label=layer,
                             ax=ax
                         )
 
@@ -127,6 +160,19 @@ def merge_projection_classes(
     dpi: int,
     figsize: tuple[int, int] = (45, 20)
 ) -> None:
+    """Merge class-colored projections across layers and training steps.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        merge_output_dir: Directory for merged figures.
+        steps: Training-step labels in plotted order.
+        layers: Layer names in plotted order.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+
+    Returns:
+        None.
+    """
     projection_class_paths = list((plots_intermediate_outputs_dir / "projection_classes").glob("*.png"))
 
     paths_per_step_layer_proj_class = dict(
@@ -169,6 +215,20 @@ def merge_projection_measures(
     dpi: int,
     figsize: tuple[int, int] = (80, 40)
 ) -> None:
+    """Merge measure-colored projections across layers and training steps.
+
+    Args:
+        plots_intermediate_outputs_dir: Directory containing per-step and per-layer plot artifacts.
+        merge_output_dir: Directory for merged figures.
+        steps: Training-step labels in plotted order.
+        layers: Layer names in plotted order.
+        sprites: Class labels to include.
+        dpi: Resolution of saved plots in dots per inch.
+        figsize: Figure width and height in inches.
+
+    Returns:
+        None.
+    """
     projection_measure_paths = list((plots_intermediate_outputs_dir / "projection_measures").glob("*.png"))
 
     paths_per_step_layer_proj_measure = dict(
@@ -216,7 +276,17 @@ def main(
     data_dir: Path = typer.Option(...),
     dpi: int = 150,
     model: str = "beta-vae"
-):
+) -> None:
+    """Merge previously saved experiment plots.
+
+    Args:
+        data_dir: Experiment directory containing the saved plots.
+        dpi: Resolution of saved plots in dots per inch.
+        model: Model family whose plots are being merged.
+
+    Returns:
+        None.
+    """
     # Handle directories.
     plots_intermediate_outputs_dir = data_dir / "plots_intermediate_outputs"
     merge_output_dir = plots_intermediate_outputs_dir / "merged_results"

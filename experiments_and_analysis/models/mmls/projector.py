@@ -1,20 +1,67 @@
 import numpy as np
-import torch
 import pynndescent
+import torch
 from tqdm import tqdm
 
 
+def _validate_projection_options(projection_method: str, projection_batch_size: int) -> None:
+    """Require original or thin_svd projection and a positive query batch size.
+
+    Args:
+        projection_method: MMLS projection implementation.
+        projection_batch_size: Number of queries per thin-SVD batch.
+
+    Returns:
+        None.
+    """
+    if projection_method not in ("original", "thin_svd"):
+        raise ValueError(f"Unknown projection method: {projection_method}.")
+    if projection_batch_size < 1:
+        raise ValueError("projection_batch_size must be positive.")
+
+
 class ANNMMLSProjector:
-    def __init__(self, X, d, k=5, sigma=1.0, device="cuda:0", exact_nn_threshold=10_000, verbose=False,
-                 projection_method="thin_svd", projection_batch_size=32):
+    def build_index(self) -> None:
+        """Build the approximate nearest-neighbor index.
+
+        Returns:
+            None.
         """
+        # Build ANN index
+        self.ann_index = pynndescent.NNDescent(
+            self.X.cpu().numpy(),
+            n_neighbors=self.k,
+            metric="euclidean",
+            n_jobs=-1
+        )
+
+    def __init__(
+        self,
+        X: np.ndarray,
+        d: int,
+        k: int = 5,
+        sigma: float = 1.0,
+        device: str = "cuda:0",
+        exact_nn_threshold: int | None = 10_000,
+        verbose: bool = False,
+        projection_method: str = "thin_svd",
+        projection_batch_size: int = 32
+    ) -> None:
+        """Initialize an MMLS projector from training points and valid projection options.
+
         Args:
-            - X: torch.Tensor [N, D] manifold samples
-            - d: intrinsic manifold dimension
-            - k: number of neighbors
-            - sigma: Gaussian kernel width
-            - projection_method: Batched "thin_svd" (default) or "original" covariance SVD.
-            - projection_batch_size: Query batch size for thin_svd only.
+            X: Training points of shape (n f); at least k points are required.
+            d: Intrinsic manifold dimension.
+            k: Number of nearest neighbors.
+            sigma: Gaussian kernel width.
+            device: Device used for tensor computations.
+            exact_nn_threshold: Maximum query count for exact neighbor search; None selects ANN.
+            verbose: Show projection progress.
+            projection_method: MMLS projection implementation.
+            projection_batch_size: Number of queries per thin-SVD batch.
+
+        Returns:
+            None.
         """
         self.X = torch.from_numpy(X).to(device)
         self.d = d
@@ -24,10 +71,7 @@ class ANNMMLSProjector:
         self.device = device
         self.exact_nn_threshold = exact_nn_threshold
         self.verbose = verbose
-        if projection_method not in ("original", "thin_svd"):
-            raise ValueError(f"Unknown projection method: {projection_method}.")
-        if projection_batch_size < 1:
-            raise ValueError("projection_batch_size must be positive.")
+        _validate_projection_options(projection_method, projection_batch_size)
         self.projection_method = projection_method
         self.projection_batch_size = projection_batch_size
 
@@ -40,74 +84,39 @@ class ANNMMLSProjector:
         if projection_method == "original" and (self.exact_nn_threshold is None or len(X) > self.exact_nn_threshold):
             self.build_index()
 
-    def build_index(self):
-        # Build ANN index
-        self.ann_index = pynndescent.NNDescent(
-            self.X.cpu().numpy(),
-            n_neighbors=self.k,
-            metric="euclidean",
-            n_jobs=-1
-        )
-
     def query_nn(self, p: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Find neighbor indices and distances for query points.
+
+        Args:
+            p: Query points of shape (b f).
+
+        Returns:
+            (indices, distances), arrays of shape (b k) for the nearest training points.
+        """
         # p: [B,D]
+        if self.ann_index is None:
+            raise ValueError('Build the neighbor index before querying it.')
         return self.ann_index.query(p, k=self.k)
 
-    def project(self, p: np.ndarray):
-        """
-        Projects B query points p onto the manifold via MMLS.
-        Args:
-            p: [B,D]
-        Returns:
-            p_proj: [B,D]
-        """
-        if self.exact_nn_threshold is not None and len(p) <= self.exact_nn_threshold:
-            p = torch.from_numpy(p).to(self.device)
-
-            distances = torch.cdist(p, self.X)  # [B, N]
-            inds = torch.topk(distances, self.k, largest=False, dim=1).indices
-            Dsq = torch.gather(distances, dim=1, index=inds)
-        else:
-            if self.ann_index is None:
-                self.build_index()
-            inds, Dsq = self.query_nn(p)
-
-            Dsq = torch.from_numpy(Dsq).to(self.device)
-            inds = torch.from_numpy(inds).to(self.device)
-            p = torch.from_numpy(p).to(self.device)
-
-        if self.projection_method == "thin_svd":
-            return self._project_thin_svd(p, inds, Dsq)
-
-        # Historical covariance implementation is deliberately kept unchanged.
-        p_proj = torch.zeros_like(p)
-        for i in tqdm(list(range(p.shape[0])), disable=not self.verbose):
-            Xi = self.X[inds[i]]
-            pi = p[i:i+1]
-            wi = torch.exp(-Dsq[i] / (2 * self.sigma**2))
-
-            mu = (wi.unsqueeze(1) * Xi).sum(0) / wi.sum()
-            Xi0 = Xi - mu
-            W = torch.diag(wi)
-            cov = Xi0.t() @ W @ Xi0
-
-            U, _, _ = torch.svd(cov)
-            Ud = U[:, :self.d]
-
-            vi = (pi - mu).squeeze(0)  # [D]
-            proj_vec = Ud @ (Ud.T @ vi)  # [D]
-            proj = mu + proj_vec  # [D]
-            p_proj[i] = proj  # match [D]
-
-        return p_proj.detach().cpu().numpy()
-
-    def _project_thin_svd(self, points, indices, distances):
+    def _project_thin_svd(
+        self,
+        points: torch.Tensor,
+        indices: torch.Tensor,
+        distances: torch.Tensor
+    ) -> np.ndarray:
         """Project using right singular vectors of sqrt(W) @ centered neighbors.
 
-        A.T @ A equals the original weighted covariance. Its leading right
-        singular vectors span the same tangent space. Weights, centering and
-        neighbor selection stay unchanged; roundoff and degenerate eigenspaces
-        can differ from the covariance SVD.
+        A.T @ A equals the original weighted covariance. Its leading right singular vectors span the same tangent space.
+        Weights, centering and neighbor selection stay unchanged; roundoff and degenerate eigenspaces can differ from
+        the covariance SVD.
+
+        Args:
+            points: Query points of shape (b f).
+            indices: Neighbor indices of shape (b k).
+            distances: Neighbor distances of shape (b k).
+
+        Returns:
+            Projected query array of shape (b f), with the query-point dtype.
         """
         if self.d > min(self.k, self.D):
             raise ValueError("thin_svd requires d <= min(k, ambient dimension).")
@@ -125,3 +134,57 @@ class ANNMMLSProjector:
             tangent = basis @ (basis.transpose(-1, -2) @ delta)
             projected[start:stop] = mean + tangent.squeeze(-1)
         return projected.detach().cpu().numpy()
+
+    def project(self, p: np.ndarray) -> np.ndarray:
+        """Projects B query points p onto the manifold via MMLS.
+
+        Args:
+            p: Query points of shape (b f).
+
+        Returns:
+            Projected query array with the same shape (b f) as p.
+        """
+        if self.exact_nn_threshold is not None and len(p) <= self.exact_nn_threshold:
+            p_tensor = torch.from_numpy(p).to(self.device)
+
+            distances = torch.cdist(p_tensor, self.X)  # [B, N]
+            indices_tensor = torch.topk(
+                distances,
+                self.k,
+                largest=False,
+                dim=1
+            ).indices
+            distances_tensor = torch.gather(distances, dim=1, index=indices_tensor)
+        else:
+            if self.ann_index is None:
+                self.build_index()
+            indices_array, distances_array = self.query_nn(p)
+
+            distances_tensor = torch.from_numpy(distances_array).to(self.device)
+            indices_tensor = torch.from_numpy(indices_array).to(self.device)
+            p_tensor = torch.from_numpy(p).to(self.device)
+
+        if self.projection_method == "thin_svd":
+            return self._project_thin_svd(p_tensor, indices_tensor, distances_tensor)
+
+        # Historical covariance implementation is deliberately kept unchanged.
+        p_proj = torch.zeros_like(p_tensor)
+        for i in tqdm(list(range(p_tensor.shape[0])), disable=not self.verbose):
+            Xi = self.X[indices_tensor[i]]
+            pi = p_tensor[i:i+1]
+            wi = torch.exp(-distances_tensor[i] / (2 * self.sigma**2))
+
+            mu = (wi.unsqueeze(1) * Xi).sum(0) / wi.sum()
+            Xi0 = Xi - mu
+            W = torch.diag(wi)
+            cov = Xi0.t() @ W @ Xi0
+
+            U, _, _ = torch.svd(cov)
+            Ud = U[:, :self.d]
+
+            vi = (pi - mu).squeeze(0)  # [D]
+            proj_vec = Ud @ (Ud.T @ vi)  # [D]
+            proj = mu + proj_vec  # [D]
+            p_proj[i] = proj  # match [D]
+
+        return p_proj.detach().cpu().numpy()

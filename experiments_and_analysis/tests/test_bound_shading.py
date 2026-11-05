@@ -1,9 +1,12 @@
 """Render synthetic curves without saving figures; inspect actual band regions."""
+from typing import cast
+
 import matplotlib
+
 matplotlib.use('Agg')
-from matplotlib import pyplot as plt
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 
 from experiments_and_analysis.plotting import bounds as style
 
@@ -23,13 +26,17 @@ def test_band_requires_three_repetitions(tmp_path, monkeypatch, counts, has_band
     try:
         style.create_repetitions_shaded_plot(data, tmp_path)
         ax = plt.gcf().axes[0]
-        np.testing.assert_allclose(ax.lines[0].get_ydata(), [np.mean(v) for v in values])
+        # This renderer supplies numeric arrays and string labels; Matplotlib's stubs are broader.
+        y_data = cast(np.ndarray, ax.lines[0].get_ydata())
+        label = cast(str, ax.lines[0].get_label())
+        np.testing.assert_allclose(y_data, [np.mean(v) for v in values])
         assert bool(ax.collections) == has_band
-        assert ('σ' in ax.lines[0].get_label()) == has_band
+        assert ('σ' in label) == has_band
         if counts == [3, 3, 1, 3]:
             # No polygon may shade across the point with only one repetition.
             for polygon in ax.collections[0].get_paths():
-                x = polygon.vertices[:, 0]
+                vertices = cast(np.ndarray, polygon.vertices)
+                x = vertices[:, 0]
                 assert not (x.min() < 60 < x.max())
     finally:
         close('all')
