@@ -9,11 +9,13 @@ remains in ``microscope``.
 Runners
 -------
 
-.. py:function:: run(config, output_dir, dataset=None, quick_run=False)
+.. py:function:: run(config, output_dir, dataset=None, quick_run=False, model_adapter=None, resume_training=False)
    :module: experiments_and_analysis.scripts.run
 
    Executes one configuration dictionary. An optional loaded ``Dataset``
    avoids repeated data loading. ``quick_run=True`` applies shared caps.
+   ``model_adapter`` supplies a caller-owned native model; see
+   :doc:`../guide/experiments` for its checkpoint and inference contract.
 
 .. py:function:: run(config, output_dir, dry_run=False, quick_run=False, device=None, quiet_experiments=None)
    :module: experiments_and_analysis.scripts.sweep
@@ -41,7 +43,7 @@ Runners
 Models, splits and analyses
 ---------------------------
 
-``model.name`` accepts ``beta_vae``, ``mmls`` or null. Use a null model and
+``model.name`` accepts ``beta_vae``, ``mmls``, ``external`` or null. Use a null model and
 input-only geometry to analyze a dataset without fitting or inference;
 ``scripts/configs/dataset_geometry.yaml`` is an example.
 
@@ -50,7 +52,8 @@ selection), ``full`` and ``provided`` (toy training/reference points).
 ``train_fraction`` samples the remaining training pool; ``weighted`` uses
 volume weights. Only indices and small sampling metadata are saved.
 Normalization retains independent min/max scaling of training/evaluation
-domains; analytic toy coordinates retain their own scaling.
+domains; analytic toy coordinates retain their own scaling. Explicit
+``dataset.normalize: false`` preserves caller-supplied units.
 
 Errors use held-out data by default and retain the paper's corresponding-point
 Hausdorff **proxy**. Geometry uses the full ordered grid, including derivative

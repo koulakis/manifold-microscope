@@ -140,7 +140,8 @@ def render(
                     dataset_type=label,
                     output_dir=directory,
                     aggregate=panel.get('aggregate', False),
-                    legend_title=panel.get('legend_title')
+                    legend_title=panel.get('legend_title'),
+                    bottleneck=panel.get('bottleneck', 'mu')
                 )
                 rows.append(directory / f'layers_{label}.png')
             images = []
