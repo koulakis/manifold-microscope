@@ -164,7 +164,7 @@ def load_source(spec: Mapping[str, Any], reference: np.ndarray | None = None) ->
         with np.load(Path(spec['path']).expanduser(), allow_pickle=False) as archive:
             grid = archive['data']
         return Dataset(
-            normalize(grid),
+            normalize(grid) if spec.get('normalize', True) else grid,
             list(spec['range_sizes']),
             list(spec.get('cyclic_dimensions', [])),
             list(spec['patch_sizes']),

@@ -1,6 +1,6 @@
 """Dictionary schemas for experiment options and exported records."""
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class DatasetOptions(TypedDict, total=False):
@@ -18,6 +18,7 @@ class DatasetOptions(TypedDict, total=False):
     patch_sizes: list[int]
     class_names: list[str]
     feature_ndim: int
+    normalize: bool
 
 
 class SplitOptions(TypedDict, total=False):
@@ -32,10 +33,11 @@ class SplitOptions(TypedDict, total=False):
 
 
 class ModelOptions(TypedDict, total=False):
-    """Model selection and scalar parameters validated by the model dataclasses."""
+    """Model selection and native parameters; external adapters validate their own recipe."""
 
     name: str | None
-    parameters: dict[str, bool | float | str]
+    adapter: str
+    parameters: dict[str, Any]
 
 
 class TrainingOptions(TypedDict, total=False):

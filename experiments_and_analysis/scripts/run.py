@@ -24,6 +24,7 @@ from ..data.preparation import (
     toy_reference,
 )
 from ..models.config import MMLSConfig
+from ..models.interface import ModelAdapter, TrainingPaused
 from ..outputs import (
     STAGES,
     artifact_path,
@@ -179,7 +180,8 @@ def fit_model(
     config: dict,
     data: np.ndarray,
     directory: Path | BundlePath,
-    split_id: str | None
+    split_id: str | None,
+    model_adapter: ModelAdapter | None = None
 ) -> list[str]:
     """Explicit model selection; training functions own checkpoint IO.
 
@@ -188,15 +190,18 @@ def fit_model(
         data: Input samples of shape (n ...), with sample axis first.
         directory: Directory or virtual bundle path for this stage.
         split_id: Identifier of the training split, when available.
+        model_adapter: Caller-owned native model, required for external fits.
 
     Returns:
         Relative filenames of the model artifacts written by the selected training method.
     """
-    from ..models.beta_vae import fitting as vae
-    from ..models.mmls import fitting as mmls
     parameters = dict(config['model']['parameters'])
     match config['model']['name']:
+        case 'external':
+            assert model_adapter is not None
+            return model_adapter.fit(data, cast(Path, directory), config['training']['seed'], config['device'])
         case 'beta_vae':
+            from ..models.beta_vae import fitting as vae
             vae.fit(
                 data,
                 cast(Path, directory),
@@ -207,6 +212,7 @@ def fit_model(
             )
             return ['model.json', 'checkpoints/last.pth']
         case 'mmls':
+            from ..models.mmls import fitting as mmls
             np.random.seed(config['training']['seed'])
             export_points = parameters.pop('export_points', False)
             options = MMLSConfig(number_of_dims=config['dataset']['dimension'],
@@ -225,12 +231,17 @@ def fit_model(
             raise ValueError('Fitting requires a model.')
 
 
-def domain_data(dataset: Dataset, indices: np.ndarray | None) -> np.ndarray:
+def domain_data(
+    dataset: Dataset,
+    indices: np.ndarray | None,
+    normalize_values: bool = True
+) -> np.ndarray:
     """Select the requested samples and apply historical per-domain normalization.
 
     Args:
         dataset: Loaded dataset and its grid/split metadata.
         indices: Selected sample indices of shape (n), or None for the full grid.
+        normalize_values: Apply historical min/max normalization; False preserves supplied units and dtype.
 
     Returns:
         Selected sample array of shape (n_selected, *dataset.flat.shape[1:]), normalized unless the dataset supplies its
@@ -238,28 +249,33 @@ def domain_data(dataset: Dataset, indices: np.ndarray | None) -> np.ndarray:
     """
     data = dataset.flat if indices is None else dataset.flat[indices]
     # Toy manifolds already supply their analytic, normalized coordinates.
-    return data if dataset.provided_train_count is not None else normalize(data)
+    return data if dataset.provided_train_count is not None or not normalize_values else normalize(data)
 
 
 def load_model(
     config: dict,
     directory: Path | BundlePath,
-    training_points: np.ndarray | None
-) -> BetaVAE_H | ANNMMLSProjector | None:
+    training_points: np.ndarray | None,
+    model_adapter: ModelAdapter | None = None
+) -> BetaVAE_H | ANNMMLSProjector | ModelAdapter | None:
     """Restore the selected model for inference.
 
     Args:
         config: Experiment or sweep configuration.
         directory: Directory or virtual bundle path for this stage.
         training_points: Training samples of shape (n f), if not exported with the fit.
+        model_adapter: Caller-owned native model, required for external fits.
 
     Returns:
         Restored beta-VAE or MMLS projector, or None when no model is configured.
     """
-    from ..models.beta_vae.inference import load_autoencoder_from_checkpoint
-    from ..models.mmls.fitting import load_projector
     match config['model']['name']:
+        case 'external':
+            assert model_adapter is not None
+            model_adapter.load(cast(Path, directory), config['device'])
+            return model_adapter
         case 'beta_vae':
+            from ..models.beta_vae.inference import load_autoencoder_from_checkpoint
             parameters = read_json(directory / 'model.json')
             return load_autoencoder_from_checkpoint(
                 parameters['model'],
@@ -268,6 +284,7 @@ def load_model(
                 device=config['device']
             )
         case 'mmls':
+            from ..models.mmls.fitting import load_projector
             np.random.seed(config['training']['seed'])
             return load_projector(directory, training_points=training_points, device=config['device'])
         case _:
@@ -276,7 +293,7 @@ def load_model(
 
 def predictions(
     config: dict,
-    model: BetaVAE_H | ANNMMLSProjector | None,
+    model: BetaVAE_H | ANNMMLSProjector | ModelAdapter | None,
     data: np.ndarray,
     representation: str
 ) -> Iterator[tuple[int, np.ndarray]]:
@@ -292,10 +309,29 @@ def predictions(
         (start_index, values), with each NumPy array of shape (b, *representation_shape). Beta-VAE images have shape (b
         1 h w), latent means (b z), and MMLS output retains the input shape (n ...).
     """
-    from ..models.beta_vae.inference import batches
-    from ..models.mmls.inference import predict
     match config['model']['name']:
+        case 'external':
+            expected = 0
+            feature_shape = None
+            for start, values in cast(ModelAdapter, model).batches(
+                data,
+                representation,
+                config['inference']['batch_size'],
+                config['inference']['seed']
+            ):
+                if values.ndim == 0 or start != expected or not len(values) or expected + len(values) > len(data):
+                    raise ValueError('External inference must return consecutive nonempty batches in input order.')
+                if feature_shape is not None and values.shape[1:] != feature_shape:
+                    raise ValueError('External inference changed feature shape between batches.')
+                feature_shape = values.shape[1:]
+                if values.dtype.kind != 'f' or not np.isfinite(values).all():
+                    raise ValueError('External inference must return finite floating arrays.')
+                expected += len(values)
+                yield start, values
+            if expected != len(data):
+                raise ValueError('External inference did not cover every query sample.')
         case 'beta_vae':
+            from ..models.beta_vae.inference import batches
             options = config['inference']
             for start, output in batches(
                 cast('BetaVAE_H', model),
@@ -309,6 +345,7 @@ def predictions(
             ):
                 yield start, output[representation]
         case 'mmls':
+            from ..models.mmls.inference import predict
             if representation != 'output':
                 raise ValueError('MMLS exposes input and output only.')
             # Preserve the original neighbor branch, which depends on query count.
@@ -323,7 +360,7 @@ def analyze(
     dataset: Dataset,
     indices: dict,
     train_count: int,
-    model: BetaVAE_H | ANNMMLSProjector | None,
+    model: BetaVAE_H | ANNMMLSProjector | ModelAdapter | None,
     root: Path | BundlePath,
     model_id: str | None
 ) -> list[dict]:
@@ -351,7 +388,8 @@ def analyze(
                          representations=config['inference']['representations'])]
     for analysis in requests:
         names = analysis['representations']
-        available = (representation_names(cast('BetaVAE_H', model)) if config['model']['name'] == 'beta_vae'
+        available = (cast(ModelAdapter, model).representation_names() if config['model']['name'] == 'external'
+                     else representation_names(cast('BetaVAE_H', model)) if config['model']['name'] == 'beta_vae'
                      else ['input', 'output'] if model is not None else ['input'])
         names = available if names == 'all' else names
         if not set(names).issubset(available):
@@ -399,7 +437,7 @@ def analyze(
                 continue
             analysis_started = perf_counter()
             if data is None:
-                data = domain_data(dataset, selection)
+                data = domain_data(dataset, selection, config['dataset'].get('normalize', True))
             inference_new = representation != 'input' and begin(inference_dir, inference_config)
             saved = inference_dir / 'values.npy'
             persist = config['inference']['persist'] and representation != 'input'
@@ -530,7 +568,9 @@ def _run(
     config: dict,
     root: Path,
     dataset: Dataset | None,
-    artifacts: Path | BundlePath
+    artifacts: Path | BundlePath,
+    model_adapter: ModelAdapter | None = None,
+    resume_training: bool = False
 ) -> dict:
     """One execution path for both directory and bundled stage artifacts.
 
@@ -539,6 +579,8 @@ def _run(
         root: Root directory for experiment artifacts.
         dataset: Loaded dataset and its grid/split metadata.
         artifacts: Root for ordinary or bundled stage artifacts.
+        model_adapter: Optional caller-supplied native model.
+        resume_training: Allow an external adapter to resume a matching incomplete fit.
 
     Returns:
         Experiment result dictionary containing its stage identifiers, artifact paths and analysis records.
@@ -589,12 +631,23 @@ def _run(
             seed=config['training']['seed'],
             trial=config['training']['trial']
         )
-        if begin(model_dir, model_config, requires=[split_dir]):
-            points = domain_data(dataset, train)
-            files = fit_model(config, points, model_dir, split_id)
+        resume_fit = (model_adapter is not None and resume_training and model_dir.exists()
+                      and not is_complete(model_dir))
+        if resume_fit and read_json(model_dir / 'manifest.json')['config'] != model_config:
+            raise ValueError('Cannot resume a fit with different configuration or source identity.')
+        if resume_fit or begin(model_dir, model_config, requires=[split_dir]):
+            points = domain_data(dataset, train, config['dataset'].get('normalize', True))
+            try:
+                files = (fit_model(config, points, model_dir, split_id) if model_adapter is None
+                         else fit_model(config, points, model_dir, split_id, model_adapter))
+            except TrainingPaused:
+                result = dict(experiment_id=experiment_id, status='paused', model_id=model_id, analyses=[])
+                write_json(configuration_path.with_name('result.json'), result)
+                return result
             finish(model_dir, files)
-        points = domain_data(dataset, train) if config['model']['name'] == 'mmls' else None
-        model = load_model(config, model_dir, points)
+        points = (domain_data(dataset, train, config['dataset'].get('normalize', True))
+                  if config['model']['name'] == 'mmls' else None)
+        model = load_model(config, model_dir, points, model_adapter)
     else:
         model, model_id = None, None
     indices = dict(
@@ -619,7 +672,9 @@ def run(
     config: Mapping[str, Any],
     output_dir: str | Path,
     dataset: Dataset | None = None,
-    quick_run: bool = False
+    quick_run: bool = False,
+    model_adapter: ModelAdapter | None = None,
+    resume_training: bool = False
 ) -> dict:
     """Run a dictionary configuration. An optional loaded Dataset avoids repeated IO.
 
@@ -628,26 +683,39 @@ def run(
         output_dir: Directory for generated outputs.
         dataset: Loaded dataset to reuse, or None to load from the configuration.
         quick_run: Apply the shared reduced experiment budgets.
+        model_adapter: Native model matching model.adapter, required for external model configurations.
+        resume_training: Resume a matching incomplete external fit; native adapters own checkpoint recovery.
 
     Returns:
         Experiment result dictionary containing its stage identifiers, artifact paths and analysis records.
     """
     config = apply_quick_run(config) if quick_run else resolve(config)
+    if config['model']['name'] == 'external':
+        if model_adapter is None or model_adapter.identifier != config['model']['adapter']:
+            raise ValueError('Supply a model_adapter matching model.adapter.')
+    elif model_adapter is not None:
+        raise ValueError('model_adapter requires model.name=external.')
     root = Path(output_dir).expanduser().resolve()
     artifacts = output_root(config, root)
+    if model_adapter is not None and not isinstance(artifacts, Path):
+        raise ValueError('External model checkpoints require ordinary directory outputs.')
     if isinstance(artifacts, Path):
         return _run(
             config,
             root,
             dataset=dataset,
-            artifacts=artifacts
+            artifacts=artifacts,
+            model_adapter=model_adapter,
+            resume_training=resume_training
         )
     with artifacts.bundle.transaction(experiment_identity(config, source_identity(config['dataset']))):
         return _run(
             config,
             root,
             dataset=dataset,
-            artifacts=artifacts
+            artifacts=artifacts,
+            model_adapter=model_adapter,
+            resume_training=resume_training
         )
 
 

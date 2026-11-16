@@ -110,7 +110,7 @@ def determine_scale(
         return False
 
     # Get all non-zero values
-    non_zero_values = [v for v in values if v > 0]
+    non_zero_values = [v for v in values if np.isfinite(v) and v > 0]
     if not non_zero_values:
         return False
 
@@ -132,7 +132,8 @@ def shade_encoder_decoder(
     ax: Axes,
     layer_names: list[str],
     label: bool = True,
-    fontsize: float | None = None
+    fontsize: float | None = None,
+    bottleneck: str = 'mu'
 ) -> None:
     """Tint the encoder vs decoder x-ranges and mark the bottleneck.
 
@@ -144,11 +145,12 @@ def shade_encoder_decoder(
         layer_names: Layer names in plotted order.
         label: Add encoder and decoder text labels.
         fontsize: Global font size; None keeps the default.
+        bottleneck: Representation name at the encoder/decoder boundary.
 
     Returns:
         None.
     """
-    boundary = layer_names.index('mu') if 'mu' in layer_names else (len(layer_names) - 1) / 2
+    boundary = layer_names.index(bottleneck) if bottleneck in layer_names else (len(layer_names) - 1) / 2
     xmin, xmax = ax.get_xlim()
 
     ax.axvspan(
@@ -242,7 +244,8 @@ def create_layer_plots(
     title_fontsize: float | None = None,
     text_fontsize: float | None = None,
     plot_height_percentage: float | None = None,
-    legend_y: float | None = None
+    legend_y: float | None = None,
+    bottleneck: str = 'mu'
 ) -> None:
     """Create layer analysis plots for the specified dataset.
 
@@ -261,6 +264,7 @@ def create_layer_plots(
         text_fontsize: Axis, tick and legend font size, overriding the global setting.
         plot_height_percentage: Figure height as a positive percentage of the default, or None for the default.
         legend_y: Vertical legend position in figure coordinates; None uses the default.
+        bottleneck: Representation name at the encoder/decoder boundary.
 
     Returns:
         None.
@@ -416,6 +420,9 @@ def create_layer_plots(
                     all_handles.extend(line)
                     all_labels.append(str(sprite))
 
+        # Undefined sign-subset means remain gaps in the lines and cannot set axis limits.
+        all_values = [value for value in all_values if np.isfinite(value)]
+
         # Configure axes
         axes[i].set_title(
             measure_name,
@@ -492,7 +499,7 @@ def create_layer_plots(
             axes[i].yaxis.set_major_formatter(FuncFormatter(format_two_decimals))
 
         # Tint encoder vs decoder halves and label the bottleneck.
-        shade_encoder_decoder(axes[i], layer_names, fontsize=effective_text_fontsize)
+        shade_encoder_decoder(axes[i], layer_names, fontsize=effective_text_fontsize, bottleneck=bottleneck)
 
     # Explain the encoder/decoder shading once in the shared legend.
     all_handles.append(Patch(facecolor=ENCODER_TINT))

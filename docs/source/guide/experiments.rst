@@ -93,3 +93,41 @@ The runners also accept dictionaries:
 See :doc:`configuration` for defaults, VAE budgets and model-specific sweep
 choices; :doc:`outputs` for result loading and recovery; and
 :doc:`../api_reference/experiments` for Python entry points and input formats.
+
+Caller-supplied models
+----------------------
+
+Python callers can pass a ``ModelAdapter`` from
+``experiments_and_analysis.models.interface`` to the single-run API. The caller
+owns the native framework, objective, preprocessing and checkpoint format:
+
+.. code-block:: python
+
+   result = run({
+       "dataset": dataset_spec,
+       "model": {"name": "external", "adapter": "my-model/v1",
+                 "parameters": native_recipe},
+       "analyses": ["errors"],
+   }, output_dir, dataset=loaded_dataset, model_adapter=adapter)
+
+The adapter's ``identifier`` must match ``model.adapter``. Implement ``fit``
+(save files in the supplied directory and return their relative names), ``load``,
+``representation_names`` and ``batches``. Batches yield consecutive
+``(start_index, floating_array)`` pairs in input order. Representations must be
+deterministic for the supplied inference seed, finite, and have a fixed feature
+shape. ``output`` must use the dataset's ambient coordinates for error analysis.
+Keep validation points inside the supplied training pool; the pipeline owns the
+held-out test split. Record every model/preprocessing choice and implementation
+version in the model configuration so incompatible fits receive distinct IDs.
+
+Set ``dataset.normalize: false`` when the caller supplies calibrated units and
+the native adapter owns preprocessing. The historical normalization remains the
+default. Geometry consumes the full structured grid in either case.
+
+An adapter may raise ``TrainingPaused`` after saving a resumable native
+checkpoint. Repeat with ``resume_training=True`` to continue the matching
+incomplete fit. The stage is marked complete only after ``fit`` returns all
+required files. Completed fits and analyses reuse the ordinary pipeline cache.
+External checkpoints currently require directory outputs. Layer-plot panels can
+set ``bottleneck`` to the representation at the encoder/decoder boundary;
+the default remains ``mu``.

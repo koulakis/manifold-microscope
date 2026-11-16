@@ -66,6 +66,8 @@ def _validate_experiment_options(result: dict, defaults: dict) -> None:
         allowed = set(defaults[section])
         if section == 'inference':
             allowed.add('evaluation_size')
+        if section == 'model':
+            allowed.add('adapter')
         unknown = set(result[section]) - allowed
         if unknown:
             raise ValueError(f'Unknown {section} options: {sorted(unknown)}')
@@ -76,8 +78,12 @@ def _validate_experiment_options(result: dict, defaults: dict) -> None:
         raise ValueError('Invalid training/test fraction.')
     if split['method'] == 'full' and split['train_fraction'] != 1:
         raise ValueError('A full split must keep the full training domain.')
-    if result['model']['name'] not in (None, 'beta_vae', 'mmls'):
-        raise ValueError('model.name must be beta_vae, mmls or null.')
+    if result['model']['name'] not in (None, 'beta_vae', 'mmls', 'external'):
+        raise ValueError('model.name must be beta_vae, mmls, external or null.')
+    if result['model']['name'] == 'external' and not result['model'].get('adapter'):
+        raise ValueError('External models require a model.adapter implementation/version identifier.')
+    if not isinstance(result['dataset'].get('normalize', True), bool):
+        raise ValueError('dataset.normalize must be a boolean.')
 
 
 def _validate_inference_options(result: dict, split: dict) -> None:
