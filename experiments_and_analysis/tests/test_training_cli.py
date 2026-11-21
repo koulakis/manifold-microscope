@@ -30,3 +30,14 @@ def test_mmls_projection_option(tmp_path, monkeypatch):
     result = CliRunner().invoke(runner.app, ['--config', str(path), '--output-dir', str(tmp_path)])
     assert result.exit_code == 0, result.output
     assert calls[0]['model']['parameters']['projection_method'] == 'original'
+
+
+def test_geometry_precision_flag_is_a_runtime_option(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(runner, 'run', lambda config, output, **kwargs: calls.append((config, kwargs)))
+    path = tmp_path / 'config.json'
+    path.write_text('{}')
+    result = CliRunner().invoke(runner.app, ['--config', str(path), '--output-dir', str(tmp_path),
+                                           '--fallback-to-float64-on-nan-measures'])
+    assert result.exit_code == 0, result.output
+    assert calls == [({}, {'fallback_to_float64_on_nan_measures': True})]

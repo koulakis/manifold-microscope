@@ -41,6 +41,22 @@ Paper presets request ``base.device: cuda:0``; pass ``--device cpu`` to override
 See :ref:`device-selection` for initialization and cache behavior. Geometry
 reports its device, including in the reach progress bar.
 
+The single-run CLI accepts ``--fallback-to-float64-on-nan-measures``. Python
+callers can pass ``fallback_to_float64_on_nan_measures=True`` to the run function.
+This optional policy retries nonfinite float32 geometry once in float64, starting
+from the original representations before volume normalization. It also catches
+nonfinite returned measure grids and aggregates; empty curvature sign subsets
+retain their historical aggregate NaNs. Unrelated errors and failures that
+persist in float64 propagate normally.
+
+The retry affects geometry only. Model fitting and inference keep their original
+precision, and successful float32 geometry is unchanged. Completed stages remain
+reusable because the policy does not change cache identities. Newly computed
+geometry stages include ``precision.json`` with the input and computation dtypes
+and whether fallback was used. Restart the command with the same output root to
+enable this policy after a failure; interrupted stage directories must first be
+moved aside as described by the runner's error message.
+
 Quick runs
 ----------
 
