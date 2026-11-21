@@ -362,7 +362,8 @@ def analyze(
     train_count: int,
     model: BetaVAE_H | ANNMMLSProjector | ModelAdapter | None,
     root: Path | BundlePath,
-    model_id: str | None
+    model_id: str | None,
+    fallback_to_float64_on_nan_measures: bool = False
 ) -> list[dict]:
     """Run configured analyses over selected data domains and representations.
 
@@ -374,6 +375,7 @@ def analyze(
         model: Autoencoder used for inference.
         root: Root directory for experiment artifacts.
         model_id: Model-stage identifier, or None for input-only analyses.
+        fallback_to_float64_on_nan_measures: Retry nonfinite float32 geometry without changing stage identities.
 
     Returns:
         List of result records for each configured analysis, domain and representation.
@@ -511,11 +513,21 @@ def analyze(
                             values,
                             dataset,
                             device=config['device'],
+                            fallback_to_float64_on_nan_measures=fallback_to_float64_on_nan_measures,
                             **options
                         )
                         with (directory / 'measures.pkl').open('wb') as stream:
                             pickle.dump(measures, cast(BinaryIO, stream), -1)
                         files = ['measures.pkl']
+                        if fallback_to_float64_on_nan_measures:
+                            dtype = next(iter(measures.measures.normalized_curvatures.values())).dtype
+                            write_json(directory / 'precision.json', dict(
+                                input_dtype=str(values.dtype),
+                                computation_dtype=str(dtype),
+                                fallback_to_float64_on_nan_measures=True,
+                                fallback_used=values.dtype == np.float32 and dtype == np.float64
+                            ))
+                            files.append('precision.json')
                     case 'inference':
                         write_json(directory / 'inference.json', dict(directory=str(inference_dir)))
                         files = ['inference.json']
@@ -570,7 +582,8 @@ def _run(
     dataset: Dataset | None,
     artifacts: Path | BundlePath,
     model_adapter: ModelAdapter | None = None,
-    resume_training: bool = False
+    resume_training: bool = False,
+    fallback_to_float64_on_nan_measures: bool = False
 ) -> dict:
     """One execution path for both directory and bundled stage artifacts.
 
@@ -581,6 +594,7 @@ def _run(
         artifacts: Root for ordinary or bundled stage artifacts.
         model_adapter: Optional caller-supplied native model.
         resume_training: Allow an external adapter to resume a matching incomplete fit.
+        fallback_to_float64_on_nan_measures: Retry nonfinite float32 geometry once in float64.
 
     Returns:
         Experiment result dictionary containing its stage identifiers, artifact paths and analysis records.
@@ -656,7 +670,19 @@ def _run(
         grid=None,
         split_id=split_id
     )
-    records = analyze(config, dataset, indices, len(train), model, artifacts, model_id)
+    if fallback_to_float64_on_nan_measures:
+        records = analyze(
+            config,
+            dataset,
+            indices,
+            len(train),
+            model,
+            artifacts,
+            model_id,
+            fallback_to_float64_on_nan_measures=True
+        )
+    else:
+        records = analyze(config, dataset, indices, len(train), model, artifacts, model_id)
     result = dict(
         experiment_id=experiment_id,
         split_id=split_id,
@@ -674,7 +700,8 @@ def run(
     dataset: Dataset | None = None,
     quick_run: bool = False,
     model_adapter: ModelAdapter | None = None,
-    resume_training: bool = False
+    resume_training: bool = False,
+    fallback_to_float64_on_nan_measures: bool = False
 ) -> dict:
     """Run a dictionary configuration. An optional loaded Dataset avoids repeated IO.
 
@@ -685,6 +712,7 @@ def run(
         quick_run: Apply the shared reduced experiment budgets.
         model_adapter: Native model matching model.adapter, required for external model configurations.
         resume_training: Resume a matching incomplete external fit; native adapters own checkpoint recovery.
+        fallback_to_float64_on_nan_measures: Retry nonfinite float32 geometry; reuse all completed stages.
 
     Returns:
         Experiment result dictionary containing its stage identifiers, artifact paths and analysis records.
@@ -706,7 +734,8 @@ def run(
             dataset=dataset,
             artifacts=artifacts,
             model_adapter=model_adapter,
-            resume_training=resume_training
+            resume_training=resume_training,
+            fallback_to_float64_on_nan_measures=fallback_to_float64_on_nan_measures
         )
     with artifacts.bundle.transaction(experiment_identity(config, source_identity(config['dataset']))):
         return _run(
@@ -715,7 +744,8 @@ def run(
             dataset=dataset,
             artifacts=artifacts,
             model_adapter=model_adapter,
-            resume_training=resume_training
+            resume_training=resume_training,
+            fallback_to_float64_on_nan_measures=fallback_to_float64_on_nan_measures
         )
 
 
@@ -724,7 +754,10 @@ def main(
     config: Path = typer.Option(..., exists=True),
     output_dir: Path = typer.Option(...),
     quick_run: bool = False,
-    device: str | None = typer.Option(None, help='Override the configured device, e.g. cuda:0.')
+    device: str | None = typer.Option(None, help='Override the configured device, e.g. cuda:0.'),
+    fallback_to_float64_on_nan_measures: bool = typer.Option(
+        False, help='Retry nonfinite float32 geometry once in float64, reusing completed stages.'
+    )
 ) -> None:
     """Run one YAML/JSON experiment configuration.
 
@@ -733,6 +766,7 @@ def main(
         output_dir: Directory for generated outputs.
         quick_run: Apply the shared reduced experiment budgets.
         device: Optional device override, such as cpu or cuda:0.
+        fallback_to_float64_on_nan_measures: Retry nonfinite float32 geometry once in float64.
 
     Returns:
         None.
@@ -742,7 +776,10 @@ def main(
         configuration['device'] = device
     if quick_run:
         configuration = apply_quick_run(configuration)
-    run(configuration, output_dir)
+    if fallback_to_float64_on_nan_measures:
+        run(configuration, output_dir, fallback_to_float64_on_nan_measures=True)
+    else:
+        run(configuration, output_dir)
 
 
 if __name__ == '__main__':
